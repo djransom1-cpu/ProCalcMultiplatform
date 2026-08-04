@@ -1990,8 +1990,8 @@ fun RoofCalculator(
             Row(modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
-                        val bLen = FractionUtils.parse(length) / 12.0
-                        val bSpan = FractionUtils.parse(span) / 12.0
+                        val bLen = FractionUtils.parseFeet(length) / 12.0
+                        val bSpan = FractionUtils.parseFeet(span) / 12.0
                         val p = pitch.toDoubleOrNull() ?: 6.0
                         val eOh = (eaveOh.toDoubleOrNull() ?: 0.0) / 12.0
                         val gOh = (gableOh.toDoubleOrNull() ?: 0.0) / 12.0
@@ -2202,7 +2202,7 @@ fun StairCalculator(
             Row(modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
-                        val tr = FractionUtils.parse(totalRise)
+                        val tr = FractionUtils.parseFeet(totalRise)
                         val dr = pitchToDouble(targetRise, 7.5)
                         val tw = pitchToDouble(treadWidth, 10.25)
                         val ft = pitchToDouble(floorThick, 11.875)
@@ -3057,11 +3057,11 @@ fun FramingCalculator(
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Button(
                         onClick = {
-                            val wh = FractionUtils.parse(wallHeight)
+                            val wh = FractionUtils.parseFeet(wallHeight)
                             val hhb = FractionUtils.parse(headerHeightBottom)
                             val hd = FractionUtils.parse(headerDepth)
-                            val rw = FractionUtils.parse(roWidth)
-                            val rh = if (isDoor) 0.0 else FractionUtils.parse(roHeight)
+                            val rw = FractionUtils.parseFeet(roWidth)
+                            val rh = if (isDoor) 0.0 else FractionUtils.parseFeet(roHeight)
                             val wc = winCount.toIntOrNull() ?: 1
                             val sb = FractionUtils.parse(spaceBetween)
                             val oc = FractionUtils.parse(studOC).takeIf { it > 0 } ?: 16.0
@@ -3292,9 +3292,9 @@ fun WallCalculator(
             Row(modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
-                        val l = FractionUtils.parse(length) / 12.0
+                        val l = FractionUtils.parseFeet(length) / 12.0
                         val s = spacing.toDoubleOrNull() ?: 16.0
-                        val h = FractionUtils.parse(height) / 12.0
+                        val h = FractionUtils.parseFeet(height) / 12.0
                         
                         if (l > 0) {
                             val studs = WallEngine.estimateStuds(l, s)
@@ -3683,7 +3683,7 @@ fun GazeboCalculator(
                 Button(
                     onClick = {
                         val sCount = sides.toIntOrNull() ?: 8
-                        val d = FractionUtils.parse(diameter)
+                        val d = FractionUtils.parseFeet(diameter)
                         val p = pitch.toDoubleOrNull() ?: 0.0
                         val rs = FractionUtils.parse(ridgeSpan)
                         val oh = FractionUtils.parse(overhang)
@@ -3963,7 +3963,7 @@ fun ArcCalculator(
             Row(modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
-                        val c = FractionUtils.parse(chord)
+                        val c = FractionUtils.parseFeet(chord)
                         val h = FractionUtils.parse(height)
                         
                         if (c > 0 && h > 0) {
@@ -4184,7 +4184,7 @@ fun RafterCalculator(
                 Button(
                     onClick = {
                         val p = pitchToDouble(pitch, 0.0)
-                        val s = FractionUtils.parse(span)
+                        val s = FractionUtils.parseFeet(span)
                         val r = pitchToDouble(ridgeThick, 1.5)
                         val oh = pitchToDouble(overhang, 12.0)
                         val heel = pitchToDouble(heelHeight, 4.0)
@@ -4481,7 +4481,7 @@ fun HandrailCalculator(
             Row(modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
-                        val lIn = FractionUtils.parse(length)
+                        val lIn = FractionUtils.parseFeet(length)
                         val sw = spindleWidth.toDoubleOrNull() ?: 1.5
                         val mo = maxOpening.toDoubleOrNull() ?: 4.0
                         
@@ -4998,8 +4998,8 @@ fun FloorCalculator(
             Row(modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
-                        val lIn = FractionUtils.parse(length)
-                        val wIn = FractionUtils.parse(width)
+                        val lIn = FractionUtils.parseFeet(length)
+                        val wIn = FractionUtils.parseFeet(width)
                         val s = spacing.toDoubleOrNull() ?: 16.0
                         
                         if (lIn > 0 && wIn > 0) {
@@ -5450,8 +5450,8 @@ fun ConcreteCalculator(
             Row(modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
-                        val lFeet = FractionUtils.parse(length) / 12.0
-                        val wFeet = FractionUtils.parse(width) / 12.0
+                        val lFeet = FractionUtils.parseFeet(length) / 12.0
+                        val wFeet = FractionUtils.parseFeet(width) / 12.0
                         val tInches = FractionUtils.parse(thick)
                         val rsInches = if (rebarSpacing.isBlank()) 12.0 else FractionUtils.parse(rebarSpacing)
                         val q = qty.toDoubleOrNull() ?: 1.0
