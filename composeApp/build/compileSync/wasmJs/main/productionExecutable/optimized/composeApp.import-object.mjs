@@ -437,7 +437,16 @@ const js_code = {
     'androidx.compose.foundation.text.EventListener' : (handler) => (event) => { handler(event) },
     'androidx.compose.material.internal.weakMap_js_code' : () => (new WeakMap()),
     'androidx.compose.material.internal.set_$external_fun' : (_this, p0, p1) => _this.set(p0, p1),
-    'androidx.compose.material.internal.get_$external_fun' : (_this, p0) => _this.get(p0)
+    'androidx.compose.material.internal.get_$external_fun' : (_this, p0) => _this.get(p0),
+    'com.djran.constructioncalculator.triggerJsDownload' : (fileName, content, mimeType) => { 
+            var blob = new Blob([content], { type: mimeType });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(url);
+         }
 }
 
 const StringConstantsProxy = new Proxy({}, {

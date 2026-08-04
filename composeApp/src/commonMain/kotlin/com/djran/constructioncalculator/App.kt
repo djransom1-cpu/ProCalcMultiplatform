@@ -2530,6 +2530,8 @@ fun JobSummaryScreen(
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
             Text("Job Data: $projectName", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             
+            val downloader = rememberFileDownloader()
+
             IconButton(onClick = {
                 val sections = SummaryReportGenerator.generateSections(
                     stairEntries, circularStairEntries, rafterEntries, gazeboEntries,
@@ -2541,6 +2543,35 @@ fun JobSummaryScreen(
                 pdfExportProvider.share(projectName, sections)
             }) {
                 Icon(Icons.Default.Share, contentDescription = "Export PDF", tint = Color.White)
+            }
+
+            TextButton(onClick = {
+                val dxfContent = DxfExporter.generateDxf(
+                    stairList = stairEntries,
+                    rafterList = rafterEntries,
+                    floorList = floorEntries,
+                    coordList = coordinatePaths.flatMap { it.points },
+                    pineLineList = pineLineEntries,
+                    circStairList = circularStairEntries
+                )
+                downloader.downloadFile("${projectName.replace(" ", "_")}_Drawings.dxf", dxfContent, "application/dxf")
+            }) {
+                Text("DXF", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+
+            TextButton(onClick = {
+                val csvContent = buildString {
+                    append("Section,Name,Quantity,Dimensions,Primary Result,Secondary Result\n")
+                    stairEntries.forEach { append("Stairs,${it.name},${it.riserCount} risers,Rise: ${it.rise},Act Rise: ${it.actualRise},Stringer: ${it.stringerLen}\n") }
+                    rafterEntries.forEach { append("Rafters,${it.name},1,Span: ${it.span} Pitch: ${it.pitch},Common: ${it.commonLen},Hip: ${it.hipLen}\n") }
+                    concreteEntries.forEach { append("Concrete,${it.name},${it.qty},${it.dimensions},Volume: ${it.volume},Rebar: ${it.rebar}\n") }
+                    wallEntries.forEach { append("Walls,${it.name},1,${it.length}x${it.height},Studs: ${it.studs},Plates: ${it.plates}\n") }
+                    roofEntries.forEach { append("Roof,${it.name},1,${it.dimensions},Area: ${it.area},Squares: ${it.squares}\n") }
+                    floorEntries.forEach { append("Flooring,${it.name},1,${it.length}x${it.width},Joists: ${it.joists},Sheets: ${it.sheets}\n") }
+                }
+                downloader.downloadFile("${projectName.replace(" ", "_")}_Takeoff.csv", csvContent, "text/csv")
+            }) {
+                Text("CSV", color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -2559,11 +2590,22 @@ fun JobSummaryScreen(
                 if (stairEntries.isNotEmpty()) {
                     SummaryTable("STAIR SCHEDULE", listOf("Name", "Rise", "Risers", "Act Rise", "Treads", "Run", "Stringer", "Angle")) {
                         stairEntries.forEach { entry ->
-                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
-                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.rise, 80.dp)
-                                TableCell(entry.riserCount, 80.dp); TableCell(entry.actualRise, 80.dp)
-                                TableCell(entry.treadCount, 80.dp); TableCell(entry.totalRun, 80.dp)
-                                TableCell(entry.stringerLen, 100.dp); TableCell(entry.angleDeg, 80.dp)
+                            Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                                Row {
+                                    TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.rise, 80.dp)
+                                    TableCell(entry.riserCount, 80.dp); TableCell(entry.actualRise, 80.dp)
+                                    TableCell(entry.treadCount, 80.dp); TableCell(entry.totalRun, 80.dp)
+                                    TableCell(entry.stringerLen, 100.dp); TableCell(entry.angleDeg, 80.dp)
+                                }
+                                StairDiagram(
+                                    totalRise = FractionUtils.parse(entry.rise),
+                                    totalRun = FractionUtils.parse(entry.totalRun),
+                                    riserCount = entry.riserCount.toIntOrNull() ?: 1,
+                                    floorThickness = 11.875,
+                                    nosing = 1.0,
+                                    treadsOut = 0.0,
+                                    distOut = FractionUtils.parse(entry.distOut)
+                                )
                             }
                             Divider()
                         }
@@ -2587,11 +2629,21 @@ fun JobSummaryScreen(
                 if (rafterEntries.isNotEmpty()) {
                     SummaryTable("RAFTER SCHEDULE", listOf("Name", "Span", "Pitch", "Heel", "O/H", "Com Len", "Hip Len", "Jack 16")) {
                         rafterEntries.forEach { entry ->
-                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
-                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.span, 80.dp)
-                                TableCell(entry.pitch, 80.dp); TableCell(entry.heel, 80.dp)
-                                TableCell(entry.overhang, 80.dp); TableCell(entry.commonLen, 100.dp)
-                                TableCell(entry.hipLen, 100.dp); TableCell(entry.jack16, 80.dp)
+                            Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                                Row {
+                                    TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.span, 80.dp)
+                                    TableCell(entry.pitch, 80.dp); TableCell(entry.heel, 80.dp)
+                                    TableCell(entry.overhang, 80.dp); TableCell(entry.commonLen, 100.dp)
+                                    TableCell(entry.hipLen, 100.dp); TableCell(entry.jack16, 80.dp)
+                                }
+                                RafterDetail(
+                                    run = FractionUtils.parse(entry.commonRun),
+                                    rise = FractionUtils.parse(entry.commonRise),
+                                    pitch = FractionUtils.parse(entry.pitch),
+                                    heel = FractionUtils.parse(entry.heel),
+                                    lumberDepth = 7.25,
+                                    overhang = FractionUtils.parse(entry.overhang).takeIf { it > 0 } ?: 12.0
+                                )
                             }
                             Divider()
                         }
@@ -2667,10 +2719,17 @@ fun JobSummaryScreen(
                 if (concreteEntries.isNotEmpty()) {
                     SummaryTable("CONCRETE SCHEDULE", listOf("Name", "Qty", "Dimens", "Volume", "Rebar")) {
                         concreteEntries.forEach { entry ->
-                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
-                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.qty, 80.dp)
-                                TableCell(entry.dimensions, 150.dp); TableCell(entry.volume, 100.dp)
-                                TableCell(entry.rebar, 100.dp)
+                            Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                                Row {
+                                    TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.qty, 80.dp)
+                                    TableCell(entry.dimensions, 150.dp); TableCell(entry.volume, 100.dp)
+                                    TableCell(entry.rebar, 100.dp)
+                                }
+                                FootingCrossSection(
+                                    width = 24.0,
+                                    thickness = 12.0,
+                                    rebarOC = 12.0
+                                )
                             }
                             Divider()
                         }
