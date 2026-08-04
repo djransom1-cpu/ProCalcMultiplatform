@@ -1,0 +1,11 @@
+abi_version=2.3.0
+builtins_platform=WASM
+compiler_version=2.3.20
+ir_signature_versions=1,2
+jsOutputName=composeApp
+language_features=+AllowAnyAsAnActualTypeForExpectInterface +JsAllowImplementingFunctionInterface +MultiPlatformProjects
+metadata_version=2.3.0
+serializedIrFileFingerprints=fwqcspqjsppt.3qxs0lnani4k7 2f1iqvlqxnl7w.kog9kv7ftx6a hpivi6ina5y3.3gjlufsttf7fi 3ek8fns1olfpl.rwid9ufrtfka 1g0xqd3uujae4.3pm0yvqyktlco 5szbtquhib5b.2xn11o7sqph69 1skhkllhxccgy.20h0njrl60k9f 154wald3l71sd.92h1d6ek9dhh 21n3y3mh7ifyj.23zirizggxcf 2a9xjcnx2zhhs.15sym7i7jaxe1 2b8gu499hps23.2k5newdg8d0r9 e2j4j4i6ecuc.2dc4aogcr4stv 1uvkny7y2lee0.35bys8vandijz
+serializedKlibFingerprint=1ywdrk5ruo5i5.2moqbqpp0osw4
+unique_name=ProCalcMultiplatform\:composeApp
+wasm_targets=wasm-js

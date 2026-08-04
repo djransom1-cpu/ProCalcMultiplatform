@@ -1,0 +1,10 @@
+{
+  "name": "composeApp",
+  "version": "0.0.0-unspecified",
+  "main": "composeApp.mjs",
+  "devDependencies": {},
+  "dependencies": {},
+  "peerDependencies": {},
+  "optionalDependencies": {},
+  "bundledDependencies": []
+}

@@ -9,3 +9,7 @@
 .cxx
 local.properties
 kotlin-js-store
+google-services.json
+**/google-services.json
+GoogleService-Info.plist
+**/GoogleService-Info.plist

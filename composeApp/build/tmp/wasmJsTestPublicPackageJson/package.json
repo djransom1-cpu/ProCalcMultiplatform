@@ -1,0 +1,10 @@
+{
+  "name": "composeApp-test",
+  "version": "0.0.0-unspecified",
+  "main": "composeApp-test.mjs",
+  "devDependencies": {},
+  "dependencies": {},
+  "peerDependencies": {},
+  "optionalDependencies": {},
+  "bundledDependencies": []
+}
