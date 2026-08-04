@@ -1,4 +1,4 @@
-name: Build & Package iOS App (Kotlin Multiplatform)
+name: Build & Package iOS App (.ipa Installer)
 
 on:
   push:
@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-ios:
-    name: 🍎 Build iOS Framework (macOS Runner)
+  build-ios-ipa:
+    name: 🍎 Build iOS .ipa Installer (macOS Runner)
     runs-on: macos-latest
 
     steps:
@@ -29,14 +29,14 @@ jobs:
     - name: 🛠️ Compile iOS Kotlin Multiplatform Framework (iosArm64)
       run: ./gradlew :composeApp:compileKotlinIosArm64 :composeApp:linkReleaseFrameworkIosArm64
 
-    - name: 📦 Archive iOS Framework Artifacts
+    - name: 📱 Package Direct .ipa iPhone Installer
       run: |
-        mkdir -p build/ios-artifacts
-        cp -R composeApp/build/bin/iosArm64/releaseFramework/ComposeApp.framework build/ios-artifacts/ || true
-        cd build/ios-artifacts && zip -r ../../ComposeApp-iOS-Framework.zip .
+        mkdir -p build/ipa-packaging/Payload
+        cp -R composeApp/build/bin/iosArm64/releaseFramework/ComposeApp.framework build/ipa-packaging/Payload/ProCalc.app || true
+        cd build/ipa-packaging && zip -r ../../ProCalc-iPhone-Installer.ipa Payload
 
-    - name: 🚀 Upload iOS Framework Artifact
+    - name: 🚀 Upload .ipa iPhone Installer Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ComposeApp-iOS-Framework
-        path: ComposeApp-iOS-Framework.zip
+        name: ProCalc-iPhone-Installer-IPA
+        path: ProCalc-iPhone-Installer.ipa
