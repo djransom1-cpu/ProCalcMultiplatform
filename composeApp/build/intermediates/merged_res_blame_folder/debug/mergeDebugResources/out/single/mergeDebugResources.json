@@ -1,0 +1,30 @@
+[
+    {
+        "merged": "com.djran.constructioncalculator.composeApp-debug-50:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.djran.constructioncalculator.composeApp-androidMain-52:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.djran.constructioncalculator.composeApp-debug-50:/drawable_ic_launcher_legacy.xml.flat",
+        "source": "com.djran.constructioncalculator.composeApp-androidMain-52:/drawable/ic_launcher_legacy.xml"
+    },
+    {
+        "merged": "com.djran.constructioncalculator.composeApp-debug-50:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.djran.constructioncalculator.composeApp-androidMain-52:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.djran.constructioncalculator.composeApp-debug-50:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.djran.constructioncalculator.composeApp-androidMain-52:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "com.djran.constructioncalculator.composeApp-debug-50:/drawable_ic_launcher_monochrome.xml.flat",
+        "source": "com.djran.constructioncalculator.composeApp-androidMain-52:/drawable/ic_launcher_monochrome.xml"
+    },
+    {
+        "merged": "com.djran.constructioncalculator.composeApp-debug-50:/xml_provider_paths.xml.flat",
+        "source": "com.djran.constructioncalculator.composeApp-androidMain-52:/xml/provider_paths.xml"
+    },
+    {
+        "merged": "com.djran.constructioncalculator.composeApp-debug-50:/drawable_ic_launcher_background.xml.flat",
+        "source": "com.djran.constructioncalculator.composeApp-androidMain-52:/drawable/ic_launcher_background.xml"
+    }
+]

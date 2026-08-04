@@ -1,0 +1,6045 @@
+package com.djran.constructioncalculator
+
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import com.russhwolf.settings.Settings
+import com.russhwolf.settings.set
+import com.russhwolf.settings.get
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import kotlin.math.*
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material.icons.automirrored.filled.Backspace
+import androidx.compose.material.icons.filled.KeyboardHide
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import kotlinx.coroutines.launch
+import kotlin.math.*
+
+enum class Screen {
+    Calculator,
+    ConcreteCalculator,
+    StairCalculator,
+    RafterCalculator,
+    ArcCalculator,
+    WallCalculator,
+    CrownCalculator,
+    GazeboCalculator,
+    RoofCalculator,
+    CoordinateCalculator,
+    MasonryCalculator,
+    DrywallCalculator,
+    DeckCalculator,
+    FloorCalculator,
+    HandrailCalculator,
+    PineLineCalculator,
+    CircularStairCalculator,
+    TrigCalculator,
+    ColumnCalculator,
+    FramingCalculator,
+    ScientificCalculator,
+    GraphingCalculator,
+    CalculatorHelp,
+    JobNotes,
+    ProjectList,
+    JobSummary,
+    About
+}
+
+@Serializable
+data class StairEntry(
+    val id: String = "",
+    val name: String,
+    val rise: String,
+    val riserCount: String,
+    val actualRise: String,
+    val treadCount: String,
+    val stringerRun: String,
+    val totalRun: String,
+    val stringerLen: String,
+    val angleDeg: String,
+    val treadsOut: String,
+    val distOut: String,
+    val headroom: String = "Clear"
+)
+
+@Serializable
+data class RafterEntry(
+    val id: String = "",
+    val name: String,
+    val span: String,
+    val pitch: String,
+    val ridge: String,
+    val depth: String,
+    val heel: String,
+    val overhang: String,
+    val commonLen: String,
+    val commonOverall: String,
+    val commonRun: String,
+    val commonRise: String,
+    val commonOARise: String,
+    val commonPlumbSeat: String,
+    val hipLen: String,
+    val hipOverall: String,
+    val hipRun: String,
+    val hipRise: String,
+    val hipOARise: String,
+    val hipPitch: String,
+    val hipPlumbSeat: String,
+    val jack16: String,
+    val jack24: String
+)
+
+@Serializable
+data class ArcEntry(
+    val id: String = "",
+    val name: String,
+    val chord: String,
+    val height: String,
+    val radius: String,
+    val arcLength: String,
+    val arcAngle: String
+)
+
+@Serializable
+data class WallEntry(
+    val id: String = "",
+    val name: String,
+    val length: String,
+    val height: String,
+    val spacing: String,
+    val studs: String,
+    val plates: String,
+    val blocking: String = "0 lin ft",
+    val sheets: String
+)
+
+@Serializable
+data class CrownEntry(
+    val id: String = "",
+    val name: String,
+    val spring: String,
+    val wallAngle: String,
+    val miter: String,
+    val bevel: String
+)
+
+@Serializable
+data class GazeboEntry(
+    val id: String = "",
+    val name: String,
+    val sides: String,
+    val diameter: String,
+    val ridgeSpan: String,
+    val pitch: String,
+    val overhang: String,
+    val heel: String,
+    val sideLength: String,
+    val apothem: String,
+    val perimeter: String,
+    val interiorAngle: String,
+    val miter: String,
+    val area: String,
+    val verticalRise: String,
+    val commonRafterLen: String,
+    val commonOverall: String,
+    val hipLen: String,
+    val hipOverall: String,
+    val commonPlumbSeat: String,
+    val hipPlumbSeat: String,
+    val ridgeOffset: String
+)
+
+@Serializable
+data class ConcreteEntry(
+    val id: String = "",
+    val name: String,
+    val qty: String,
+    val volume: String,
+    val rebar: String,
+    val spacing: String,
+    val dimensions: String
+)
+
+@Serializable
+data class RoofEntry(
+    val id: String = "",
+    val name: String,
+    val area: String,
+    val squares: String,
+    val bundles: String,
+    val sheets: String,
+    val dimensions: String
+)
+
+@Serializable
+data class MasonryEntry(
+    val id: String = "",
+    val name: String,
+    val area: String,
+    val blocks: String,
+    val blockMortar: String,
+    val bricks: String,
+    val brickMortar: String
+)
+
+@Serializable
+data class DrywallEntry(
+    val id: String = "",
+    val name: String,
+    val area: String,
+    val sheets: String,
+    val sheetSize: String = "4x8",
+    val mud: String,
+    val tape: String
+)
+
+@Serializable
+data class DeckEntry(
+    val id: String = "",
+    val name: String,
+    val length: String,
+    val width: String,
+    val boardWidth: String,
+    val gap: String,
+    val boards: String,
+    val fasteners: String
+)
+
+@Serializable
+data class FloorEntry(
+    val id: String = "",
+    val name: String,
+    val length: String,
+    val width: String,
+    val spacing: String,
+    val joists: String,
+    val sheets: String
+)
+
+@Serializable
+data class HandrailEntry(
+    val id: String = "",
+    val name: String,
+    val length: String,
+    val spindleWidth: String,
+    val maxOpening: String,
+    val spindles: String,
+    val spacing: String
+)
+
+@Serializable
+data class PineLineEntry(
+    val id: String = "",
+    val name: String,
+    val pitch: String,
+    val heel: String,
+    val wall: String,
+    val brick: String,
+    val frieze: String,
+    val overhang: String,
+    val fascia: String,
+    val reveal: String,
+    val drop: String
+)
+
+@Serializable
+data class CoordinatePoint(
+    val n: Double,
+    val e: Double,
+    val elev: Double = 0.0,
+    val description: String = ""
+)
+
+@Serializable
+data class PlottedPath(
+    val id: String = "",
+    val points: List<CoordinatePoint> = emptyList(),
+    val isTakeoff: Boolean = true,
+    val isClosed: Boolean = false,
+    val arcHeights: List<Double> = emptyList()
+)
+
+@Serializable
+data class CircularStairEntry(
+    val id: String = "",
+    val name: String,
+    val totalRise: String,
+    val radius: String,
+    val rotation: String,
+    val riserCount: String,
+    val actualRise: String,
+    val walkTread: String,
+    val innerTread: String,
+    val outerTread: String
+)
+
+@Serializable
+data class TrigEntry(
+    val id: String = "",
+    val name: String,
+    val sideA: String,
+    val sideB: String,
+    val hypotenuse: String,
+    val angleA: String,
+    val angleB: String
+)
+
+@Serializable
+data class ColumnEntry(
+    val id: String = "",
+    val name: String,
+    val diameter: String,
+    val height: String,
+    val volume: String,
+    val surfaceArea: String,
+    val circumference: String
+)
+
+@Serializable
+data class FramingEntry(
+    val id: String = "",
+    val name: String,
+    val wallHeight: String,
+    val headerHeightBottom: String,
+    val headerDepth: String,
+    val roWidth: String,
+    val roHeight: String,
+    val winCount: String = "1",
+    val spaceBetween: String = "0",
+    val studOC: String = "16",
+    val isDoor: Boolean = false,
+    val isMultiWindow: Boolean = false,
+    val studSize: String = "2x4",
+    val notes: String = "",
+    // Results
+    val studHeight: String = "",
+    val headerLength: String = "",
+    val headerNominal: String = "",
+    val jackCount: String = "",
+    val jackLength: String = "",
+    val sillCount: String = "",
+    val sillLength: String = "",
+    val lowerCrippleCount: String = "",
+    val lowerCrippleLength: String = "",
+    val upperCrippleCount: String = "",
+    val upperCrippleLength: String = ""
+)
+
+data class SummarySection(val title: String, val headers: List<String>, val rows: List<List<String>>)
+
+object SummaryReportGenerator {
+    fun generateSections(
+        stairEntries: List<StairEntry>,
+        circularStairEntries: List<CircularStairEntry>,
+        rafterEntries: List<RafterEntry>,
+        gazeboEntries: List<GazeboEntry>,
+        arcEntries: List<ArcEntry>,
+        wallEntries: List<WallEntry>,
+        crownEntries: List<CrownEntry>,
+        concreteEntries: List<ConcreteEntry>,
+        masonryEntries: List<MasonryEntry>,
+        drywallEntries: List<DrywallEntry>,
+        trigEntries: List<TrigEntry>,
+        columnEntries: List<ColumnEntry>,
+        roofEntries: List<RoofEntry>,
+        floorEntries: List<FloorEntry>,
+        deckEntries: List<DeckEntry>,
+        handrailEntries: List<HandrailEntry>,
+        framingEntries: List<FramingEntry>,
+        pineLineEntries: List<PineLineEntry>,
+        coordinatePaths: List<PlottedPath>
+    ): List<SummarySection> {
+        val sections = mutableListOf<SummarySection>()
+
+        if (stairEntries.isNotEmpty()) {
+            sections.add(SummarySection("STAIR SCHEDULE", listOf("Name", "Rise", "Risers", "Act Rise", "Treads", "Run", "Stringer", "Angle"), stairEntries.map { listOf(it.name, it.rise, it.riserCount, it.actualRise, it.treadCount, it.totalRun, it.stringerLen, it.angleDeg) }))
+        }
+        if (circularStairEntries.isNotEmpty()) {
+            sections.add(SummarySection("CIRCULAR STAIR SCHEDULE", listOf("Name", "Rise", "Radius", "Rot", "Risers", "Act Rise", "Walk Trd", "In Trd", "Out Trd"), circularStairEntries.map { listOf(it.name, it.totalRise, it.radius, it.rotation, it.riserCount, it.actualRise, it.walkTread, it.innerTread, it.outerTread) }))
+        }
+        if (rafterEntries.isNotEmpty()) {
+            sections.add(SummarySection("RAFTER SCHEDULE", listOf("Name", "Span", "Pitch", "Heel", "O/H", "Com Len", "Hip Len", "Jack 16"), rafterEntries.map { listOf(it.name, it.span, it.pitch, it.heel, it.overhang, it.commonLen, it.hipLen, it.jack16) }))
+        }
+        if (gazeboEntries.isNotEmpty()) {
+            sections.add(SummarySection("GAZEBO SCHEDULE", listOf("Name", "Sides", "Diam", "Pitch", "Area", "Com Len", "Hip Len"), gazeboEntries.map { listOf(it.name, it.sides, it.diameter, it.pitch, it.area, it.commonRafterLen, it.hipLen) }))
+        }
+        if (arcEntries.isNotEmpty()) {
+            sections.add(SummarySection("ARC SCHEDULE", listOf("Name", "Chord", "Height", "Radius", "Arc Len", "Angle"), arcEntries.map { listOf(it.name, it.chord, it.height, it.radius, it.arcLength, it.arcAngle) }))
+        }
+        if (wallEntries.isNotEmpty()) {
+            sections.add(SummarySection("WALL FRAMING SCHEDULE", listOf("Name", "Length", "Height", "Studs", "Plates", "Sheets"), wallEntries.map { listOf(it.name, it.length, it.height, it.studs, it.plates, it.sheets) }))
+        }
+        if (crownEntries.isNotEmpty()) {
+            sections.add(SummarySection("CROWN MOLDING SCHEDULE", listOf("Name", "Spring", "Corner", "Miter", "Bevel"), crownEntries.map { listOf(it.name, it.spring, it.wallAngle, it.miter, it.bevel) }))
+        }
+        if (concreteEntries.isNotEmpty()) {
+            sections.add(SummarySection("CONCRETE SCHEDULE", listOf("Name", "Qty", "Dimens", "Volume", "Rebar"), concreteEntries.map { listOf(it.name, it.qty, it.dimensions, it.volume, it.rebar) }))
+        }
+        if (masonryEntries.isNotEmpty()) {
+            sections.add(SummarySection("MASONRY SCHEDULE", listOf("Name", "Area", "Blocks", "Bricks"), masonryEntries.map { listOf(it.name, it.area, it.blocks, it.bricks) }))
+        }
+        if (drywallEntries.isNotEmpty()) {
+            sections.add(SummarySection("DRYWALL SCHEDULE", listOf("Name", "Area", "Sheets", "Size", "Mud", "Tape"), drywallEntries.map { listOf(it.name, it.area, it.sheets, it.sheetSize, it.mud, it.tape) }))
+        }
+        if (trigEntries.isNotEmpty()) {
+            sections.add(SummarySection("TRIG SOLUTIONS SCHEDULE", listOf("Name", "Side A", "Side B", "Hypot", "Angle A", "Angle B"), trigEntries.map { listOf(it.name, it.sideA, it.sideB, it.hypotenuse, it.angleA, it.angleB) }))
+        }
+        if (columnEntries.isNotEmpty()) {
+            sections.add(SummarySection("COLUMN / CIRCLE SCHEDULE", listOf("Name", "Diam", "Height", "Volume", "Surf Area", "Circumf"), columnEntries.map { listOf(it.name, it.diameter, it.height, it.volume, it.surfaceArea, it.circumference) }))
+        }
+        if (roofEntries.isNotEmpty()) {
+            sections.add(SummarySection("ROOF SCHEDULE", listOf("Name", "Area", "Squares", "Bundles", "Sheets", "Pitch"), roofEntries.map { listOf(it.name, it.area, it.squares, it.bundles, it.sheets, it.dimensions) }))
+        }
+        if (floorEntries.isNotEmpty()) {
+            sections.add(SummarySection("FLOORING SCHEDULE", listOf("Name", "Length", "Width", "OC", "Joists", "Sheets"), floorEntries.map { listOf(it.name, it.length, it.width, it.spacing, it.joists, it.sheets) }))
+        }
+        if (deckEntries.isNotEmpty()) {
+            sections.add(SummarySection("DECKING SCHEDULE", listOf("Name", "Length", "Width", "Gap", "Boards", "Fasteners"), deckEntries.map { listOf(it.name, it.length, it.width, it.gap, it.boards, it.fasteners) }))
+        }
+        if (handrailEntries.isNotEmpty()) {
+            sections.add(SummarySection("HANDRAIL SCHEDULE", listOf("Name", "Length", "Count", "Spacing"), handrailEntries.map { listOf(it.name, it.length, it.spindles, it.spacing) }))
+        }
+        if (framingEntries.isNotEmpty()) {
+            sections.add(SummarySection("OPENINGS SCHEDULE", listOf("Name", "Qty", "Header", "Jacks", "Lower Crip", "Upper Crip"), framingEntries.map { listOf(it.name, it.winCount, it.headerLength, "${it.jackCount}@${it.jackLength}", it.lowerCrippleCount, it.upperCrippleCount) }))
+        }
+        if (pineLineEntries.isNotEmpty()) {
+            sections.add(SummarySection("PINE LINE SCHEDULE", listOf("Name", "Pitch", "Heel", "Wall", "O/H", "Drop"), pineLineEntries.map { listOf(it.name, it.pitch, it.heel, it.wall, it.overhang, it.drop) }))
+        }
+        if (coordinatePaths.isNotEmpty()) {
+            sections.add(SummarySection("SITE SURVEY SCHEDULE", listOf("ID", "Type", "Points", "Area (sq ft)"), coordinatePaths.map { path ->
+                val area = CoordinateEngine.calculateNetArea(path.points.map { CoordinateEngine.Point(it.n, it.e) }, path.arcHeights)
+                listOf(path.id, if (path.isTakeoff) "TAKEOFF" else "BOUNDARY", path.points.size.toString(), (area / 144.0).roundToOneDecimal().toString())
+            }))
+        }
+
+        return sections
+    }
+}
+
+@Serializable
+data class SerializablePoint(val x: Float, val y: Float)
+
+@Serializable
+data class SerializablePath(val points: List<SerializablePoint>, val color: Int)
+
+@Serializable
+data class AppState(
+    val projectList: List<String>,
+    val currentProjectName: String,
+    val allStairEntries: Map<String, List<StairEntry>>,
+    val allRafterEntries: Map<String, List<RafterEntry>>,
+    val allArcEntries: Map<String, List<ArcEntry>>,
+    val allWallEntries: Map<String, List<WallEntry>> = emptyMap(),
+    val allCrownEntries: Map<String, List<CrownEntry>> = emptyMap(),
+    val allGazeboEntries: Map<String, List<GazeboEntry>> = emptyMap(),
+    val allConcreteEntries: Map<String, List<ConcreteEntry>> = emptyMap(),
+    val allRoofEntries: Map<String, List<RoofEntry>> = emptyMap(),
+    val allCoordinatePaths: Map<String, List<PlottedPath>> = emptyMap(),
+    val allMasonryEntries: Map<String, List<MasonryEntry>> = emptyMap(),
+    val allDrywallEntries: Map<String, List<DrywallEntry>> = emptyMap(),
+    val allDeckEntries: Map<String, List<DeckEntry>> = emptyMap(),
+    val allFloorEntries: Map<String, List<FloorEntry>> = emptyMap(),
+    val allHandrailEntries: Map<String, List<HandrailEntry>> = emptyMap(),
+    val allPineLineEntries: Map<String, List<PineLineEntry>> = emptyMap(),
+    val allCircularStairEntries: Map<String, List<CircularStairEntry>> = emptyMap(),
+    val allTrigEntries: Map<String, List<TrigEntry>> = emptyMap(),
+    val allColumnEntries: Map<String, List<ColumnEntry>> = emptyMap(),
+    val allFramingEntries: Map<String, List<FramingEntry>> = emptyMap(),
+    val allJobNotes: Map<String, List<SerializablePath>> = emptyMap()
+)
+
+
+class PersistenceManager(private val settings: Settings? = null) {
+    private val json = Json { 
+        ignoreUnknownKeys = true 
+        encodeDefaults = true
+    }
+    private val KEY_APP_STATE = "app_state_v1"
+
+    fun saveState(state: AppState) {
+        val s = settings ?: return
+        try {
+            val serialized = json.encodeToString(state)
+            s.putString(KEY_APP_STATE, serialized)
+        } catch (e: Exception) {
+            println("Persistence Error: ${e.message}")
+        }
+    }
+
+    fun loadState(): AppState? {
+        val s = settings ?: return null
+        return try {
+            val serialized = s.getStringOrNull(KEY_APP_STATE)
+            if (serialized != null) {
+                json.decodeFromString<AppState>(serialized)
+            } else null
+        } catch (e: Exception) {
+            println("Persistence Load Error: ${e.message}")
+            null
+        }
+    }
+}
+
+data class ToolItem(
+    val title: String,
+    val subLabel: String = "",
+    val color: Color,
+    val icon: ImageVector? = null,
+    val screen: Screen? = null
+)
+
+val BlueTool = Color(0xFF0A2A66)
+val OrangeTool = Color(0xFFE67E22)
+val LabelRed = Color(0xFFD32F2F)
+val SageGreen = Color(0xFF99A894)
+val KeypadBg = Color(0xFFD1D1D1)
+val GrayBtn = Color(0xFF7A7A7A)
+val RedBtn = Color(0xFFD32F2F)
+
+@Composable
+@Preview
+fun App() {
+    val persistenceManager = remember { 
+        val s = try { Settings() } catch (e: Throwable) { null }
+        PersistenceManager(s)
+    }
+    val initialData = remember { persistenceManager.loadState() }
+
+    var currentScreen by remember { mutableStateOf(Screen.Calculator) }
+    
+    // Project & Data State
+    var projectList by remember { mutableStateOf(initialData?.projectList ?: listOf("Default")) }
+    var currentProjectName by remember { mutableStateOf(initialData?.currentProjectName ?: "Default") }
+    var allStairEntries by remember { mutableStateOf(initialData?.allStairEntries ?: mapOf()) }
+    var allRafterEntries by remember { mutableStateOf(initialData?.allRafterEntries ?: mapOf()) }
+    var allArcEntries by remember { mutableStateOf(initialData?.allArcEntries ?: mapOf()) }
+    var allWallEntries by remember { mutableStateOf(initialData?.allWallEntries ?: mapOf()) }
+    var allCrownEntries by remember { mutableStateOf(initialData?.allCrownEntries ?: mapOf()) }
+    var allGazeboEntries by remember { mutableStateOf(initialData?.allGazeboEntries ?: mapOf()) }
+    var allConcreteEntries by remember { mutableStateOf(initialData?.allConcreteEntries ?: mapOf()) }
+    var allRoofEntries by remember { mutableStateOf(initialData?.allRoofEntries ?: mapOf()) }
+    var allCoordinatePaths by remember { mutableStateOf(initialData?.allCoordinatePaths ?: mapOf()) }
+    var allMasonryEntries by remember { mutableStateOf(initialData?.allMasonryEntries ?: mapOf()) }
+    var allDrywallEntries by remember { mutableStateOf(initialData?.allDrywallEntries ?: mapOf()) }
+    var allDeckEntries by remember { mutableStateOf(initialData?.allDeckEntries ?: mapOf()) }
+    var allFloorEntries by remember { mutableStateOf(initialData?.allFloorEntries ?: mapOf()) }
+    var allHandrailEntries by remember { mutableStateOf(initialData?.allHandrailEntries ?: mapOf()) }
+    var allPineLineEntries by remember { mutableStateOf(initialData?.allPineLineEntries ?: mapOf()) }
+    var allCircularStairEntries by remember { mutableStateOf(initialData?.allCircularStairEntries ?: mapOf()) }
+    var allTrigEntries by remember { mutableStateOf(initialData?.allTrigEntries ?: mapOf()) }
+    var allColumnEntries by remember { mutableStateOf(initialData?.allColumnEntries ?: mapOf()) }
+    var allFramingEntries by remember { mutableStateOf(initialData?.allFramingEntries ?: mapOf()) }
+    var allJobNotes by remember { mutableStateOf(initialData?.allJobNotes ?: mapOf()) }
+
+    var isMetricMode by remember { mutableStateOf(false) }
+
+    // Custom Keyboard State
+    var keyboardVisible by remember { mutableStateOf(false) }
+    var keyboardValue by remember { mutableStateOf("") }
+    var keyboardTarget by remember { mutableStateOf<(String) -> Unit>({}) }
+
+    val focusManager = LocalFocusManager.current
+
+    val openKeyboard: (String, (String) -> Unit) -> Unit = { value, target ->
+        keyboardValue = value
+        keyboardTarget = target
+        keyboardVisible = true
+    }
+
+    // Auto-save whenever critical state changes
+    LaunchedEffect(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes) {
+        persistenceManager.saveState(
+            AppState(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes)
+        )
+    }
+
+    // Calculator Engine State
+    var currentInput by remember { mutableStateOf("") }
+    var historyText by remember { mutableStateOf("") }
+    var firstValue by remember { mutableStateOf<DimensionValue?>(null) }
+    var pendingOperation by remember { mutableStateOf("") }
+    var isNewEntry by remember { mutableStateOf(true) }
+
+    val scaffoldState = rememberScaffoldState()
+    val scope = rememberCoroutineScope()
+
+    // Helper functions for the calculator engine
+    fun getCurrentDimensionValue(): DimensionValue {
+        if (currentInput.isEmpty()) return DimensionValue(0.0, 0)
+        val power = when {
+            currentInput.contains("cu ") -> 3
+            currentInput.contains("sq ") -> 2
+            currentInput.contains("'") || currentInput.contains("\"") || currentInput.contains("/") || currentInput.contains(" m") || currentInput.contains("cm") || currentInput.contains("mm") -> 1
+            else -> 0
+        }
+        return DimensionValue(FractionUtils.parse(currentInput), power)
+    }
+
+    fun appendNumber(num: String) {
+        if (isNewEntry) {
+            if (historyText.contains("=")) historyText = ""
+            currentInput = if (num == ".") "0." else num
+            isNewEntry = false
+        } else {
+            if (num == "." && currentInput.contains(".")) return
+            currentInput += num
+        }
+    }
+
+    fun setOperation(op: String) {
+        if (pendingOperation.isNotEmpty() && !isNewEntry) {
+            val secondValue = getCurrentDimensionValue()
+            val first = firstValue
+            if (first != null) {
+                val result = when (pendingOperation) {
+                    "+" -> first + secondValue
+                    "-" -> first - secondValue
+                    "X", "*" -> first * secondValue
+                    "/", "÷" -> first / secondValue
+                    else -> secondValue
+                }
+                currentInput = result.toString()
+            }
+        }
+        firstValue = getCurrentDimensionValue()
+        pendingOperation = op
+        historyText = "${firstValue.toString()} $op"
+        isNewEntry = true
+    }
+
+    fun calculateResult() {
+        val secondValue = getCurrentDimensionValue()
+        val first = firstValue ?: return
+        
+        val result = when (pendingOperation) {
+            "+" -> first + secondValue
+            "-" -> first - secondValue
+            "X", "*" -> first * secondValue
+            "/", "÷" -> first / secondValue
+            else -> secondValue
+        }
+        
+        historyText = "${first.toString()} $pendingOperation ${secondValue.toString()} ="
+        currentInput = result.toString()
+        firstValue = null
+        pendingOperation = ""
+        isNewEntry = true
+    }
+
+    fun handleFeet() {
+        if (isNewEntry) {
+            if (historyText.contains("=")) historyText = ""
+            currentInput = if (isMetricMode) "0 m" else "0'"
+            isNewEntry = false
+            return
+        }
+        if (isMetricMode) {
+            when {
+                currentInput.endsWith(" cu m") -> currentInput = currentInput.substring(0, currentInput.length - 5) + " m"
+                currentInput.endsWith(" sq m") -> currentInput = currentInput.substring(0, currentInput.length - 5) + " cu m"
+                currentInput.endsWith(" m") -> currentInput = currentInput.substring(0, currentInput.length - 2) + " sq m"
+                else -> currentInput += " m"
+            }
+        } else {
+            when {
+                currentInput.endsWith(" cu ft") -> currentInput = currentInput.substring(0, currentInput.length - 6) + "'"
+                currentInput.endsWith(" sq ft") -> currentInput = currentInput.substring(0, currentInput.length - 6) + " cu ft"
+                currentInput.endsWith("'") -> currentInput = currentInput.substring(0, currentInput.length - 1) + " sq ft"
+                else -> currentInput += "'"
+            }
+        }
+    }
+
+    fun handleInch() {
+        if (isNewEntry) {
+            if (historyText.contains("=")) historyText = ""
+            currentInput = if (isMetricMode) "0 cm" else "0\""
+            isNewEntry = false
+            return
+        }
+        if (isMetricMode) {
+            when {
+                currentInput.endsWith(" cu cm") -> currentInput = currentInput.substring(0, currentInput.length - 6) + " cm"
+                currentInput.endsWith(" sq cm") -> currentInput = currentInput.substring(0, currentInput.length - 6) + " cu cm"
+                currentInput.endsWith(" cm") -> currentInput = currentInput.substring(0, currentInput.length - 3) + " sq cm"
+                else -> currentInput += " cm"
+            }
+        } else {
+            when {
+                currentInput.endsWith(" cu in") -> currentInput = currentInput.substring(0, currentInput.length - 6) + "\""
+                currentInput.endsWith(" sq in") -> currentInput = currentInput.substring(0, currentInput.length - 6) + " cu in"
+                currentInput.endsWith("\"") -> currentInput = currentInput.substring(0, currentInput.length - 1) + " sq in"
+                else -> currentInput += "\""
+            }
+        }
+    }
+
+    fun clearAll() {
+        currentInput = ""
+        historyText = ""
+        firstValue = null
+        pendingOperation = ""
+        isNewEntry = true
+    }
+
+    MaterialTheme {
+        Scaffold(
+            scaffoldState = scaffoldState,
+            drawerBackgroundColor = Color.Transparent,
+            drawerElevation = 0.dp,
+            drawerScrimColor = DrawerDefaults.scrimColor,
+            topBar = {
+                TopAppBar(
+                    title = { 
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Calculate, // Fallback, could use Res.drawable.ic_pro_calc if set up
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp).padding(end = 8.dp)
+                            )
+                            Column {
+                                Text("Pro Construction Calculator", fontSize = 16.sp)
+                                Text("Project: $currentProjectName", fontSize = 10.sp, color = Color.LightGray)
+                            }
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { scaffoldState.drawerState.open() } }) {
+                            Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
+                        }
+                    },
+                    backgroundColor = BlueTool,
+                    contentColor = Color.White,
+                    elevation = 0.dp
+                )
+            },
+            drawerContent = {
+                NavDrawerContent(
+                    projectName = currentProjectName,
+                    onToolClick = { screen ->
+                        if (screen != null) currentScreen = screen
+                        scope.launch { scaffoldState.drawerState.close() }
+                    }
+                )
+            },
+            bottomBar = {
+                if (currentScreen == Screen.Calculator) {
+                    BottomAppBar(
+                        backgroundColor = BlueTool,
+                        contentPadding = PaddingValues(0.dp),
+                        elevation = 8.dp
+                    ) {
+                        UtilityBottomBar(
+                            onProjectsClick = { currentScreen = Screen.ProjectList },
+                            onNotesClick = { currentScreen = Screen.JobNotes },
+                            onDataSheetClick = { currentScreen = Screen.JobSummary }
+                        )
+                    }
+                }
+            }
+        ) { padding ->
+            Box(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+                    when (currentScreen) {
+                        Screen.Calculator -> ProfessionalDashboard(
+                            input = currentInput,
+                            history = historyText,
+                            isMetricMode = isMetricMode,
+                            onAction = { action ->
+                                when (action) {
+                                    is CalcAction.Digit -> appendNumber(action.digit)
+                                    is CalcAction.Op -> setOperation(action.op)
+                                    CalcAction.Equals -> calculateResult()
+                                    CalcAction.Feet -> handleFeet()
+                                    CalcAction.Inch -> handleInch()
+                                    CalcAction.Clear -> clearAll()
+                                    CalcAction.SquareRoot -> {
+                                        val current = FractionUtils.parse(currentInput)
+                                        if (current >= 0) {
+                                            currentInput = FractionUtils.formatInches(sqrt(current))
+                                            isNewEntry = false
+                                        }
+                                    }
+                                    CalcAction.Pi -> {
+                                        if (isNewEntry) {
+                                            currentInput = "3.14159"
+                                            isNewEntry = false
+                                        } else {
+                                            currentInput += "3.14159"
+                                        }
+                                    }
+                                    CalcAction.Slash -> {
+                                        if (isNewEntry) {
+                                            if (historyText.contains("=")) historyText = ""
+                                            currentInput = "0/"
+                                            isNewEntry = false
+                                        } else if (!currentInput.contains("/")) {
+                                            currentInput += "/"
+                                        }
+                                    }
+                                    CalcAction.Space -> {
+                                        if (isNewEntry) {
+                                            if (historyText.contains("=")) historyText = ""
+                                            isNewEntry = false
+                                        } else if (!currentInput.endsWith(" ") && currentInput.isNotEmpty()) {
+                                            currentInput += " "
+                                        }
+                                    }
+                                    CalcAction.Backspace -> {
+                                        if (currentInput.isNotEmpty()) {
+                                            currentInput = currentInput.dropLast(1)
+                                        }
+                                    }
+                                    CalcAction.Metric -> {
+                                        isMetricMode = !isMetricMode
+                                        val dv = getCurrentDimensionValue()
+                                        currentInput = if (isMetricMode) {
+                                            FractionUtils.formatMetric(dv.value, dv.unitPower)
+                                        } else {
+                                            dv.toString()
+                                        }
+                                        isNewEntry = true
+                                    }
+                                    CalcAction.Convert -> {
+                                        val dv = getCurrentDimensionValue()
+                                        // Simple cycle: Decimal -> Fractional -> Metric
+                                        currentInput = if (currentInput.contains("/")) {
+                                            FractionUtils.formatMetric(dv.value, dv.unitPower)
+                                        } else if (currentInput.contains("m") || currentInput.contains("cm")) {
+                                            dv.value.toString() + "\""
+                                        } else {
+                                            dv.toString()
+                                        }
+                                        isNewEntry = true
+                                    }
+                                    is CalcAction.Navigate -> {
+                                        currentScreen = action.screen
+                                    }
+                                }
+                            }
+                        )
+
+                        Screen.ConcreteCalculator -> ConcreteCalculator(
+                            entries = allConcreteEntries[currentProjectName] ?: emptyList(),
+                            onUpdateEntries = { newList ->
+                                allConcreteEntries = allConcreteEntries.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.RafterCalculator -> RafterCalculator(
+                            entries = allRafterEntries[currentProjectName] ?: emptyList(),
+                            onUpdateEntries = { newList ->
+                                allRafterEntries = allRafterEntries.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.ArcCalculator -> ArcCalculator(
+                            entries = allArcEntries[currentProjectName] ?: emptyList(),
+                            onUpdateEntries = { newList ->
+                                allArcEntries = allArcEntries.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.WallCalculator -> WallCalculator(
+                            entries = allWallEntries[currentProjectName] ?: emptyList(),
+                            onUpdateEntries = { newList ->
+                                allWallEntries = allWallEntries.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.FramingCalculator -> FramingCalculator(
+                            entries = allFramingEntries[currentProjectName] ?: emptyList(),
+                            onUpdateEntries = { newList ->
+                                allFramingEntries = allFramingEntries.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.CrownCalculator -> CrownCalculator(
+                            entries = allCrownEntries[currentProjectName] ?: emptyList(),
+                            onUpdateEntries = { newList ->
+                                allCrownEntries = allCrownEntries.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.GazeboCalculator -> GazeboCalculator(
+                            entries = allGazeboEntries[currentProjectName] ?: emptyList(),
+                            onUpdateEntries = { newList ->
+                                allGazeboEntries = allGazeboEntries.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.RoofCalculator -> RoofCalculator(
+                            entries = allRoofEntries[currentProjectName] ?: emptyList(),
+                            onUpdateEntries = { newList ->
+                                allRoofEntries = allRoofEntries.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.CoordinateCalculator -> CoordinateCalculator(
+                            paths = allCoordinatePaths[currentProjectName] ?: emptyList(),
+                            onUpdatePaths = { newList ->
+                                allCoordinatePaths = allCoordinatePaths.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.MasonryCalculator -> MasonryCalculator(
+                            entries = allMasonryEntries[currentProjectName] ?: emptyList(),
+                            onUpdateEntries = { newList ->
+                                allMasonryEntries = allMasonryEntries.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.DrywallCalculator -> DrywallCalculator(
+                            entries = allDrywallEntries[currentProjectName] ?: emptyList(),
+                            onUpdateEntries = { newList ->
+                                allDrywallEntries = allDrywallEntries.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.DeckCalculator -> DeckCalculator(
+                            entries = allDeckEntries[currentProjectName] ?: emptyList(),
+                            onUpdateEntries = { newList ->
+                                allDeckEntries = allDeckEntries.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.FloorCalculator -> FloorCalculator(
+                            entries = allFloorEntries[currentProjectName] ?: emptyList(),
+                            onUpdateEntries = { newList ->
+                                allFloorEntries = allFloorEntries.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.HandrailCalculator -> HandrailCalculator(
+                            entries = allHandrailEntries[currentProjectName] ?: emptyList(),
+                            onUpdateEntries = { newList ->
+                                allHandrailEntries = allHandrailEntries.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.PineLineCalculator -> PineLineCalculator(
+                            entries = allPineLineEntries[currentProjectName] ?: emptyList(),
+                            onUpdateEntries = { newList ->
+                                allPineLineEntries = allPineLineEntries.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.CircularStairCalculator -> CircularStairCalculator(
+                            entries = allCircularStairEntries[currentProjectName] ?: emptyList(),
+                            onUpdateEntries = { newList ->
+                                allCircularStairEntries = allCircularStairEntries.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.TrigCalculator -> TrigCalculator(
+                            entries = allTrigEntries[currentProjectName] ?: emptyList(),
+                            onUpdateEntries = { newList ->
+                                allTrigEntries = allTrigEntries.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.ColumnCalculator -> ColumnCalculator(
+                            entries = allColumnEntries[currentProjectName] ?: emptyList(),
+                            onUpdateEntries = { newList ->
+                                allColumnEntries = allColumnEntries.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.ScientificCalculator -> ScientificCalculator(
+                            projectName = currentProjectName,
+                            onBack = { currentScreen = Screen.Calculator },
+                            onNavigate = { currentScreen = it }
+                        )
+
+                        Screen.CalculatorHelp -> CalculatorHelpScreen(
+                            onBack = { currentScreen = Screen.ScientificCalculator }
+                        )
+
+                        Screen.GraphingCalculator -> GraphingCalculator(
+                            projectName = currentProjectName,
+                            onBack = { currentScreen = Screen.Calculator },
+                            onNavigate = { currentScreen = it }
+                        )
+
+                        Screen.JobNotes -> JobNotesScreen(
+                            savedPaths = allJobNotes[currentProjectName] ?: emptyList(),
+                            onUpdateNotes = { newList ->
+                                allJobNotes = allJobNotes.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator }
+                        )
+
+                        Screen.StairCalculator -> StairCalculator(
+                            entries = allStairEntries[currentProjectName] ?: emptyList(),
+                            onUpdateEntries = { newList ->
+                                allStairEntries = allStairEntries.toMutableMap().apply { put(currentProjectName, newList) }
+                            },
+                            onBack = { currentScreen = Screen.Calculator },
+                            onFocus = openKeyboard
+                        )
+
+                        Screen.ProjectList -> {
+                            val pdfProvider = rememberPdfExportProvider()
+                            ProjectListScreen(
+                                projects = projectList,
+                                onProjectSelected = { name ->
+                                    currentProjectName = name
+                                    currentScreen = Screen.Calculator
+                                },
+                                onAddProject = { name ->
+                                    projectList = projectList + name
+                                    currentProjectName = name
+                                    currentScreen = Screen.Calculator
+                                },
+                                onDeleteProject = { name ->
+                                    projectList = projectList.filter { it != name }
+                                    if (currentProjectName == name) currentProjectName = "Default"
+                                },
+                                onPrintProject = { name ->
+                                    val sections = SummaryReportGenerator.generateSections(
+                                        stairEntries = allStairEntries[name] ?: emptyList(),
+                                        circularStairEntries = allCircularStairEntries[name] ?: emptyList(),
+                                        rafterEntries = allRafterEntries[name] ?: emptyList(),
+                                        gazeboEntries = allGazeboEntries[name] ?: emptyList(),
+                                        arcEntries = allArcEntries[name] ?: emptyList(),
+                                        wallEntries = allWallEntries[name] ?: emptyList(),
+                                        crownEntries = allCrownEntries[name] ?: emptyList(),
+                                        concreteEntries = allConcreteEntries[name] ?: emptyList(),
+                                        masonryEntries = allMasonryEntries[name] ?: emptyList(),
+                                        drywallEntries = allDrywallEntries[name] ?: emptyList(),
+                                        trigEntries = allTrigEntries[name] ?: emptyList(),
+                                        columnEntries = allColumnEntries[name] ?: emptyList(),
+                                        roofEntries = allRoofEntries[name] ?: emptyList(),
+                                        floorEntries = allFloorEntries[name] ?: emptyList(),
+                                        deckEntries = allDeckEntries[name] ?: emptyList(),
+                                        handrailEntries = allHandrailEntries[name] ?: emptyList(),
+                                        framingEntries = allFramingEntries[name] ?: emptyList(),
+                                        pineLineEntries = allPineLineEntries[name] ?: emptyList(),
+                                        coordinatePaths = allCoordinatePaths[name] ?: emptyList()
+                                    )
+                                    pdfProvider.share(name, sections)
+                                },
+                                onPrintAll = {
+                                    val allSections = mutableListOf<SummarySection>()
+                                    projectList.forEach { name ->
+                                        allSections.add(SummarySection("--- PROJECT: ${name.uppercase()} ---", emptyList(), emptyList()))
+                                        allSections.addAll(SummaryReportGenerator.generateSections(
+                                            stairEntries = allStairEntries[name] ?: emptyList(),
+                                            circularStairEntries = allCircularStairEntries[name] ?: emptyList(),
+                                            rafterEntries = allRafterEntries[name] ?: emptyList(),
+                                            gazeboEntries = allGazeboEntries[name] ?: emptyList(),
+                                            arcEntries = allArcEntries[name] ?: emptyList(),
+                                            wallEntries = allWallEntries[name] ?: emptyList(),
+                                            crownEntries = allCrownEntries[name] ?: emptyList(),
+                                            concreteEntries = allConcreteEntries[name] ?: emptyList(),
+                                            masonryEntries = allMasonryEntries[name] ?: emptyList(),
+                                            drywallEntries = allDrywallEntries[name] ?: emptyList(),
+                                            trigEntries = allTrigEntries[name] ?: emptyList(),
+                                            columnEntries = allColumnEntries[name] ?: emptyList(),
+                                            roofEntries = allRoofEntries[name] ?: emptyList(),
+                                            floorEntries = allFloorEntries[name] ?: emptyList(),
+                                            deckEntries = allDeckEntries[name] ?: emptyList(),
+                                            handrailEntries = allHandrailEntries[name] ?: emptyList(),
+                                            framingEntries = allFramingEntries[name] ?: emptyList(),
+                                            pineLineEntries = allPineLineEntries[name] ?: emptyList(),
+                                            coordinatePaths = allCoordinatePaths[name] ?: emptyList()
+                                        ))
+                                    }
+                                    pdfProvider.share("Master_Report", allSections)
+                                },
+                                onBack = { currentScreen = Screen.Calculator }
+                            )
+                        }
+
+                        Screen.JobSummary -> JobSummaryScreen(
+                            projectName = currentProjectName,
+                            stairEntries = allStairEntries[currentProjectName] ?: emptyList(),
+                            rafterEntries = allRafterEntries[currentProjectName] ?: emptyList(),
+                            arcEntries = allArcEntries[currentProjectName] ?: emptyList(),
+                            wallEntries = allWallEntries[currentProjectName] ?: emptyList(),
+                            crownEntries = allCrownEntries[currentProjectName] ?: emptyList(),
+                            gazeboEntries = allGazeboEntries[currentProjectName] ?: emptyList(),
+                            concreteEntries = allConcreteEntries[currentProjectName] ?: emptyList(),
+                            roofEntries = allRoofEntries[currentProjectName] ?: emptyList(),
+                            coordinatePaths = allCoordinatePaths[currentProjectName] ?: emptyList(),
+                            masonryEntries = allMasonryEntries[currentProjectName] ?: emptyList(),
+                            drywallEntries = allDrywallEntries[currentProjectName] ?: emptyList(),
+                            deckEntries = allDeckEntries[currentProjectName] ?: emptyList(),
+                            floorEntries = allFloorEntries[currentProjectName] ?: emptyList(),
+                            handrailEntries = allHandrailEntries[currentProjectName] ?: emptyList(),
+                            pineLineEntries = allPineLineEntries[currentProjectName] ?: emptyList(),
+                            framingEntries = allFramingEntries[currentProjectName] ?: emptyList(),
+                            circularStairEntries = allCircularStairEntries[currentProjectName] ?: emptyList(),
+                            trigEntries = allTrigEntries[currentProjectName] ?: emptyList(),
+                            columnEntries = allColumnEntries[currentProjectName] ?: emptyList(),
+                            onBack = { currentScreen = Screen.Calculator }
+                        )
+
+                        Screen.About -> AboutScreen(
+                            onBack = { currentScreen = Screen.Calculator }
+                        )
+                    }
+                }
+
+                // Custom Keyboard Overlay
+                if (keyboardVisible) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.BottomCenter
+                    ) {
+                        ConstructionKeyboard(
+                            isVisible = true,
+                            onValueChange = {
+                                keyboardValue = it
+                                keyboardTarget(it)
+                            },
+                            currentValue = keyboardValue,
+                            onDone = {
+                                keyboardVisible = false
+                                focusManager.clearFocus()
+                            },
+                            onHide = {
+                                keyboardVisible = false
+                                focusManager.clearFocus()
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+sealed class CalcAction {
+    data class Digit(val digit: String) : CalcAction()
+    data class Op(val op: String) : CalcAction()
+    object Equals : CalcAction()
+    object Feet : CalcAction()
+    object Inch : CalcAction()
+    object Clear : CalcAction()
+    object Slash : CalcAction()
+    object Space : CalcAction()
+    object SquareRoot : CalcAction()
+    object Pi : CalcAction()
+    object Backspace : CalcAction()
+    object Metric : CalcAction()
+    object Convert : CalcAction()
+    data class Navigate(val screen: Screen) : CalcAction()
+}
+
+@Composable
+fun NavDrawerContent(projectName: String, onToolClick: (Screen?) -> Unit) {
+    val carpentryTools = listOf(
+        ToolItem("Stair Layout", color = BlueTool, icon = Icons.Default.FormatLineSpacing, screen = Screen.StairCalculator),
+        ToolItem("Circular Stairs", color = BlueTool, icon = Icons.Default.Refresh, screen = Screen.CircularStairCalculator),
+        ToolItem("Rafter Cuts", color = BlueTool, icon = Icons.Default.Explore, screen = Screen.RafterCalculator),
+        ToolItem("Roof Takeoff", color = BlueTool, icon = Icons.Default.MenuBook, screen = Screen.RoofCalculator),
+        ToolItem("Floor / Joists", color = BlueTool, icon = Icons.Default.Today, screen = Screen.FloorCalculator),
+        ToolItem("Handrails", color = BlueTool, icon = Icons.Default.SortByAlpha, screen = Screen.HandrailCalculator),
+        ToolItem("Wall Framing", color = BlueTool, icon = Icons.Default.Add, screen = Screen.FramingCalculator),
+        ToolItem("Wall Materials", color = BlueTool, icon = Icons.Default.Straighten, screen = Screen.WallCalculator),
+        ToolItem("Deck Boards", color = BlueTool, icon = Icons.Default.History, screen = Screen.DeckCalculator),
+        ToolItem("Gazebo Master", color = BlueTool, icon = Icons.Default.Directions, screen = Screen.GazeboCalculator),
+        ToolItem("Crown Molding", color = BlueTool, icon = Icons.Default.Send, screen = Screen.CrownCalculator),
+        ToolItem("Grade / Slope", color = BlueTool, icon = Icons.Default.Map, screen = Screen.PineLineCalculator)
+    )
+    
+    val concreteTools = listOf(
+        ToolItem("Concrete / Rebar", color = BlueTool, icon = Icons.Default.Save, screen = Screen.ConcreteCalculator),
+        ToolItem("Masonry Supply", color = BlueTool, icon = Icons.Default.Visibility, screen = Screen.MasonryCalculator)
+    )
+    
+    val surveyTools = listOf(
+        ToolItem("Site Coordinates", color = BlueTool, icon = Icons.Default.MyLocation, screen = Screen.CoordinateCalculator)
+    )
+    
+    val mathTools = listOf(
+        ToolItem("Scientific Calc", color = BlueTool, icon = Icons.Default.Calculate, screen = Screen.ScientificCalculator),
+        ToolItem("Graphing Calc", color = BlueTool, icon = Icons.Default.ShowChart, screen = Screen.GraphingCalculator),
+        ToolItem("Trig Solutions", color = BlueTool, icon = Icons.Default.Info, screen = Screen.TrigCalculator)
+    )
+    
+    val drywallTools = listOf(
+        ToolItem("Drywall Finish", color = BlueTool, icon = Icons.Default.Dashboard, screen = Screen.DrywallCalculator)
+    )
+    
+    val projectTools = listOf(
+        ToolItem("Job Site Notes", color = BlueTool, icon = Icons.Default.NoteAlt, screen = Screen.JobNotes),
+        ToolItem("Project List", color = BlueTool, icon = Icons.Default.List, screen = Screen.ProjectList),
+        ToolItem("Help & Guides", color = BlueTool, icon = Icons.Default.Info, screen = Screen.CalculatorHelp),
+        ToolItem("About", color = BlueTool, icon = Icons.Default.Info, screen = Screen.About)
+    )
+
+    Column(modifier = Modifier.width(250.dp).fillMaxHeight().shadow(8.dp).background(Color.White)) {
+        Box(modifier = Modifier.fillMaxWidth().background(BlueTool).padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Calculate,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(32.dp).padding(end = 12.dp)
+                )
+                Column {
+                    Text("Pro Construction Calculator", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("Project: $projectName", color = Color.White, fontSize = 10.sp)
+                }
+            }
+        }
+        
+        LazyColumn(modifier = Modifier.weight(1f)) {
+            item { DrawerCategory("Carpentry", carpentryTools, onToolClick, initiallyExpanded = true) }
+            item { DrawerCategory("Concrete & Masonry", concreteTools, onToolClick) }
+            item { DrawerCategory("Survey", surveyTools, onToolClick) }
+            item { DrawerCategory("Math", mathTools, onToolClick) }
+            item { DrawerCategory("Drywall", drywallTools, onToolClick) }
+            item { DrawerCategory("Project & Utilities", projectTools, onToolClick) }
+        }
+    }
+}
+
+@Composable
+fun DrawerCategory(title: String, tools: List<ToolItem>, onToolClick: (Screen?) -> Unit, initiallyExpanded: Boolean = false) {
+    var expanded by remember { mutableStateOf(initiallyExpanded) }
+    
+    val icon = when (title) {
+        "Carpentry" -> Icons.Default.Menu
+        "Concrete & Masonry" -> Icons.Default.Business
+        "Survey" -> Icons.Default.TrackChanges
+        "Math" -> Icons.Default.Info
+        "Drywall" -> Icons.Default.Edit
+        else -> Icons.Default.Settings
+    }
+
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(horizontal = 12.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(title, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
+        }
+        
+        if (expanded) {
+            tools.forEach { tool ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable { onToolClick(tool.screen) }.padding(start = 32.dp, top = 8.dp, bottom = 8.dp, end = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(tool.icon ?: Icons.Default.Build, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(tool.title, fontSize = 12.sp)
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+        }
+        Divider()
+    }
+}
+
+@Composable
+fun ProfessionalDashboard(
+    input: String,
+    history: String,
+    isMetricMode: Boolean,
+    onAction: (CalcAction) -> Unit
+) {
+    val displayInput = input.ifEmpty { "0." }
+    val fontSize = when {
+        displayInput.length > 20 -> 18.sp
+        displayInput.length > 15 -> 24.sp
+        displayInput.length > 12 -> 30.sp
+        displayInput.length > 8 -> 36.sp
+        else -> 44.sp
+    }
+
+    Column(modifier = Modifier.fillMaxSize().background(KeypadBg)) {
+        // Display Area (Increased Weight to 2.0)
+        Card(
+            modifier = Modifier.fillMaxWidth().weight(2.0f).padding(horizontal = 6.dp, vertical = 2.dp),
+            backgroundColor = SageGreen,
+            elevation = 0.dp,
+            shape = RoundedCornerShape(2.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 2.dp),
+                verticalArrangement = Arrangement.Bottom,
+                horizontalAlignment = Alignment.End
+            ) {
+                if (history.isNotEmpty()) {
+                    Text(
+                        text = history,
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = Color(0xFF333333),
+                        modifier = Modifier.padding(bottom = 0.dp)
+                    )
+                }
+                Text(
+                    text = displayInput,
+                    fontSize = fontSize,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF111111),
+                    maxLines = 1,
+                    softWrap = false
+                )
+                // Small Spacer to ensure the text isn't flush with the bottom edge
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        // Keypad Area (Decreased weight to 8.0)
+        Column(modifier = Modifier.fillMaxWidth().weight(8.0f).padding(1.dp)) {
+            // Row 1-4: Specialty tools
+            SpecialtyToolRows(onAction)
+            
+            // Row 5-8: Numeric and others
+            NumericAndFunctionRows(isMetricMode, onAction)
+            
+            // Row 9: Large Operators
+            Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                CalcButton("X", "", GrayBtn, Modifier.weight(1f)) { onAction(CalcAction.Op("X")) }
+                CalcButton("-", "", GrayBtn, Modifier.weight(1.5f)) { onAction(CalcAction.Op("-")) }
+                CalcButton("+", "", GrayBtn, Modifier.weight(1.5f)) { onAction(CalcAction.Op("+")) }
+            }
+        }
+    }
+}
+
+@Composable
+fun ColumnScope.SpecialtyToolRows(onAction: (CalcAction) -> Unit) {
+    val toolRows = listOf(
+        listOf(ToolItem("STAIR", "Headroom", BlueTool, screen = Screen.StairCalculator), ToolItem("RAFTER", "Cuts", BlueTool, screen = Screen.RafterCalculator), ToolItem("ARC", "Radius", BlueTool, screen = Screen.ArcCalculator), ToolItem("CROWN", "Miter/Bev", BlueTool, screen = Screen.CrownCalculator), ToolItem("GAZEBO", "Master", BlueTool, screen = Screen.GazeboCalculator)),
+        listOf(ToolItem("CONCRETE", "Rebar", BlueTool, screen = Screen.ConcreteCalculator), ToolItem("CIR-STAIR", "Arcs", BlueTool, screen = Screen.CircularStairCalculator), ToolItem("ROOF CALC", "Order", BlueTool, screen = Screen.RoofCalculator), ToolItem("TRIG", "Angles", BlueTool, screen = Screen.TrigCalculator), ToolItem("FRAMING", "Openings", BlueTool, screen = Screen.FramingCalculator)),
+        listOf(ToolItem("WALL CALC", "Studs/Ply", BlueTool, screen = Screen.WallCalculator), ToolItem("HANDRAIL", "Spindles", BlueTool, screen = Screen.HandrailCalculator), ToolItem("MASONRY", "Supply", BlueTool, screen = Screen.MasonryCalculator), ToolItem("FLOOR", "Joists", BlueTool, screen = Screen.FloorCalculator), ToolItem("DRYWALL", "Finish", BlueTool, screen = Screen.DrywallCalculator)),
+        listOf(ToolItem("CIRC", "Column", BlueTool, screen = Screen.ColumnCalculator), ToolItem("DECK", "Boards", BlueTool, screen = Screen.DeckCalculator), ToolItem("GRADE", "Site", BlueTool, screen = Screen.PineLineCalculator), ToolItem("BACK", "", Color(0xFFD32F2F)), ToolItem("CLEAR", "√x", RedBtn))
+    )
+
+    toolRows.forEach { row ->
+        Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+            row.forEach { tool ->
+                CalcButton(tool.title, tool.subLabel, tool.color, Modifier.weight(1f)) {
+                    if (tool.title == "CLEAR") {
+                        onAction(CalcAction.Clear)
+                    } else if (tool.title == "BACK") {
+                        onAction(CalcAction.Backspace)
+                    } else if (tool.subLabel == "√x") {
+                        onAction(CalcAction.SquareRoot)
+                    } else if (tool.screen != null) {
+                        onAction(CalcAction.Navigate(tool.screen))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ColumnScope.NumericAndFunctionRows(isMetricMode: Boolean, onAction: (CalcAction) -> Unit) {
+    // Row 5
+    Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+        CalcButton("CONVERT", "Unit", BlueTool, Modifier.weight(1f)) { onAction(CalcAction.Convert) }
+        CalcButton("7", "", GrayBtn, Modifier.weight(1f)) { onAction(CalcAction.Digit("7")) }
+        CalcButton("8", "", GrayBtn, Modifier.weight(1f)) { onAction(CalcAction.Digit("8")) }
+        CalcButton("9", "", GrayBtn, Modifier.weight(1f)) { onAction(CalcAction.Digit("9")) }
+        CalcButton(if (isMetricMode) "METERS" else "FEET", if (isMetricMode) "m" else "'", BlueTool, Modifier.weight(1f)) { onAction(CalcAction.Feet) }
+    }
+    // Row 6
+    Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+        CalcButton("METRIC", "", Color(0xFFD32F2F), Modifier.weight(1f)) { onAction(CalcAction.Metric) }
+        CalcButton("4", "", GrayBtn, Modifier.weight(1f)) { onAction(CalcAction.Digit("4")) }
+        CalcButton("5", "", GrayBtn, Modifier.weight(1f)) { onAction(CalcAction.Digit("5")) }
+        CalcButton("6", "", GrayBtn, Modifier.weight(1f)) { onAction(CalcAction.Digit("6")) }
+        CalcButton(if (isMetricMode) "CM" else "INCH", if (isMetricMode) "cm" else "\"", BlueTool, Modifier.weight(1f)) { onAction(CalcAction.Inch) }
+    }
+    // Row 7
+    Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+        var menuExpanded by remember { mutableStateOf(false) }
+        Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+            CalcButton("CALC", "Tools", Color(0xFFFF9800), Modifier.fillMaxSize()) { menuExpanded = true }
+            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                DropdownMenuItem(onClick = { menuExpanded = false; onAction(CalcAction.Navigate(Screen.ScientificCalculator)) }) {
+                    Text("Scientific / Graphing")
+                }
+                DropdownMenuItem(onClick = { menuExpanded = false; onAction(CalcAction.Navigate(Screen.CoordinateCalculator)) }) {
+                    Text("Land Surveying")
+                }
+                DropdownMenuItem(onClick = { menuExpanded = false; onAction(CalcAction.Navigate(Screen.CalculatorHelp)) }) {
+                    Text("Help & Guides")
+                }
+            }
+        }
+        CalcButton("1", "", GrayBtn, Modifier.weight(1f)) { onAction(CalcAction.Digit("1")) }
+        CalcButton("2", "", GrayBtn, Modifier.weight(1f)) { onAction(CalcAction.Digit("2")) }
+        CalcButton("3", "", GrayBtn, Modifier.weight(1f)) { onAction(CalcAction.Digit("3")) }
+        CalcButton("/", "", GrayBtn, Modifier.weight(1f)) { onAction(CalcAction.Slash) }
+    }
+    // Row 8
+    Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+        CalcButton("SPACE", "", GrayBtn, Modifier.weight(1f)) { onAction(CalcAction.Space) }
+        CalcButton("0", "", GrayBtn, Modifier.weight(1f)) { onAction(CalcAction.Digit("0")) }
+        CalcButton(".", "", GrayBtn, Modifier.weight(1f)) { onAction(CalcAction.Digit(".")) }
+        CalcButton("=", "", GrayBtn, Modifier.weight(1f)) { onAction(CalcAction.Equals) }
+        CalcButton("÷", "", GrayBtn, Modifier.weight(1f)) { onAction(CalcAction.Op("÷")) }
+    }
+}
+
+@Composable
+fun CalcButton(title: String, subLabel: String, color: Color, modifier: Modifier, onClick: () -> Unit = {}) {
+    Surface(
+        modifier = modifier.padding(1.dp).clickable { onClick() },
+        color = color,
+        shape = RoundedCornerShape(4.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(2.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            if (subLabel.isNotEmpty()) {
+                Text(
+                    subLabel, 
+                    color = if (color == OrangeTool) Color.White else LabelRed, 
+                    fontSize = 8.sp, 
+                    maxLines = 1,
+                    textAlign = TextAlign.Center
+                )
+            }
+            Text(
+                title, 
+                color = Color.White, 
+                fontSize = if (title.length > 6) 12.sp else 21.sp, // ~1.5x larger than 14sp
+                fontWeight = FontWeight.Bold, 
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+fun UtilityBottomBar(
+    onProjectsClick: () -> Unit,
+    onNotesClick: () -> Unit,
+    onDataSheetClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxSize(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(modifier = Modifier.weight(1f).fillMaxHeight().clickable { onProjectsClick() }, contentAlignment = Alignment.Center) {
+            Text("PROJECTS", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        }
+        Box(modifier = Modifier.weight(1f).fillMaxHeight().clickable { onNotesClick() }, contentAlignment = Alignment.Center) {
+            Text("NOTES", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        }
+        Box(modifier = Modifier.weight(1f).fillMaxHeight().clickable { onDataSheetClick() }, contentAlignment = Alignment.Center) {
+            Text("DATA SHEET", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun CoordinateCalculator(
+    paths: List<PlottedPath>,
+    onUpdatePaths: (List<PlottedPath>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    // Auto-populate Benchmark if empty
+    LaunchedEffect(paths) {
+        if (paths.isEmpty()) {
+            onUpdatePaths(listOf(PlottedPath(
+                id = "1",
+                points = listOf(CoordinatePoint(5000.0 * 12.0, 5000.0 * 12.0, 100.0 * 12.0, "Benchmark")),
+                isTakeoff = false
+            )))
+        }
+    }
+
+    var northInput by remember { mutableStateOf("") }
+    var eastInput by remember { mutableStateOf("") }
+    var elevInput by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var isNewPath by remember { mutableStateOf(false) }
+    var isTakeoff by remember { mutableStateOf(true) }
+
+    var editingPathIdx by remember { mutableStateOf(-1) }
+    var editingPtIdx by remember { mutableStateOf(-1) }
+
+    var showTakeoffDialog by remember { mutableStateOf(false) }
+    var mapView by remember { mutableStateOf(true) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE))) {
+        // Toolbar
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Coordinate Calculator", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            TextButton(onClick = { mapView = !mapView }) {
+                Text(if (mapView) "LIST VIEW" else "MAP VIEW", color = Color.White)
+            }
+        }
+
+        // Input Section
+        Column(modifier = Modifier.background(Color.White).padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = northInput,
+                    onValueChange = { northInput = it },
+                    label = if (editingPtIdx != -1) "North (Abs)" else "North +/-",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                ConstructionTextField(
+                    value = eastInput,
+                    onValueChange = { eastInput = it },
+                    label = if (editingPtIdx != -1) "East (Abs)" else "East +/-",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                ConstructionTextField(
+                    value = elevInput,
+                    onValueChange = { elevInput = it },
+                    label = if (editingPtIdx != -1) "Elev (Abs)" else "Elev +/-",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                label = { Text("Description") },
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+            )
+            
+            if (editingPtIdx == -1) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = isNewPath, onCheckedChange = { isNewPath = it })
+                    Text("Start New Path", fontSize = 12.sp)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text("Type:", fontSize = 12.sp)
+                    TextButton(onClick = { isTakeoff = !isTakeoff }) {
+                        Text(if (isTakeoff) "TAKEOFF" else "BOUNDARY", color = if (isTakeoff) Color(0xFF6200EE) else Color.Gray, fontSize = 12.sp)
+                    }
+                }
+            }
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = {
+                        val n = FractionUtils.parseFeet(northInput)
+                        val e = FractionUtils.parseFeet(eastInput)
+                        val el = FractionUtils.parseFeet(elevInput)
+                        
+                        val currentPaths = paths.toMutableList()
+                        
+                        if (editingPtIdx != -1 && editingPathIdx != -1) {
+                            // UPDATE MODE (Absolute)
+                            val path = currentPaths[editingPathIdx]
+                            val pts = path.points.toMutableList()
+                            pts[editingPtIdx] = CoordinatePoint(n, e, el, description)
+                            currentPaths[editingPathIdx] = path.copy(points = pts)
+                            editingPtIdx = -1; editingPathIdx = -1
+                        } else {
+                            // ADD MODE (Delta)
+                            val lastPath = currentPaths.lastOrNull()
+                            val lastPt = lastPath?.points?.lastOrNull() ?: CoordinatePoint(5000.0 * 12.0, 5000.0 * 12.0, 100.0 * 12.0)
+                            val newPt = CoordinatePoint(lastPt.n + n, lastPt.e + e, lastPt.elev + el, description)
+                            
+                            if (isNewPath || lastPath == null) {
+                                currentPaths.add(PlottedPath(
+                                    id = (currentPaths.size + 1).toString(),
+                                    points = listOf(newPt),
+                                    isTakeoff = isTakeoff
+                                ))
+                            } else {
+                                currentPaths[currentPaths.size - 1] = lastPath.copy(points = lastPath.points + newPt)
+                            }
+                        }
+                        
+                        onUpdatePaths(currentPaths)
+                        northInput = ""; eastInput = ""; elevInput = ""; description = ""; isNewPath = false
+                    },
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                ) {
+                    Text(if (editingPtIdx != -1) "UPDATE POINT" else "ADD POINT", fontWeight = FontWeight.Bold)
+                }
+                
+                if (editingPtIdx != -1) {
+                    OutlinedButton(
+                        onClick = { 
+                            editingPtIdx = -1; editingPathIdx = -1
+                            northInput = ""; eastInput = ""; elevInput = ""; description = ""
+                        },
+                        modifier = Modifier.height(56.dp)
+                    ) { Text("CANCEL") }
+                }
+            }
+            
+            if (editingPtIdx == -1) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    TextButton(onClick = { /* Manage */ }) { Text("MANAGE LINES", fontSize = 12.sp) }
+                    TextButton(onClick = { onUpdatePaths(emptyList()) }, colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)) {
+                        Text("RESET ALL", fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            if (mapView) {
+                CoordinateMapView(paths)
+                Column(modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) {
+                    Button(onClick = { showTakeoffDialog = true }, colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFE67E22))) {
+                        Text("TAKE OFF", color = Color.White)
+                    }
+                }
+            } else {
+                LazyColumn(modifier = Modifier.fillMaxSize().background(Color.White)) {
+                    item {
+                        Row(modifier = Modifier.fillMaxWidth().background(BlueTool).padding(8.dp)) {
+                            TableCell("Pt #", 40.dp, isHeader = true)
+                            TableCell("Desc", 80.dp, isHeader = true)
+                            TableCell("North", 70.dp, isHeader = true)
+                            TableCell("East", 70.dp, isHeader = true)
+                            TableCell("Elev", 60.dp, isHeader = true)
+                            TableCell("Act", 60.dp, isHeader = true)
+                        }
+                    }
+                    var globalPtIndex = 0
+                    paths.forEachIndexed { pIdx, path ->
+                        path.points.forEachIndexed { ptIdx, pt ->
+                            globalPtIndex++
+                            val currentDisplayIndex = globalPtIndex
+                            item {
+                                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    TableCell(currentDisplayIndex.toString(), 40.dp)
+                                    TableCell(pt.description, 80.dp)
+                                    TableCell("${(pt.n / 12.0).roundToOneDecimal()}'", 70.dp)
+                                    TableCell("${(pt.e / 12.0).roundToOneDecimal()}'", 70.dp)
+                                    TableCell("${(pt.elev / 12.0).roundToOneDecimal()}'", 60.dp)
+                                    Row(modifier = Modifier.width(60.dp)) {
+                                        IconButton(onClick = {
+                                            editingPathIdx = pIdx
+                                            editingPtIdx = ptIdx
+                                            northInput = (pt.n / 12.0).roundToOneDecimal().toString()
+                                            eastInput = (pt.e / 12.0).roundToOneDecimal().toString()
+                                            elevInput = (pt.elev / 12.0).roundToOneDecimal().toString()
+                                            description = pt.description
+                                        }, modifier = Modifier.size(24.dp)) {
+                                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Gray)
+                                        }
+                                        IconButton(onClick = {
+                                            val newList = paths.toMutableList()
+                                            val p = newList[pIdx]
+                                            val pts = p.points.toMutableList()
+                                            pts.removeAt(ptIdx)
+                                            if (pts.isEmpty()) newList.removeAt(pIdx) else newList[pIdx] = p.copy(points = pts)
+                                            onUpdatePaths(newList)
+                                        }, modifier = Modifier.size(24.dp)) {
+                                            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Red)
+                                        }
+                                    }
+                                }
+                                Divider()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showTakeoffDialog) {
+        val takeoffPaths = paths.filter { it.isTakeoff }
+        val netArea = takeoffPaths.sumOf { path ->
+            CoordinateEngine.calculateNetArea(path.points.map { CoordinateEngine.Point(it.n, it.e) }, path.arcHeights)
+        }
+        val currentPerim = paths.lastOrNull()?.let { path ->
+            var p = 0.0
+            for (i in 0 until path.points.size - 1) {
+                p += CoordinateEngine.dist(CoordinateEngine.Point(path.points[i].n, path.points[i].e), CoordinateEngine.Point(path.points[i+1].n, path.points[i+1].e))
+            }
+            p
+        } ?: 0.0
+
+        AlertDialog(
+            onDismissRequest = { showTakeoffDialog = false },
+            title = { Text("Building Plot Takeoff", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text("Summary Results:", fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Current Path Perimeter: ${FractionUtils.formatInches(currentPerim)}")
+                    Text("Total Net Area: ${(netArea / 144.0).roundToOneDecimal()} sq ft", fontWeight = FontWeight.Bold)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showTakeoffDialog = false }) { Text("CLOSE") }
+            }
+        )
+    }
+}
+
+@Composable
+fun JobNotesScreen(
+    savedPaths: List<SerializablePath>,
+    onUpdateNotes: (List<SerializablePath>) -> Unit,
+    onBack: () -> Unit
+) {
+    // Maintain a stable SnapshotStateList for the UI
+    val paths = remember { mutableStateListOf<Pair<Path, Color>>() }
+    
+    // Sync local paths list with savedPaths incrementally
+    LaunchedEffect(savedPaths) {
+        if (savedPaths.isEmpty()) {
+            paths.clear()
+        } else if (paths.size < savedPaths.size) {
+            // Only add the NEW paths (e.g. from sync or initial load)
+            // If we are already ahead or equal (because we added locally first), do nothing
+            val startIdx = paths.size
+            for (i in startIdx until savedPaths.size) {
+                val sp = savedPaths[i]
+                val p = Path()
+                if (sp.points.isNotEmpty()) {
+                    p.moveTo(sp.points[0].x, sp.points[0].y)
+                    sp.points.drop(1).forEach { pt -> p.lineTo(pt.x, pt.y) }
+                }
+                paths.add(p to Color(sp.color))
+            }
+        } else if (paths.size > savedPaths.size) {
+            // Something was deleted or project changed
+            paths.clear()
+            savedPaths.forEach { sp ->
+                val p = Path()
+                if (sp.points.isNotEmpty()) {
+                    p.moveTo(sp.points[0].x, sp.points[0].y)
+                    sp.points.drop(1).forEach { pt -> p.lineTo(pt.x, pt.y) }
+                }
+                paths.add(p to Color(sp.color))
+            }
+        }
+    }
+    
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE))) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Job Site Notes", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        }
+        
+        Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp).border(1.dp, Color.Gray, RoundedCornerShape(8.dp))) {
+            SketchCanvas(
+                paths = paths,
+                onRawPathAdded = { offsets ->
+                    val serializable = SerializablePath(
+                        points = offsets.map { SerializablePoint(it.x, it.y) },
+                        color = 0xFF000000.toInt() // Solid Black
+                    )
+                    // Update parent state - LaunchedEffect will handle adding if needed,
+                    // but SketchCanvas already added it to 'paths' list.
+                    onUpdateNotes(savedPaths + serializable)
+                }
+            )
+        }
+        
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            Button(onClick = { /* Export? */ }) {
+                Text("SAVE SKETCH")
+            }
+            TextButton(
+                onClick = { 
+                    paths.clear()
+                    onUpdateNotes(emptyList()) 
+                }, 
+                colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+            ) {
+                Text("CLEAR")
+            }
+        }
+    }
+}
+
+
+
+
+@Composable
+fun CoordinateMapView(paths: List<PlottedPath>) {
+    Canvas(modifier = Modifier.fillMaxSize().background(Color.White)) {
+        if (paths.isEmpty()) return@Canvas
+        
+        val allPts = paths.flatMap { it.points }
+        val minN = allPts.minOf { it.n }; val maxN = allPts.maxOf { it.n }
+        val minE = allPts.minOf { it.e }; val maxE = allPts.maxOf { it.e }
+        
+        val rangeN = (maxN - minN).coerceAtLeast(120.0)
+        val rangeE = (maxE - minE).coerceAtLeast(120.0)
+        
+        val scale = min(size.height / rangeN, size.width / rangeE) * 0.8f
+        val centerN = (minN + maxN) / 2.0
+        val centerE = (minE + maxE) / 2.0
+        
+        fun getCanvasX(e: Double) = (size.width / 2f + (e - centerE) * scale).toFloat()
+        fun getCanvasY(n: Double) = (size.height / 2f - (n - centerN) * scale).toFloat()
+
+        paths.forEach { path ->
+            val color = if (path.isTakeoff) BlueTool else Color.Gray
+            val stroke = if (path.isTakeoff) 4f else 2f
+            
+            val canvasPath = Path()
+            if (path.points.isNotEmpty()) {
+                canvasPath.moveTo(getCanvasX(path.points[0].e), getCanvasY(path.points[0].n))
+                for (i in 0 until path.points.size - 1) {
+                    val p1 = path.points[i]
+                    val p2 = path.points[i+1]
+                    val h = path.arcHeights.getOrElse(i) { 0.0 }
+                    
+                    if (h == 0.0) {
+                        canvasPath.lineTo(getCanvasX(p2.e), getCanvasY(p2.n))
+                    } else {
+                        // Draw arc using quadratic bezier as approximation for visual speed
+                        // Control point calculation: midpoint + perpendicular vector scaled by 2*h
+                        val midX = (getCanvasX(p1.e) + getCanvasX(p2.e)) / 2f
+                        val midY = (getCanvasY(p1.n) + getCanvasY(p2.n)) / 2f
+                        
+                        val dx = getCanvasX(p2.e) - getCanvasX(p1.e)
+                        val dy = getCanvasY(p2.n) - getCanvasY(p1.n)
+                        val dist = sqrt(dx*dx + dy*dy)
+                        
+                        val hPx = (h * scale).toFloat()
+                        // Perpendicular vector (-dy, dx)
+                        val nx = -dy / dist
+                        val ny = dx / dist
+                        
+                        val ctrlX = midX + nx * hPx * 2f
+                        val ctrlY = midY + ny * hPx * 2f
+                        
+                        canvasPath.quadraticTo(ctrlX, ctrlY, getCanvasX(p2.e), getCanvasY(p2.n))
+                    }
+                }
+                drawPath(canvasPath, color, style = Stroke(stroke))
+            }
+            
+            // Draw points
+            path.points.forEach { pt ->
+                drawCircle(color = Color.Red, radius = 6f, center = androidx.compose.ui.geometry.Offset(getCanvasX(pt.e), getCanvasY(pt.n)))
+            }
+        }
+    }
+}
+
+@Composable
+fun RoofCalculator(
+    entries: List<RoofEntry>,
+    onUpdateEntries: (List<RoofEntry>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var length by remember { mutableStateOf("") }
+    var span by remember { mutableStateOf("") }
+    var pitch by remember { mutableStateOf("6") }
+    var eaveOh by remember { mutableStateOf("12") }
+    var gableOh by remember { mutableStateOf("12") }
+    var sectionName by remember { mutableStateOf("") }
+
+    var results by remember { mutableStateOf<RoofResults?>(null) }
+    var editingIndex by remember { mutableStateOf(-1) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Roof Takeoff", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("BUILDING & PITCH", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = length,
+                    onValueChange = { length = it },
+                    label = "Length (ft/in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = span,
+                    onValueChange = { span = it },
+                    label = "Span/Width (ft/in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            ConstructionTextField(
+                value = pitch,
+                onValueChange = { pitch = it },
+                label = "Roof Pitch (/12)",
+                modifier = Modifier.fillMaxWidth(),
+                onFocus = onFocus
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("OVERHANGS (INCHES)", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = eaveOh,
+                    onValueChange = { eaveOh = it },
+                    label = "Eave (Sides)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = gableOh,
+                    onValueChange = { gableOh = it },
+                    label = "Gable (Ends)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = sectionName,
+                onValueChange = { sectionName = it },
+                label = { Text("Section Name") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        val bLen = FractionUtils.parse(length) / 12.0
+                        val bSpan = FractionUtils.parse(span) / 12.0
+                        val p = pitch.toDoubleOrNull() ?: 6.0
+                        val eOh = (eaveOh.toDoubleOrNull() ?: 0.0) / 12.0
+                        val gOh = (gableOh.toDoubleOrNull() ?: 0.0) / 12.0
+                        
+                        if (bLen > 0 && bSpan > 0) {
+                            val slopeFactor = sqrt(p.pow(2) + 144.0) / 12.0
+                            val totalWidth = bSpan + (2.0 * eOh)
+                            val totalLength = bLen + (2.0 * gOh)
+                            val totalArea = totalWidth * totalLength * slopeFactor
+                            
+                            val squares = totalArea / 100.0
+                            val bundles = squares * 3.0
+                            val sheets = totalArea / 32.0
+
+                            val res = RoofResults(
+                                area = "${totalArea.roundToInt()} sq ft",
+                                squares = "${(squares * 10).roundToInt() / 10.0}",
+                                bundles = ceil(bundles).toInt().toString(),
+                                sheets = ceil(sheets).toInt().toString()
+                            )
+                            results = res
+
+                            val entry = RoofEntry(
+                                id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
+                                name = sectionName.ifEmpty { "Roof Section" },
+                                area = res.area,
+                                squares = res.squares,
+                                bundles = res.bundles,
+                                sheets = res.sheets,
+                                dimensions = "${length} x ${span} @ $pitch"
+                            )
+
+                            if (editingIndex != -1) {
+                                val newList = entries.toMutableList()
+                                newList[editingIndex] = entry
+                                onUpdateEntries(newList)
+                                editingIndex = -1
+                            } else {
+                                onUpdateEntries(entries + entry)
+                            }
+                            sectionName = ""
+                        }
+                    },
+                    modifier = Modifier.weight(2f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                ) {
+                    Text(if (editingIndex != -1) "UPDATE & SAVE" else "CALCULATE & SAVE", textAlign = TextAlign.Center)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = { onUpdateEntries(emptyList()); results = null },
+                    modifier = Modifier.weight(1f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFC62828)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828))
+                ) {
+                    Text("CLEAR LIST", textAlign = TextAlign.Center)
+                }
+            }
+
+            results?.let { res ->
+                Spacer(modifier = Modifier.height(24.dp))
+                Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("TOTAL SURFACE AREA", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                        Text(res.area, fontSize = 32.sp, fontWeight = FontWeight.Bold, color = BlueTool)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("SQUARES", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                                Text(res.squares, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = GrayBtn)
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("BUNDLES", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                                Text(res.bundles, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = GrayBtn)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("SHEATHING (4x8 SHEETS)", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                        Text(res.sheets, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = GrayBtn)
+                    }
+                }
+            }
+            
+            if (entries.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("SAVED TAKE-OFFS", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                
+                entries.reversed().forEachIndexed { index, entry ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(entry.name, fontWeight = FontWeight.Bold)
+                            Text("Area: ${entry.area} | Sq: ${entry.squares} | Sheets: ${entry.sheets}", fontSize = 12.sp, color = Color.Gray)
+                        }
+                        IconButton(onClick = {
+                            editingIndex = entries.size - 1 - index
+                            sectionName = entry.name
+                            val dims = entry.dimensions.split(" x ")
+                            if (dims.size >= 2) {
+                                length = dims[0]
+                                span = dims[1].split(" @ ")[0]
+                                pitch = dims[1].split(" @ ").getOrElse(1) { "6" }
+                            }
+                        }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray) }
+                        IconButton(onClick = {
+                            val newList = entries.toMutableList()
+                            newList.removeAt(entries.size - 1 - index)
+                            onUpdateEntries(newList)
+                        }) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class RoofResults(val area: String, val squares: String, val bundles: String, val sheets: String)
+
+@Composable
+fun StairCalculator(
+    entries: List<StairEntry>,
+    onUpdateEntries: (List<StairEntry>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var totalRise by remember { mutableStateOf("") }
+    var targetRise by remember { mutableStateOf("7.5") }
+    var floorThick by remember { mutableStateOf("11.875") }
+    var nosing by remember { mutableStateOf("1.0") }
+    var treadWidth by remember { mutableStateOf("10.25") }
+    var sectionName by remember { mutableStateOf("") }
+    
+    var results by remember { mutableStateOf<StairEngine.StairResult?>(null) }
+    var editingIndex by remember { mutableStateOf(-1) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Stair Layout", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("STAIR DIMENSIONS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            ConstructionTextField(
+                value = totalRise,
+                onValueChange = { totalRise = it },
+                label = "Total Rise (ft / in)",
+                modifier = Modifier.fillMaxWidth(),
+                onFocus = onFocus
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = targetRise,
+                    onValueChange = { targetRise = it },
+                    label = "Target Rise (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = treadWidth,
+                    onValueChange = { treadWidth = it },
+                    label = "Tread Width (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = floorThick,
+                    onValueChange = { floorThick = it },
+                    label = "Floor Thick (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = nosing,
+                    onValueChange = { nosing = it },
+                    label = "Nosing (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = sectionName,
+                onValueChange = { sectionName = it },
+                label = { Text("Section Name / Location") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        val tr = FractionUtils.parse(totalRise)
+                        val dr = pitchToDouble(targetRise, 7.5)
+                        val tw = pitchToDouble(treadWidth, 10.25)
+                        val ft = pitchToDouble(floorThick, 11.875)
+                        val ns = pitchToDouble(nosing, 1.0)
+                        
+                        if (tr > 0) {
+                            val res = StairEngine.calculate(
+                                totRise = tr,
+                                desRise = dr,
+                                treadWidth = tw,
+                                floorThick = ft,
+                                nosing = ns
+                            )
+                            results = res
+                            
+                            val entry = StairEntry(
+                                id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
+                                name = sectionName.ifEmpty { "Stair Section" },
+                                rise = totalRise,
+                                riserCount = res.riserCount.toString(),
+                                actualRise = FractionUtils.formatInches(res.actualRise),
+                                treadCount = res.treadCount.toString(),
+                                stringerRun = FractionUtils.formatInches(res.stringerRun),
+                                totalRun = FractionUtils.formatInches(res.totalRun),
+                                stringerLen = FractionUtils.formatInches(res.stringerLen),
+                                angleDeg = "${res.angleDeg.roundToOneDecimal()}°",
+                                treadsOut = "${res.treadsOut.roundToOneDecimal()}",
+                                distOut = FractionUtils.formatInches(res.distOut),
+                                headroom = "Clear"
+                            )
+
+                            if (editingIndex != -1) {
+                                val newList = entries.toMutableList()
+                                newList[editingIndex] = entry
+                                onUpdateEntries(newList)
+                                editingIndex = -1
+                            } else {
+                                onUpdateEntries(entries + entry)
+                            }
+                            sectionName = ""
+                        }
+                    },
+                    modifier = Modifier.weight(2f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                ) {
+                    Text(if (editingIndex != -1) "UPDATE & SAVE" else "CALCULATE & SAVE", textAlign = TextAlign.Center)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = { onUpdateEntries(emptyList()); results = null },
+                    modifier = Modifier.weight(1f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFC62828)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828))
+                ) {
+                    Text("CLEAR LIST", textAlign = TextAlign.Center)
+                }
+            }
+
+            results?.let { res ->
+                Spacer(modifier = Modifier.height(24.dp))
+                Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("RISERS & TREADS", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("${res.riserCount} Risers @", fontSize = 16.sp)
+                            Text(FractionUtils.formatInches(res.actualRise), fontWeight = FontWeight.Bold, fontSize = 24.sp, color = BlueTool)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("${res.treadCount} Treads @", fontSize = 16.sp)
+                            Text(FractionUtils.formatInches(res.totalRun / res.treadCount.coerceAtLeast(1)), fontWeight = FontWeight.Bold, fontSize = 24.sp, color = BlueTool)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("STRINGER & LAYOUT", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        
+                        StairDiagram(
+                            totalRise = FractionUtils.parse(totalRise),
+                            totalRun = res.totalRun,
+                            riserCount = res.riserCount,
+                            floorThickness = FractionUtils.parse(floorThick),
+                            nosing = FractionUtils.parse(nosing),
+                            treadsOut = res.treadsOut,
+                            distOut = res.distOut
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Length: ${FractionUtils.formatInches(res.stringerLen)}", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Text("Angle: ${res.angleDeg.roundToOneDecimal()}°", fontSize = 14.sp, color = Color.Gray)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Distance out for Headroom:", fontSize = 12.sp, color = Color.Gray)
+                        Text(FractionUtils.formatInches(res.distOut), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = BlueTool)
+                    }
+                }
+            }
+
+            if (entries.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("SAVED STAIRS", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                
+                entries.reversed().forEachIndexed { index, entry ->
+                    Card(elevation = 1.dp, shape = RoundedCornerShape(4.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(entry.name, fontWeight = FontWeight.Bold)
+                                    Text("Rise: ${entry.rise} | ${entry.riserCount} Risers", fontSize = 12.sp, color = Color.Gray)
+                                }
+                                IconButton(onClick = {
+                                    editingIndex = entries.size - 1 - index
+                                    sectionName = entry.name
+                                    totalRise = entry.rise
+                                }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray) }
+                                IconButton(onClick = {
+                                    val newList = entries.toMutableList()
+                                    newList.removeAt(entries.size - 1 - index)
+                                    onUpdateEntries(newList)
+                                }) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray) }
+                            }
+                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Column {
+                                    Text("ACT RISE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = BlueTool)
+                                    Text(entry.actualRise, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Column {
+                                    Text("STRINGER", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = BlueTool)
+                                    Text(entry.stringerLen, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Column {
+                                    Text("ANGLE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = BlueTool)
+                                    Text(entry.angleDeg, fontSize = 14.sp)
+                                }
+                            }
+                            Text("Total Run: ${entry.totalRun} | Dist Out: ${entry.distOut}", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fun Double.roundToOneDecimal(): Double = (this * 10).roundToInt() / 10.0
+fun pitchToDouble(input: String, default: Double): Double = input.toDoubleOrNull() ?: FractionUtils.parse(input).takeIf { it > 0 } ?: default
+
+@Composable
+fun TableCell(text: String, width: androidx.compose.ui.unit.Dp, isHeader: Boolean = false, isBold: Boolean = false) {
+    Text(
+        text = text,
+        modifier = Modifier.width(width).padding(horizontal = 4.dp),
+        color = if (isHeader) Color.White else Color.Black,
+        fontWeight = if (isHeader || isBold) FontWeight.Bold else FontWeight.Normal,
+        fontSize = 13.sp,
+        textAlign = TextAlign.Center
+    )
+}
+
+@Composable
+fun SummaryTable(title: String, headers: List<String>, content: @Composable ColumnScope.() -> Unit) {
+    Text(title, color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+    Spacer(modifier = Modifier.height(8.dp))
+    Card(elevation = 2.dp, shape = RoundedCornerShape(4.dp)) {
+        val scrollState = rememberScrollState()
+        Column(modifier = Modifier.horizontalScroll(scrollState)) {
+            Row(modifier = Modifier.background(BlueTool).padding(vertical = 8.dp)) {
+                headers.forEach { header ->
+                    val width = when (header) {
+                        "Name" -> 120.dp
+                        "Dimens", "Dimensions", "Dimension" -> 150.dp
+                        "Area", "Volume", "Rebar", "Stringer", "Com Len", "Hip Len", "Radius", "Arc Len", "Plates", "Sheets", "Miter", "Bevel", "Hypot", "Angle A", "Angle B", "Surf Area", "Circumf", "Boards", "Fasteners", "Squares", "Bundles", "Joists", "Count", "Spacing", "Drop" -> 100.dp
+                        else -> 80.dp
+                    }
+                    TableCell(header, width, isHeader = true)
+                }
+            }
+            Column { content() }
+        }
+    }
+    Spacer(modifier = Modifier.height(16.dp))
+}
+
+@Composable
+fun ProjectListScreen(
+    projects: List<String>,
+    onProjectSelected: (String) -> Unit,
+    onAddProject: (String) -> Unit,
+    onDeleteProject: (String) -> Unit,
+    onPrintProject: (String) -> Unit,
+    onPrintAll: () -> Unit,
+    onBack: () -> Unit
+) {
+    var newProjectName by remember { mutableStateOf("") }
+    var showDialog by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE))) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Project Management", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = { showDialog = true },
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("NEW JOB", fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = onPrintAll,
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = BlueTool, contentColor = Color.White)
+                ) {
+                    Icon(Icons.Default.Share, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("PRINT ALL", fontWeight = FontWeight.Bold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("SELECT PROJECT", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            LazyColumn {
+                items(projects) { name ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .background(Color.White, RoundedCornerShape(8.dp))
+                            .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
+                            .clickable { onProjectSelected(name) }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(name, modifier = Modifier.weight(1f), fontSize = 18.sp, fontWeight = FontWeight.Medium)
+                        IconButton(onClick = { onPrintProject(name) }) {
+                            Icon(Icons.Default.Share, contentDescription = "Print", tint = BlueTool)
+                        }
+                        IconButton(onClick = { onDeleteProject(name) }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("New Project Name") },
+            text = {
+                OutlinedTextField(
+                    value = newProjectName,
+                    onValueChange = { newProjectName = it },
+                    label = { Text("Enter name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    if (newProjectName.isNotBlank()) {
+                        onAddProject(newProjectName)
+                        newProjectName = ""
+                        showDialog = false
+                    }
+                }) { Text("CREATE") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) { Text("CANCEL") }
+            }
+        )
+    }
+}
+
+@Composable
+fun JobSummaryScreen(
+    projectName: String,
+    stairEntries: List<StairEntry>,
+    rafterEntries: List<RafterEntry>,
+    arcEntries: List<ArcEntry>,
+    wallEntries: List<WallEntry>,
+    crownEntries: List<CrownEntry>,
+    gazeboEntries: List<GazeboEntry>,
+    concreteEntries: List<ConcreteEntry>,
+    roofEntries: List<RoofEntry>,
+    coordinatePaths: List<PlottedPath>,
+    masonryEntries: List<MasonryEntry>,
+    drywallEntries: List<DrywallEntry>,
+    deckEntries: List<DeckEntry>,
+    floorEntries: List<FloorEntry>,
+    handrailEntries: List<HandrailEntry>,
+    pineLineEntries: List<PineLineEntry>,
+    framingEntries: List<FramingEntry> = emptyList(),
+    circularStairEntries: List<CircularStairEntry> = emptyList(),
+    trigEntries: List<TrigEntry> = emptyList(),
+    columnEntries: List<ColumnEntry> = emptyList(),
+    onBack: () -> Unit
+) {
+    val pdfExportProvider = rememberPdfExportProvider()
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Job Data: $projectName", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            
+            IconButton(onClick = {
+                val sections = SummaryReportGenerator.generateSections(
+                    stairEntries, circularStairEntries, rafterEntries, gazeboEntries,
+                    arcEntries, wallEntries, crownEntries, concreteEntries,
+                    masonryEntries, drywallEntries, trigEntries, columnEntries,
+                    roofEntries, floorEntries, deckEntries, handrailEntries,
+                    framingEntries, pineLineEntries, coordinatePaths
+                )
+                pdfExportProvider.share(projectName, sections)
+            }) {
+                Icon(Icons.Default.Share, contentDescription = "Export PDF", tint = Color.White)
+            }
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            val isEmpty = stairEntries.isEmpty() && rafterEntries.isEmpty() && arcEntries.isEmpty() && wallEntries.isEmpty() &&
+                    crownEntries.isEmpty() && gazeboEntries.isEmpty() && concreteEntries.isEmpty() && roofEntries.isEmpty() &&
+                    coordinatePaths.isEmpty() && masonryEntries.isEmpty() && drywallEntries.isEmpty() &&
+                    deckEntries.isEmpty() && floorEntries.isEmpty() && handrailEntries.isEmpty() && pineLineEntries.isEmpty() &&
+                    circularStairEntries.isEmpty() && trigEntries.isEmpty() && columnEntries.isEmpty() && framingEntries.isEmpty()
+
+            if (isEmpty) {
+                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                    Text("No takeoff data recorded for this project.", color = Color.Gray)
+                }
+            } else {
+                if (stairEntries.isNotEmpty()) {
+                    SummaryTable("STAIR SCHEDULE", listOf("Name", "Rise", "Risers", "Act Rise", "Treads", "Run", "Stringer", "Angle")) {
+                        stairEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.rise, 80.dp)
+                                TableCell(entry.riserCount, 80.dp); TableCell(entry.actualRise, 80.dp)
+                                TableCell(entry.treadCount, 80.dp); TableCell(entry.totalRun, 80.dp)
+                                TableCell(entry.stringerLen, 100.dp); TableCell(entry.angleDeg, 80.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (circularStairEntries.isNotEmpty()) {
+                    SummaryTable("CIRCULAR STAIR SCHEDULE", listOf("Name", "Rise", "Radius", "Rot", "Risers", "Act Rise", "Walk Trd", "In Trd", "Out Trd")) {
+                        circularStairEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.totalRise, 80.dp)
+                                TableCell(entry.radius, 100.dp); TableCell(entry.rotation, 80.dp)
+                                TableCell(entry.riserCount, 80.dp); TableCell(entry.actualRise, 80.dp)
+                                TableCell(entry.walkTread, 80.dp); TableCell(entry.innerTread, 80.dp); TableCell(entry.outerTread, 80.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (rafterEntries.isNotEmpty()) {
+                    SummaryTable("RAFTER SCHEDULE", listOf("Name", "Span", "Pitch", "Heel", "O/H", "Com Len", "Hip Len", "Jack 16")) {
+                        rafterEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.span, 80.dp)
+                                TableCell(entry.pitch, 80.dp); TableCell(entry.heel, 80.dp)
+                                TableCell(entry.overhang, 80.dp); TableCell(entry.commonLen, 100.dp)
+                                TableCell(entry.hipLen, 100.dp); TableCell(entry.jack16, 80.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (gazeboEntries.isNotEmpty()) {
+                    SummaryTable("GAZEBO SCHEDULE", listOf("Name", "Sides", "Diam", "Pitch", "Area", "Com Len", "Hip Len")) {
+                        gazeboEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.sides, 80.dp)
+                                TableCell(entry.diameter, 80.dp); TableCell(entry.pitch, 80.dp)
+                                TableCell(entry.area, 100.dp); TableCell(entry.commonRafterLen, 100.dp); TableCell(entry.hipLen, 100.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (arcEntries.isNotEmpty()) {
+                    SummaryTable("ARC SCHEDULE", listOf("Name", "Chord", "Height", "Radius", "Arc Len", "Angle")) {
+                        arcEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.chord, 100.dp)
+                                TableCell(entry.height, 100.dp); TableCell(entry.radius, 100.dp)
+                                TableCell(entry.arcLength, 100.dp); TableCell(entry.arcAngle, 80.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (wallEntries.isNotEmpty()) {
+                    SummaryTable("WALL FRAMING SCHEDULE", listOf("Name", "Length", "Height", "Studs", "Plates", "Sheets")) {
+                        wallEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.length, 100.dp)
+                                TableCell(entry.height, 100.dp); TableCell(entry.studs, 80.dp)
+                                TableCell(entry.plates, 100.dp); TableCell(entry.sheets, 100.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (framingEntries.isNotEmpty()) {
+                    SummaryTable("OPENINGS SCHEDULE", listOf("Name", "Qty", "Header", "Jacks", "Sill", "Lower Crip", "Upper Crip")) {
+                        framingEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 100.dp, isBold = true); TableCell(entry.winCount, 40.dp)
+                                TableCell(entry.headerLength, 100.dp); TableCell("${entry.jackCount}@${entry.jackLength}", 100.dp)
+                                TableCell(if (entry.isDoor) "-" else entry.sillLength, 80.dp)
+                                TableCell(if (entry.isDoor) "-" else entry.lowerCrippleLength, 100.dp)
+                                TableCell(entry.upperCrippleLength, 100.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (crownEntries.isNotEmpty()) {
+                    SummaryTable("CROWN MOLDING SCHEDULE", listOf("Name", "Spring", "Corner", "Miter", "Bevel")) {
+                        crownEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.spring, 100.dp)
+                                TableCell(entry.wallAngle, 80.dp); TableCell(entry.miter, 100.dp); TableCell(entry.bevel, 100.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (concreteEntries.isNotEmpty()) {
+                    SummaryTable("CONCRETE SCHEDULE", listOf("Name", "Qty", "Dimens", "Volume", "Rebar")) {
+                        concreteEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.qty, 80.dp)
+                                TableCell(entry.dimensions, 150.dp); TableCell(entry.volume, 100.dp)
+                                TableCell(entry.rebar, 100.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (masonryEntries.isNotEmpty()) {
+                    SummaryTable("MASONRY SCHEDULE", listOf("Name", "Area", "Blocks", "Bricks")) {
+                        masonryEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.area, 100.dp)
+                                TableCell(entry.blocks, 80.dp); TableCell(entry.bricks, 80.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (drywallEntries.isNotEmpty()) {
+                    SummaryTable("DRYWALL SCHEDULE", listOf("Name", "Area", "Sheets", "Size", "Mud", "Tape")) {
+                        drywallEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.area, 100.dp)
+                                TableCell(entry.sheets, 100.dp); TableCell(entry.sheetSize, 80.dp)
+                                TableCell(entry.mud, 80.dp); TableCell(entry.tape, 80.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (trigEntries.isNotEmpty()) {
+                    SummaryTable("TRIG SOLUTIONS SCHEDULE", listOf("Name", "Side A", "Side B", "Hypot", "Angle A", "Angle B")) {
+                        trigEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.sideA, 80.dp)
+                                TableCell(entry.sideB, 80.dp); TableCell(entry.hypotenuse, 100.dp)
+                                TableCell(entry.angleA, 100.dp); TableCell(entry.angleB, 100.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (columnEntries.isNotEmpty()) {
+                    SummaryTable("COLUMN / CIRCLE SCHEDULE", listOf("Name", "Diam", "Height", "Volume", "Surf Area", "Circumf")) {
+                        columnEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.diameter, 80.dp)
+                                TableCell(entry.height, 80.dp); TableCell(entry.volume, 100.dp)
+                                TableCell(entry.surfaceArea, 100.dp); TableCell(entry.circumference, 100.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (roofEntries.isNotEmpty()) {
+                    SummaryTable("ROOF SCHEDULE", listOf("Name", "Area", "Squares", "Bundles", "Sheets", "Pitch")) {
+                        roofEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.area, 100.dp)
+                                TableCell(entry.squares, 100.dp); TableCell(entry.bundles, 100.dp)
+                                TableCell(entry.sheets, 100.dp); TableCell(entry.dimensions, 80.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (floorEntries.isNotEmpty()) {
+                    SummaryTable("FLOORING SCHEDULE", listOf("Name", "Length", "Width", "OC", "Joists", "Sheets")) {
+                        floorEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.length, 100.dp)
+                                TableCell(entry.width, 100.dp); TableCell(entry.spacing, 80.dp)
+                                TableCell(entry.joists, 100.dp); TableCell(entry.sheets, 100.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (deckEntries.isNotEmpty()) {
+                    SummaryTable("DECKING SCHEDULE", listOf("Name", "Length", "Width", "Gap", "Boards", "Fasteners")) {
+                        deckEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.length, 100.dp)
+                                TableCell(entry.width, 100.dp); TableCell(entry.gap, 80.dp)
+                                TableCell(entry.boards, 100.dp); TableCell(entry.fasteners, 100.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (handrailEntries.isNotEmpty()) {
+                    SummaryTable("HANDRAIL SCHEDULE", listOf("Name", "Length", "Count", "Spacing")) {
+                        handrailEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.length, 100.dp)
+                                TableCell(entry.spindles, 100.dp); TableCell(entry.spacing, 100.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (pineLineEntries.isNotEmpty()) {
+                    SummaryTable("PINE LINE SCHEDULE", listOf("Name", "Pitch", "Heel", "Wall", "O/H", "Drop")) {
+                        pineLineEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.pitch, 80.dp)
+                                TableCell(entry.heel, 80.dp); TableCell(entry.wall, 80.dp)
+                                TableCell(entry.overhang, 80.dp); TableCell(entry.drop, 100.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (roofEntries.isNotEmpty()) {
+                    SummaryTable("ROOF SCHEDULE", listOf("Name", "Area", "Squares", "Bundles", "Sheets", "Pitch")) {
+                        roofEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.area, 100.dp)
+                                TableCell(entry.squares, 80.dp); TableCell(entry.bundles, 80.dp)
+                                TableCell(entry.sheets, 80.dp); TableCell(entry.dimensions, 120.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (floorEntries.isNotEmpty()) {
+                    SummaryTable("FLOORING SCHEDULE", listOf("Name", "Length", "Width", "OC", "Joists", "Sheets")) {
+                        floorEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.length, 100.dp)
+                                TableCell(entry.width, 100.dp); TableCell(entry.spacing, 80.dp)
+                                TableCell(entry.joists, 100.dp); TableCell(entry.sheets, 100.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (deckEntries.isNotEmpty()) {
+                    SummaryTable("DECKING SCHEDULE", listOf("Name", "Length", "Width", "Gap", "Boards", "Fasteners")) {
+                        deckEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.length, 100.dp)
+                                TableCell(entry.width, 100.dp); TableCell(entry.gap, 80.dp)
+                                TableCell(entry.boards, 100.dp); TableCell(entry.fasteners, 100.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (handrailEntries.isNotEmpty()) {
+                    SummaryTable("HANDRAIL SCHEDULE", listOf("Name", "Length", "Count", "Spacing")) {
+                        handrailEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.length, 100.dp)
+                                TableCell(entry.spindles, 100.dp); TableCell(entry.spacing, 100.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (pineLineEntries.isNotEmpty()) {
+                    SummaryTable("PINE LINE SCHEDULE", listOf("Name", "Pitch", "Heel", "Wall", "O/H", "Drop")) {
+                        pineLineEntries.forEach { entry ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.pitch, 80.dp)
+                                TableCell(entry.heel, 80.dp); TableCell(entry.wall, 80.dp)
+                                TableCell(entry.overhang, 80.dp); TableCell(entry.drop, 100.dp)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                if (coordinatePaths.isNotEmpty()) {
+                    Text("SITE SURVEY SCHEDULE", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    coordinatePaths.forEach { path ->
+                        Card(elevation = 2.dp, shape = RoundedCornerShape(4.dp), modifier = Modifier.padding(bottom = 8.dp)) {
+                            Column(modifier = Modifier.padding(8.dp)) {
+                                Row(modifier = Modifier.fillMaxWidth().background(if (path.isTakeoff) BlueTool else Color.Gray).padding(4.dp)) {
+                                    Text(if (path.isTakeoff) "TAKEOFF: ${path.id}" else "BOUNDARY: ${path.id}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                }
+                                val area = CoordinateEngine.calculateNetArea(path.points.map { CoordinateEngine.Point(it.n, it.e) }, path.arcHeights)
+                                Text("Points: ${path.points.size} | Area: ${(area / 144.0).roundToOneDecimal()} sq ft", fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun FramingCalculator(
+    entries: List<FramingEntry>,
+    onUpdateEntries: (List<FramingEntry>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var wallHeight by remember { mutableStateOf("97 1/8") }
+    var headerHeightBottom by remember { mutableStateOf("81 3/4") }
+    var headerDepth by remember { mutableStateOf("9 1/4") }
+    var roWidth by remember { mutableStateOf("") }
+    var roHeight by remember { mutableStateOf("") }
+    var winCount by remember { mutableStateOf("1") }
+    var spaceBetween by remember { mutableStateOf("0") }
+    var studOC by remember { mutableStateOf("16") }
+    var isDoor by remember { mutableStateOf(false) }
+    var isMultiWindow by remember { mutableStateOf(false) }
+    var studSize by remember { mutableStateOf("2x4") }
+    var sectionName by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+
+    var results by remember { mutableStateOf<FramingEngine.Result?>(null) }
+    var editingIndex by remember { mutableStateOf(-1) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Framing: Final Test", color = Color.White) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null, tint = Color.White) } },
+                backgroundColor = BlueTool
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { /* Help */ }, backgroundColor = BlueTool) {
+                Icon(Icons.Default.Info, null, tint = Color.White)
+            }
+        }
+    ) { padding ->
+        Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).padding(padding).verticalScroll(rememberScrollState())) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                
+                // --- Wall Specifications ---
+                Text("WALL SPECIFICATIONS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ConstructionTextField(
+                        value = wallHeight,
+                        onValueChange = { wallHeight = it },
+                        label = "Wall Height (in)",
+                        modifier = Modifier.weight(1f),
+                        onFocus = onFocus
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    val currentWH = FractionUtils.parse(wallHeight)
+                    Text("Stud: ${if (currentWH > 0) FractionUtils.formatInches(currentWH - 4.5) else ""}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
+                Divider(modifier = Modifier.padding(vertical = 12.dp))
+
+                // --- Header Specifications ---
+                Text("HEADER SPECIFICATIONS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    ConstructionTextField(
+                        value = headerHeightBottom,
+                        onValueChange = { headerHeightBottom = it },
+                        label = "Hdr Height (to Bottom) (in)",
+                        modifier = Modifier.weight(1f),
+                        onFocus = onFocus
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    ConstructionTextField(
+                        value = headerDepth,
+                        onValueChange = { headerDepth = it },
+                        label = "Hdr Depth (in)",
+                        modifier = Modifier.weight(1f),
+                        onFocus = onFocus
+                    )
+                }
+                Divider(modifier = Modifier.padding(vertical = 12.dp))
+
+                // --- Stud Specifications ---
+                Text("STUD SPECIFICATIONS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    var expanded by remember { mutableStateOf(false) }
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedTextField(
+                            value = "Stud Size: $studSize",
+                            onValueChange = {},
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            trailingIcon = { IconButton(onClick = { expanded = true }) { Icon(Icons.Default.ArrowDropDown, null) } }
+                        )
+                        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                            listOf("2x4", "2x6", "2x8").forEach { size ->
+                                DropdownMenuItem(onClick = { studSize = size; expanded = false }) { Text(size) }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    ConstructionTextField(
+                        value = studOC,
+                        onValueChange = { studOC = it },
+                        label = "Stud OC (in)",
+                        modifier = Modifier.weight(1f),
+                        onFocus = onFocus
+                    )
+                }
+                Divider(modifier = Modifier.padding(vertical = 12.dp))
+
+                // --- Opening Dimensions ---
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("OPENING DIMENSIONS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 11.sp, modifier = Modifier.weight(1f))
+                    Text("Multi-Window", fontSize = 11.sp)
+                    Switch(checked = isMultiWindow, onCheckedChange = { isMultiWindow = it }, modifier = Modifier.scale(0.8f))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Door Mode", fontSize = 11.sp)
+                    Switch(checked = isDoor, onCheckedChange = { isDoor = it }, modifier = Modifier.scale(0.8f))
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    ConstructionTextField(
+                        value = roWidth,
+                        onValueChange = { roWidth = it },
+                        label = if (isMultiWindow) "R.O. Width (ea) (in)" else "R.O. Width (in)",
+                        modifier = Modifier.weight(1.5f),
+                        onFocus = onFocus
+                    )
+                    if (!isDoor) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        ConstructionTextField(
+                            value = roHeight,
+                            onValueChange = { roHeight = it },
+                            label = "R.O. Height (in)",
+                            modifier = Modifier.weight(1.5f),
+                            onFocus = onFocus
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    ConstructionTextField(
+                        value = winCount,
+                        onValueChange = { winCount = it },
+                        label = "Qty",
+                        modifier = Modifier.weight(1f),
+                        onFocus = onFocus
+                    )
+                }
+                
+                if (isMultiWindow) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    ConstructionTextField(
+                        value = spaceBetween,
+                        onValueChange = { spaceBetween = it },
+                        label = "Gap Between (in)",
+                        modifier = Modifier.fillMaxWidth(),
+                        onFocus = onFocus
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = sectionName,
+                    onValueChange = { sectionName = it },
+                    label = { Text("Location / Section Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Layout Notes") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = {
+                            val wh = FractionUtils.parse(wallHeight)
+                            val hhb = FractionUtils.parse(headerHeightBottom)
+                            val hd = FractionUtils.parse(headerDepth)
+                            val rw = FractionUtils.parse(roWidth)
+                            val rh = if (isDoor) 0.0 else FractionUtils.parse(roHeight)
+                            val wc = winCount.toIntOrNull() ?: 1
+                            val sb = FractionUtils.parse(spaceBetween)
+                            val oc = FractionUtils.parse(studOC).takeIf { it > 0 } ?: 16.0
+                            
+                            if (wh > 0 && rw > 0) {
+                                val params = FramingEngine.Params(
+                                    wallHeight = wh,
+                                    headerHeightBottom = hhb,
+                                    headerDepth = hd,
+                                    roWidth = rw,
+                                    roHeight = rh,
+                                    winCount = if (isMultiWindow) wc else 1,
+                                    spaceBetween = sb,
+                                    studOC = oc,
+                                    isDoor = isDoor,
+                                    studSize = studSize
+                                )
+                                val res = FramingEngine.calculate(params)
+                                results = res
+
+                                val entry = FramingEntry(
+                                    id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
+                                    name = sectionName.ifEmpty { "Opening ${entries.size + 1}" },
+                                    wallHeight = wallHeight,
+                                    headerHeightBottom = headerHeightBottom,
+                                    headerDepth = headerDepth,
+                                    roWidth = roWidth,
+                                    roHeight = if (isDoor) "N/A" else roHeight,
+                                    winCount = if (isMultiWindow) winCount else "1",
+                                    spaceBetween = spaceBetween,
+                                    studOC = studOC,
+                                    isDoor = isDoor,
+                                    isMultiWindow = isMultiWindow,
+                                    studSize = studSize,
+                                    notes = notes,
+                                    studHeight = FractionUtils.formatInches(res.studHeight),
+                                    headerLength = FractionUtils.formatInches(res.headerLength),
+                                    headerNominal = res.headerNominal,
+                                    jackCount = res.jackCount.toString(),
+                                    jackLength = FractionUtils.formatInches(res.jackLength),
+                                    sillCount = res.sillCount.toString(),
+                                    sillLength = FractionUtils.formatInches(res.sillLength),
+                                    lowerCrippleCount = res.lowerCrippleCount.toString(),
+                                    lowerCrippleLength = FractionUtils.formatInches(res.lowerCrippleLength),
+                                    upperCrippleCount = res.upperCrippleCount.toString(),
+                                    upperCrippleLength = FractionUtils.formatInches(res.upperCrippleLength)
+                                )
+
+                                if (editingIndex != -1) {
+                                    val newList = entries.toMutableList()
+                                    newList[editingIndex] = entry
+                                    onUpdateEntries(newList)
+                                    editingIndex = -1
+                                } else {
+                                    onUpdateEntries(entries + entry)
+                                }
+                                sectionName = ""; notes = ""; roWidth = ""; roHeight = ""; winCount = "1"
+                            }
+                        },
+                        modifier = Modifier.weight(2f).height(56.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                    ) {
+                        Text(if (editingIndex != -1) "UPDATE OPENING" else "ADD OPENING", fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    OutlinedButton(
+                        onClick = { onUpdateEntries(emptyList()); results = null },
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color(0xFFD32F2F)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFD32F2F))
+                    ) {
+                        Text("CLEAR", fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                if (entries.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).background(Color.White)) {
+                        Column {
+                            // Header
+                            Row(modifier = Modifier.background(BlueTool).padding(vertical = 12.dp, horizontal = 4.dp)) {
+                                ResultHeaderCell("Name", 100.dp)
+                                ResultHeaderCell("Qty", 50.dp)
+                                ResultHeaderCell("Header size", 110.dp)
+                                ResultHeaderCell("Jacks", 120.dp)
+                                ResultHeaderCell("Sill", 110.dp)
+                                ResultHeaderCell("Lower Cripples", 130.dp)
+                                ResultHeaderCell("Upper cripples", 130.dp)
+                            }
+                            // Rows
+                            entries.forEachIndexed { index, entry ->
+                                Row(modifier = Modifier.background(Color.White).padding(vertical = 12.dp, horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    ResultCell(entry.name, 100.dp, isBold = true)
+                                    ResultCell(entry.winCount, 50.dp)
+                                    ResultCell("${entry.headerNominal} x ${entry.headerLength}", 110.dp)
+                                    ResultCell("${entry.jackCount} - ${entry.studSize} x ${entry.jackLength}", 120.dp)
+                                    ResultCell(if (entry.isDoor) "-" else "${entry.sillCount} - ${entry.studSize} x ${entry.sillLength}", 110.dp)
+                                    ResultCell(if (entry.isDoor) "-" else "${entry.lowerCrippleCount} - ${entry.studSize} x ${entry.lowerCrippleLength}", 130.dp)
+                                    ResultCell("${entry.upperCrippleCount} - ${entry.studSize} x ${entry.upperCrippleLength}", 130.dp)
+                                    
+                                    IconButton(onClick = {
+                                        editingIndex = index
+                                        sectionName = entry.name
+                                        notes = entry.notes
+                                        wallHeight = entry.wallHeight
+                                        headerHeightBottom = entry.headerHeightBottom
+                                        headerDepth = entry.headerDepth
+                                        roWidth = entry.roWidth
+                                        roHeight = if (entry.roHeight == "N/A") "" else entry.roHeight
+                                        winCount = entry.winCount
+                                        spaceBetween = entry.spaceBetween
+                                        studOC = entry.studOC
+                                        isDoor = entry.isDoor
+                                        isMultiWindow = entry.isMultiWindow
+                                        studSize = entry.studSize
+                                    }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray) }
+                                    IconButton(onClick = {
+                                        val newList = entries.toMutableList()
+                                        newList.removeAt(index)
+                                        onUpdateEntries(newList)
+                                    }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray) }
+                                }
+                                Divider()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ResultHeaderCell(text: String, width: androidx.compose.ui.unit.Dp) {
+    Text(
+        text = text,
+        modifier = Modifier.width(width).padding(4.dp),
+        color = Color.White,
+        fontWeight = FontWeight.Bold,
+        fontSize = 12.sp,
+        textAlign = TextAlign.Start
+    )
+}
+
+@Composable
+fun ResultCell(text: String, width: androidx.compose.ui.unit.Dp, isBold: Boolean = false) {
+    Text(
+        text = text,
+        modifier = Modifier.width(width).padding(4.dp),
+        fontSize = 12.sp,
+        fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+        textAlign = TextAlign.Start
+    )
+}
+
+@Composable
+fun ResultRow(label: String, value: String, isBold: Boolean = false) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, fontSize = 14.sp)
+        Text(value, fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal, fontSize = 14.sp, color = if (isBold) BlueTool else Color.Black)
+    }
+}
+@Composable
+fun WallCalculator(
+    entries: List<WallEntry>,
+    onUpdateEntries: (List<WallEntry>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var length by remember { mutableStateOf("") }
+    var spacing by remember { mutableStateOf("16") }
+    var height by remember { mutableStateOf("8'") }
+    var sectionName by remember { mutableStateOf("") }
+
+    var results by remember { mutableStateOf<WallResults?>(null) }
+    var editingIndex by remember { mutableStateOf(-1) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Wall Framing", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("WALL DIMENSIONS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            ConstructionTextField(
+                value = length,
+                onValueChange = { length = it },
+                label = "Wall Length (ft / in)",
+                modifier = Modifier.fillMaxWidth(),
+                onFocus = onFocus
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = spacing,
+                    onValueChange = { spacing = it },
+                    label = "Stud O.C. (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = height,
+                    onValueChange = { height = it },
+                    label = "Wall Height (ft/in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = sectionName,
+                onValueChange = { sectionName = it },
+                label = { Text("Section Name / Location") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        val l = FractionUtils.parse(length) / 12.0
+                        val s = spacing.toDoubleOrNull() ?: 16.0
+                        val h = FractionUtils.parse(height) / 12.0
+                        
+                        if (l > 0) {
+                            val studs = WallEngine.estimateStuds(l, s)
+                            val plates = WallEngine.estimatePlates(l)
+                            val blocking = WallEngine.estimateBlocking(l, h)
+                            val sheets = WallEngine.estimateSheathing(l, h)
+
+                            val res = WallResults(
+                                studs = studs.toString(),
+                                plates = "${plates.roundToInt()} lin ft",
+                                blocking = "${blocking.roundToInt()} lin ft",
+                                sheets = sheets.toString()
+                            )
+                            results = res
+
+                            val entry = WallEntry(
+                                id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
+                                name = sectionName.ifEmpty { "Wall Section" },
+                                length = length,
+                                height = height,
+                                spacing = "$spacing\" OC",
+                                studs = res.studs,
+                                plates = res.plates,
+                                blocking = res.blocking,
+                                sheets = res.sheets
+                            )
+
+                            if (editingIndex != -1) {
+                                val newList = entries.toMutableList()
+                                newList[editingIndex] = entry
+                                onUpdateEntries(newList)
+                                editingIndex = -1
+                            } else {
+                                onUpdateEntries(entries + entry)
+                            }
+                            sectionName = ""
+                        }
+                    },
+                    modifier = Modifier.weight(2f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                ) {
+                    Text(if (editingIndex != -1) "UPDATE & SAVE" else "CALCULATE & SAVE", textAlign = TextAlign.Center)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = { onUpdateEntries(emptyList()); results = null },
+                    modifier = Modifier.weight(1f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFC62828)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828))
+                ) {
+                    Text("CLEAR LIST", textAlign = TextAlign.Center)
+                }
+            }
+
+            results?.let { res ->
+                Spacer(modifier = Modifier.height(24.dp))
+                Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("ESTIMATED MATERIALS", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Total Studs:", fontSize = 16.sp)
+                            Text(res.studs, fontWeight = FontWeight.Bold, fontSize = 24.sp, color = BlueTool)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Plate Footage:", fontSize = 16.sp)
+                            Text(res.plates, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = GrayBtn)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Blocking Footage:", fontSize = 16.sp)
+                            Text(res.blocking, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = GrayBtn)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Sheathing (4x8):", fontSize = 16.sp)
+                            Text(res.sheets, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = GrayBtn)
+                        }
+                    }
+                }
+            }
+
+            if (entries.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("SAVED WALLS", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                
+                entries.reversed().forEachIndexed { index, entry ->
+                    Card(elevation = 1.dp, shape = RoundedCornerShape(4.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(entry.name, fontWeight = FontWeight.Bold)
+                                    Text("Length: ${entry.length} | Height: ${entry.height} | ${entry.spacing}", fontSize = 12.sp, color = Color.Gray)
+                                }
+                                IconButton(onClick = {
+                                    editingIndex = entries.size - 1 - index
+                                    sectionName = entry.name
+                                    length = entry.length
+                                    height = entry.height
+                                }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray) }
+                                IconButton(onClick = {
+                                    val newList = entries.toMutableList()
+                                    newList.removeAt(entries.size - 1 - index)
+                                    onUpdateEntries(newList)
+                                }) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray) }
+                            }
+                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            Text("${entry.studs} Studs | ${entry.plates} Plates | ${entry.blocking} Block | ${entry.sheets} Sheets", fontWeight = FontWeight.Bold, color = BlueTool)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class WallResults(val studs: String, val plates: String, val blocking: String, val sheets: String)
+
+@Composable
+fun CrownCalculator(
+    entries: List<CrownEntry>,
+    onUpdateEntries: (List<CrownEntry>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var springAngle by remember { mutableStateOf("38") }
+    var wallAngle by remember { mutableStateOf("90") }
+    var sectionName by remember { mutableStateOf("") }
+
+    var results by remember { mutableStateOf<CrownResults?>(null) }
+    var editingIndex by remember { mutableStateOf(-1) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Crown Molding", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("MOLDING & CORNER ANGLES", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = springAngle,
+                    onValueChange = { springAngle = it },
+                    label = "Spring Angle (°)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = wallAngle,
+                    onValueChange = { wallAngle = it },
+                    label = "Wall Corner Angle (°)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Text("Tip: Enter 135° corner OR 45° turn", fontSize = 10.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = sectionName,
+                onValueChange = { sectionName = it },
+                label = { Text("Section Name / Room") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        val s = FractionUtils.parse(springAngle).takeIf { it > 0 } ?: 38.0
+                        val w = FractionUtils.parse(wallAngle).takeIf { it > 0 } ?: 90.0
+                        
+                        val settings = CrownEngine.calculateSettings(s, w)
+                        val res = CrownResults(
+                            miter = "${settings.first.roundToOneDecimal()}°",
+                            bevel = "${settings.second.roundToOneDecimal()}°"
+                        )
+                        results = res
+
+                        val entry = CrownEntry(
+                            id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
+                            name = sectionName.ifEmpty { "Crown Section" },
+                            spring = "$s°",
+                            wallAngle = "$w°",
+                            miter = res.miter,
+                            bevel = res.bevel
+                        )
+
+                        if (editingIndex != -1) {
+                            val newList = entries.toMutableList()
+                            newList[editingIndex] = entry
+                            onUpdateEntries(newList)
+                            editingIndex = -1
+                        } else {
+                            onUpdateEntries(entries + entry)
+                        }
+                        sectionName = ""
+                    },
+                    modifier = Modifier.weight(2f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                ) {
+                    Text(if (editingIndex != -1) "UPDATE & SAVE" else "CALCULATE & SAVE", textAlign = TextAlign.Center)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = { onUpdateEntries(emptyList()); results = null },
+                    modifier = Modifier.weight(1f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFC62828)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828))
+                ) {
+                    Text("CLEAR LIST", textAlign = TextAlign.Center)
+                }
+            }
+
+            results?.let { res ->
+                Spacer(modifier = Modifier.height(24.dp))
+                Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("COMPOUND SAW SETTINGS", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Miter Angle:", fontSize = 14.sp)
+                                Text(res.miter, fontWeight = FontWeight.Bold, fontSize = 28.sp, color = BlueTool)
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Bevel Angle:", fontSize = 14.sp)
+                                Text(res.bevel, fontWeight = FontWeight.Bold, fontSize = 28.sp, color = BlueTool)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (entries.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("SAVED CROWN SETTINGS", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                
+                entries.reversed().forEachIndexed { index, entry ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(entry.name, fontWeight = FontWeight.Bold)
+                            Text("Miter: ${entry.miter} | Bevel: ${entry.bevel}", fontSize = 12.sp, color = Color.Gray)
+                        }
+                        IconButton(onClick = {
+                            editingIndex = entries.size - 1 - index
+                            sectionName = entry.name
+                            springAngle = entry.spring.replace("°", "")
+                            wallAngle = entry.wallAngle.replace("°", "")
+                        }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray) }
+                        IconButton(onClick = {
+                            val newList = entries.toMutableList()
+                            newList.removeAt(entries.size - 1 - index)
+                            onUpdateEntries(newList)
+                        }) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class CrownResults(val miter: String, val bevel: String)
+
+@Composable
+fun GazeboCalculator(
+    entries: List<GazeboEntry>,
+    onUpdateEntries: (List<GazeboEntry>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var sides by remember { mutableStateOf("8") }
+    var diameter by remember { mutableStateOf("") }
+    var pitch by remember { mutableStateOf("6") }
+    var ridgeSpan by remember { mutableStateOf("0") }
+    var overhang by remember { mutableStateOf("12") }
+    var heel by remember { mutableStateOf("4") }
+    var joistOC by remember { mutableStateOf("16") }
+    var sectionName by remember { mutableStateOf("") }
+
+    var results by remember { mutableStateOf<GazeboEngine.Result?>(null) }
+    var diagramMode by remember { mutableStateOf(GazeboMode.LAYOUT) }
+    var editingIndex by remember { mutableStateOf(-1) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Gazebo Master", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("POLYGON DIMENSIONS (INCIRCLE)", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = sides,
+                    onValueChange = { sides = it },
+                    label = "Number of Sides",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = diameter,
+                    onValueChange = { diameter = it },
+                    label = "Total Span (ft/in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = pitch,
+                    onValueChange = { pitch = it },
+                    label = "Roof Pitch (/12)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = ridgeSpan,
+                    onValueChange = { ridgeSpan = it },
+                    label = "Ridge Span (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = overhang,
+                    onValueChange = { overhang = it },
+                    label = "Overhang (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = heel,
+                    onValueChange = { heel = it },
+                    label = "Heel (HAP)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = joistOC,
+                    onValueChange = { joistOC = it },
+                    label = "Joist O.C.",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = sectionName,
+                onValueChange = { sectionName = it },
+                label = { Text("Section Name") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        val sCount = sides.toIntOrNull() ?: 8
+                        val d = FractionUtils.parse(diameter)
+                        val p = pitch.toDoubleOrNull() ?: 0.0
+                        val rs = FractionUtils.parse(ridgeSpan)
+                        val oh = FractionUtils.parse(overhang)
+                        val h = FractionUtils.parse(heel)
+                        val oc = FractionUtils.parse(joistOC).takeIf { it > 0 } ?: 16.0
+                        
+                        if (d > 0 && sCount >= 3) {
+                            val params = GazeboEngine.Params(d, rs, sCount, p, oh, h, oc)
+                            val res = GazeboEngine.calculate(params)
+                            results = res
+
+                            val entry = GazeboEntry(
+                                id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
+                                name = sectionName.ifEmpty { "$sCount-Sided Gazebo" },
+                                sides = sCount.toString(),
+                                diameter = diameter,
+                                ridgeSpan = ridgeSpan,
+                                pitch = pitch,
+                                overhang = overhang,
+                                heel = heel,
+                                sideLength = FractionUtils.formatInches(res.sideLen),
+                                apothem = FractionUtils.formatInches(res.apothem),
+                                perimeter = FractionUtils.formatInches(res.sideLen * sCount),
+                                interiorAngle = "${(180.0 * (sCount - 2.0) / sCount).roundToOneDecimal()}°",
+                                miter = "${(180.0 / sCount).roundToOneDecimal()}°",
+                                area = "${(0.5 * res.apothem * res.sideLen * sCount / 144.0).roundToOneDecimal()} sq ft",
+                                verticalRise = FractionUtils.formatInches(res.verticalRise),
+                                commonRafterLen = FractionUtils.formatInches(res.mainRafterLen),
+                                commonOverall = FractionUtils.formatInches(res.overallMainLen),
+                                hipLen = FractionUtils.formatInches(res.hipRafterLen),
+                                hipOverall = FractionUtils.formatInches(res.overallHipLen),
+                                commonPlumbSeat = "${atan(p/12.0)*(180.0/PI).roundToOneDecimal()}° / ${(90.0-atan(p/12.0)*(180.0/PI)).roundToOneDecimal()}°",
+                                hipPlumbSeat = "${atan(res.hipPitch/12.0)*(180.0/PI).roundToOneDecimal()}° / ${(90.0-atan(res.hipPitch/12.0)*(180.0/PI)).roundToOneDecimal()}°",
+                                ridgeOffset = "N/A"
+                            )
+
+                            if (editingIndex != -1) {
+                                val newList = entries.toMutableList()
+                                newList[editingIndex] = entry
+                                onUpdateEntries(newList)
+                                editingIndex = -1
+                            } else {
+                                onUpdateEntries(entries + entry)
+                            }
+                            sectionName = ""
+                        }
+                    },
+                    modifier = Modifier.weight(2f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                ) {
+                    Text(if (editingIndex != -1) "UPDATE & SAVE" else "CALCULATE & SAVE", textAlign = TextAlign.Center)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = { onUpdateEntries(emptyList()); results = null },
+                    modifier = Modifier.weight(1f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFC62828)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828))
+                ) {
+                    Text("CLEAR LIST", textAlign = TextAlign.Center)
+                }
+            }
+
+            results?.let { res ->
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Diagram Mode Tabs
+                Row(modifier = Modifier.fillMaxWidth().background(Color.White).padding(4.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    GazeboTabButton("LAYOUT", diagramMode == GazeboMode.LAYOUT) { diagramMode = GazeboMode.LAYOUT }
+                    GazeboTabButton("RAFTER", diagramMode == GazeboMode.RAFTER) { diagramMode = GazeboMode.RAFTER }
+                    GazeboTabButton("FLOOR", diagramMode == GazeboMode.FLOOR) { diagramMode = GazeboMode.FLOOR }
+                }
+                
+                GazeboDiagram(
+                    mode = diagramMode,
+                    params = GazeboEngine.Params(
+                        FractionUtils.parse(diameter), 
+                        FractionUtils.parse(ridgeSpan), 
+                        sides.toIntOrNull() ?: 8, 
+                        pitch.toDoubleOrNull() ?: 0.0, 
+                        FractionUtils.parse(overhang), 
+                        FractionUtils.parse(heel), 
+                        FractionUtils.parse(joistOC).takeIf { it > 0 } ?: 16.0
+                    ),
+                    res = res
+                )
+
+                Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("LAYOUT", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column {
+                                Text("Side Length", fontSize = 11.sp, color = Color.Gray)
+                                Text(FractionUtils.formatInches(res.sideLen), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = BlueTool)
+                            }
+                            Column {
+                                Text("Perimeter", fontSize = 11.sp, color = Color.Gray)
+                                Text(FractionUtils.formatInches(res.sideLen * (sides.toIntOrNull() ?: 8)), fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column {
+                                Text("Apothem (b)", fontSize = 11.sp, color = Color.Gray)
+                                Text(FractionUtils.formatInches(res.apothem), fontWeight = FontWeight.Bold)
+                            }
+                            Column {
+                                Text("Radius (c)", fontSize = 11.sp, color = Color.Gray)
+                                Text(FractionUtils.formatInches(res.radius), fontWeight = FontWeight.Bold)
+                            }
+                            Column {
+                                Text("Ridge Len", fontSize = 11.sp, color = Color.Gray)
+                                Text(FractionUtils.formatInches(res.ridgeLen), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("ANGLES & CUTS", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Miter Angle:", fontSize = 11.sp, color = Color.Gray)
+                                Text("${(180.0 / (sides.toIntOrNull() ?: 8)).roundToOneDecimal()}°", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = BlueTool)
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Hip Pitch:", fontSize = 11.sp, color = Color.Gray)
+                                Text("${res.hipPitch.roundToOneDecimal()} / 12", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Common Rafter Card
+                Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("COMMON RAFTER", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                        Text(FractionUtils.formatInches(res.mainRafterLen), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = BlueTool)
+                        Text("Overall (inc Tail): ${FractionUtils.formatInches(res.overallMainLen)}", fontSize = 14.sp)
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("HIP / CORNER RAFTER", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                        Text(FractionUtils.formatInches(res.hipRafterLen), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = BlueTool)
+                        Text("Overall (inc Tail): ${FractionUtils.formatInches(res.overallHipLen)}", fontSize = 14.sp)
+                        Text("Total Rise: ${FractionUtils.formatInches(res.verticalRise)}", fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = 4.dp))
+                    }
+                }
+            }
+
+            if (entries.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("SAVED GAZEBOS", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                
+                entries.reversed().forEachIndexed { index, entry ->
+                    Card(elevation = 1.dp, shape = RoundedCornerShape(4.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(entry.name, fontWeight = FontWeight.Bold)
+                                    Text("${entry.sides} Sides | ${entry.diameter} Diam | ${entry.pitch}/12", fontSize = 12.sp, color = Color.Gray)
+                                }
+                                IconButton(onClick = {
+                                    editingIndex = entries.size - 1 - index
+                                    sectionName = entry.name
+                                    sides = entry.sides
+                                    diameter = entry.diameter
+                                    pitch = entry.pitch
+                                    ridgeSpan = entry.ridgeSpan
+                                    overhang = entry.overhang
+                                    heel = entry.heel
+                                }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray) }
+                                IconButton(onClick = {
+                                    val newList = entries.toMutableList()
+                                    newList.removeAt(entries.size - 1 - index)
+                                    onUpdateEntries(newList)
+                                }) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray) }
+                            }
+                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Column {
+                                    Text("COMMON", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = BlueTool)
+                                    Text("Len: ${entry.commonRafterLen}", fontSize = 12.sp)
+                                    Text("O/A: ${entry.commonOverall}", fontSize = 12.sp)
+                                }
+                                Column {
+                                    Text("HIP / CORNER", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = BlueTool)
+                                    Text("Len: ${entry.hipLen}", fontSize = 12.sp)
+                                    Text("O/A: ${entry.hipOverall}", fontSize = 12.sp)
+                                }
+                            }
+                            Text("Area: ${entry.area} | Perim: ${entry.perimeter}", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GazeboTabButton(label: String, selected: Boolean, onClick: () -> Unit) {
+    Text(
+        text = label,
+        modifier = Modifier
+            .clickable { onClick() }
+            .padding(8.dp),
+        color = if (selected) BlueTool else Color.Gray,
+        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+        fontSize = 12.sp
+    )
+}
+
+@Composable
+fun ArcCalculator(
+    entries: List<ArcEntry>,
+    onUpdateEntries: (List<ArcEntry>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var chord by remember { mutableStateOf("") }
+    var height by remember { mutableStateOf("") }
+    var sectionName by remember { mutableStateOf("") }
+
+    var results by remember { mutableStateOf<ArcResults?>(null) }
+    var editingIndex by remember { mutableStateOf(-1) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Arc / Radius", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("ARC DIMENSIONS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            ConstructionTextField(
+                value = chord,
+                onValueChange = { chord = it },
+                label = "Chord Length (Width - ft/in)",
+                modifier = Modifier.fillMaxWidth(),
+                onFocus = onFocus
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            ConstructionTextField(
+                value = height,
+                onValueChange = { height = it },
+                label = "Arc Height (Rise - in)",
+                modifier = Modifier.fillMaxWidth(),
+                onFocus = onFocus
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = sectionName,
+                onValueChange = { sectionName = it },
+                label = { Text("Section Name / Location") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        val c = FractionUtils.parse(chord)
+                        val h = FractionUtils.parse(height)
+                        
+                        if (c > 0 && h > 0) {
+                            val r = ArcEngine.solveFromChordAndHeight(c, h)
+                            val thetaRad = 2.0 * asin(c / (2.0 * r))
+                            val angleDeg = thetaRad * (180.0 / PI)
+                            val arcLen = ArcEngine.arcLength(r, angleDeg)
+
+                            val res = ArcResults(
+                                radius = FractionUtils.formatInches(r),
+                                arcLength = FractionUtils.formatInches(arcLen),
+                                arcAngle = "${angleDeg.roundToOneDecimal()}°",
+                                chord = chord,
+                                height = height
+                            )
+                            results = res
+
+                            val entry = ArcEntry(
+                                id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
+                                name = sectionName.ifEmpty { "Arc Section" },
+                                chord = chord,
+                                height = height,
+                                radius = res.radius,
+                                arcLength = res.arcLength,
+                                arcAngle = res.arcAngle
+                            )
+
+                            if (editingIndex != -1) {
+                                val newList = entries.toMutableList()
+                                newList[editingIndex] = entry
+                                onUpdateEntries(newList)
+                                editingIndex = -1
+                            } else {
+                                onUpdateEntries(entries + entry)
+                            }
+                            sectionName = ""
+                        }
+                    },
+                    modifier = Modifier.weight(2f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                ) {
+                    Text(if (editingIndex != -1) "UPDATE & SAVE" else "CALCULATE & SAVE", textAlign = TextAlign.Center)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = { onUpdateEntries(emptyList()); results = null },
+                    modifier = Modifier.weight(1f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFC62828)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828))
+                ) {
+                    Text("CLEAR LIST", textAlign = TextAlign.Center)
+                }
+            }
+
+            results?.let { res ->
+                Spacer(modifier = Modifier.height(24.dp))
+                Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("RADIUS", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                        Text(res.radius, fontSize = 32.sp, fontWeight = FontWeight.Bold, color = BlueTool)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("ARC LENGTH", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                                Text(res.arcLength, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = GrayBtn)
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("ARC ANGLE", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                                Text(res.arcAngle, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = GrayBtn)
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (entries.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("SAVED ARCS", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                
+                entries.reversed().forEachIndexed { index, entry ->
+                    Card(elevation = 1.dp, shape = RoundedCornerShape(4.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(entry.name, fontWeight = FontWeight.Bold)
+                                    Text("Chord: ${entry.chord} | Height: ${entry.height}", fontSize = 12.sp, color = Color.Gray)
+                                }
+                                IconButton(onClick = {
+                                    editingIndex = entries.size - 1 - index
+                                    sectionName = entry.name
+                                    chord = entry.chord
+                                    height = entry.height
+                                }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray) }
+                                IconButton(onClick = {
+                                    val newList = entries.toMutableList()
+                                    newList.removeAt(entries.size - 1 - index)
+                                    onUpdateEntries(newList)
+                                }) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray) }
+                            }
+                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            Text("Radius: ${entry.radius}", fontWeight = FontWeight.Bold, color = BlueTool)
+                            Text("Arc: ${entry.arcLength} @ ${entry.arcAngle}", fontSize = 13.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class ArcResults(
+    val radius: String,
+    val arcLength: String,
+    val arcAngle: String,
+    val chord: String,
+    val height: String
+)
+
+@Composable
+fun RafterCalculator(
+    entries: List<RafterEntry>,
+    onUpdateEntries: (List<RafterEntry>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var pitch by remember { mutableStateOf("6") }
+    var span by remember { mutableStateOf("") }
+    var ridgeThick by remember { mutableStateOf("1.5") }
+    var rafterDepth by remember { mutableStateOf("7.25") }
+    var heelHeight by remember { mutableStateOf("4.0") }
+    var overhang by remember { mutableStateOf("12") }
+    var sectionName by remember { mutableStateOf("") }
+
+    var results by remember { mutableStateOf<RafterEngine.RafterResult?>(null) }
+    var editingIndex by remember { mutableStateOf(-1) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Rafter Cuts", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("ROOF DIMENSIONS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = pitch,
+                    onValueChange = { pitch = it },
+                    label = "Pitch (/12)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = span,
+                    onValueChange = { span = it },
+                    label = "Total Span (ft/in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = rafterDepth,
+                    onValueChange = { rafterDepth = it },
+                    label = "Rafter Depth (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = heelHeight,
+                    onValueChange = { heelHeight = it },
+                    label = "Heel Height (HAP)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = ridgeThick,
+                    onValueChange = { ridgeThick = it },
+                    label = "Ridge (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = overhang,
+                    onValueChange = { overhang = it },
+                    label = "Overhang (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = sectionName,
+                onValueChange = { sectionName = it },
+                label = { Text("Section Name / Location") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        val p = pitchToDouble(pitch, 0.0)
+                        val s = FractionUtils.parse(span)
+                        val r = pitchToDouble(ridgeThick, 1.5)
+                        val oh = pitchToDouble(overhang, 12.0)
+                        val heel = pitchToDouble(heelHeight, 4.0)
+                        
+                        if (s > 0) {
+                            val res = RafterEngine.calculate(
+                                span = s,
+                                pitchVal = p,
+                                ridge = r,
+                                heel = heel,
+                                overhang = oh
+                            )
+                            results = res
+
+                            val commonAngle = res.angleDeg
+                            val hipAngle = atan(res.hipPitch / 12.0) * (180.0 / PI)
+                            val factor = sqrt(1.0 + (p / 12.0).pow(2))
+
+                            val entry = RafterEntry(
+                                id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
+                                name = sectionName.ifEmpty { "Rafter Section" },
+                                span = span,
+                                pitch = pitch,
+                                ridge = ridgeThick,
+                                depth = rafterDepth,
+                                heel = FractionUtils.formatInches(res.heel),
+                                overhang = overhang,
+                                commonLen = FractionUtils.formatInches(res.rafterLen),
+                                commonOverall = FractionUtils.formatInches(res.overall),
+                                commonRun = FractionUtils.formatInches(res.run),
+                                commonRise = FractionUtils.formatInches(res.rise),
+                                commonOARise = FractionUtils.formatInches(res.totRise),
+                                commonPlumbSeat = "${commonAngle.roundToOneDecimal()}° / ${(90.0 - commonAngle).roundToOneDecimal()}°",
+                                hipLen = FractionUtils.formatInches(res.hipLen),
+                                hipOverall = FractionUtils.formatInches(res.hipOverall),
+                                hipRun = FractionUtils.formatInches(res.hipRun),
+                                hipRise = FractionUtils.formatInches(res.hipRise),
+                                hipOARise = FractionUtils.formatInches(res.hipOARise),
+                                hipPitch = "${res.hipPitch.roundToOneDecimal()} / 12",
+                                hipPlumbSeat = "${hipAngle.roundToOneDecimal()}° / ${(90.0 - hipAngle).roundToOneDecimal()}°",
+                                jack16 = FractionUtils.formatInches(16.0 * factor),
+                                jack24 = FractionUtils.formatInches(24.0 * factor)
+                            )
+
+                            if (editingIndex != -1) {
+                                val newList = entries.toMutableList()
+                                newList[editingIndex] = entry
+                                onUpdateEntries(newList)
+                                editingIndex = -1
+                            } else {
+                                onUpdateEntries(entries + entry)
+                            }
+                            sectionName = ""
+                        }
+                    },
+                    modifier = Modifier.weight(2f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                ) {
+                    Text(if (editingIndex != -1) "UPDATE & SAVE" else "CALCULATE & SAVE", textAlign = TextAlign.Center)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = { onUpdateEntries(emptyList()); results = null },
+                    modifier = Modifier.weight(1f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFC62828)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828))
+                ) {
+                    Text("CLEAR LIST", textAlign = TextAlign.Center)
+                }
+            }
+
+            results?.let { res ->
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Common Rafter Detailed Card
+                Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("COMMON RAFTER", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                        
+                        RafterDetail(
+                            run = res.run,
+                            rise = res.rise,
+                            pitch = res.pitch,
+                            heel = res.heel,
+                            lumberDepth = FractionUtils.parse(rafterDepth),
+                            overhang = FractionUtils.parse(overhang)
+                        )
+                        
+                        Text(FractionUtils.formatInches(res.rafterLen), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = BlueTool)
+                        Text("Overall (inc Tail): ${FractionUtils.formatInches(res.overall)}", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column {
+                                Text("Run", fontSize = 11.sp, color = Color.Gray)
+                                Text(FractionUtils.formatInches(res.run), fontWeight = FontWeight.Bold)
+                            }
+                            Column {
+                                Text("Rise", fontSize = 11.sp, color = Color.Gray)
+                                Text(FractionUtils.formatInches(res.rise), fontWeight = FontWeight.Bold)
+                            }
+                            Column {
+                                Text("O/A Rise", fontSize = 11.sp, color = Color.Gray)
+                                Text(FractionUtils.formatInches(res.totRise), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        
+                        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column {
+                                Text("Heel (HAP)", fontSize = 11.sp, color = Color.Gray)
+                                Text(FractionUtils.formatInches(res.heel), fontWeight = FontWeight.Bold)
+                            }
+                            Column {
+                                Text("Pitch", fontSize = 11.sp, color = Color.Gray)
+                                Text("${res.pitch} / 12", fontWeight = FontWeight.Bold)
+                            }
+                            Column {
+                                Text("Plumb / Seat", fontSize = 11.sp, color = Color.Gray)
+                                Text("${res.angleDeg.roundToOneDecimal()}° / ${(90.0 - res.angleDeg).roundToOneDecimal()}°", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Hip Rafter Detailed Card
+                Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("HIP / VALLEY RAFTER", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                        Text(FractionUtils.formatInches(res.hipLen), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = BlueTool)
+                        Text("Overall (inc Tail): ${FractionUtils.formatInches(res.hipOverall)}", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column {
+                                Text("Hip Run", fontSize = 11.sp, color = Color.Gray)
+                                Text(FractionUtils.formatInches(res.hipRun), fontWeight = FontWeight.Bold)
+                            }
+                            Column {
+                                Text("Hip Rise", fontSize = 11.sp, color = Color.Gray)
+                                Text(FractionUtils.formatInches(res.hipRise), fontWeight = FontWeight.Bold)
+                            }
+                            Column {
+                                Text("O/A Rise", fontSize = 11.sp, color = Color.Gray)
+                                Text(FractionUtils.formatInches(res.hipOARise), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        
+                        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column {
+                                Text("Hip Pitch", fontSize = 11.sp, color = Color.Gray)
+                                Text("${res.hipPitch.roundToOneDecimal()} / 12", fontWeight = FontWeight.Bold)
+                            }
+                            val hAngle = atan(res.hipPitch / 12.0) * (180.0 / PI)
+                            Column {
+                                Text("Plumb / Seat", fontSize = 11.sp, color = Color.Gray)
+                                Text("${hAngle.roundToOneDecimal()}° / ${(90.0 - hAngle).roundToOneDecimal()}°", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("JACK RAFTER DIFFERENCE", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val factor = sqrt(1.0 + (pitchToDouble(pitch, 0.0) / 12.0).pow(2))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("16\" O.C. Diff:", fontSize = 14.sp)
+                            Text(FractionUtils.formatInches(16.0 * factor), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("24\" O.C. Diff:", fontSize = 14.sp)
+                            Text(FractionUtils.formatInches(24.0 * factor), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                    }
+                }
+            }
+            
+            if (entries.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("SAVED RAFTERS", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                
+                entries.reversed().forEachIndexed { index, entry ->
+                    Card(elevation = 1.dp, shape = RoundedCornerShape(4.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(entry.name, fontWeight = FontWeight.Bold)
+                                    Text("Pitch: ${entry.pitch} / 12 | Heel: ${entry.heel}", fontSize = 12.sp, color = Color.Gray)
+                                }
+                                IconButton(onClick = {
+                                    editingIndex = entries.size - 1 - index
+                                    sectionName = entry.name
+                                    pitch = entry.pitch
+                                }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray) }
+                                IconButton(onClick = {
+                                    val newList = entries.toMutableList()
+                                    newList.removeAt(entries.size - 1 - index)
+                                    onUpdateEntries(newList)
+                                }) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray) }
+                            }
+                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Column {
+                                    Text("COMMON", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = BlueTool)
+                                    Text("Len: ${entry.commonLen}", fontSize = 12.sp)
+                                    Text("O/A: ${entry.commonOverall}", fontSize = 12.sp)
+                                }
+                                Column {
+                                    Text("HIP / VAL", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = BlueTool)
+                                    Text("Len: ${entry.hipLen}", fontSize = 12.sp)
+                                    Text("O/A: ${entry.hipOverall}", fontSize = 12.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun HandrailCalculator(
+    entries: List<HandrailEntry>,
+    onUpdateEntries: (List<HandrailEntry>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var length by remember { mutableStateOf("") }
+    var spindleWidth by remember { mutableStateOf("1.5") }
+    var maxOpening by remember { mutableStateOf("4") }
+    var sectionName by remember { mutableStateOf("") }
+    
+    var editingIndex by remember { mutableStateOf(-1) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Handrails (Spindles)", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("RAIL DIMENSIONS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            ConstructionTextField(
+                value = length,
+                onValueChange = { length = it },
+                label = "Rail Length (ft/in)",
+                modifier = Modifier.fillMaxWidth(),
+                onFocus = onFocus
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = spindleWidth,
+                    onValueChange = { spindleWidth = it },
+                    label = "Spindle Width (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = maxOpening,
+                    onValueChange = { maxOpening = it },
+                    label = "Max Opening (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = sectionName,
+                onValueChange = { sectionName = it },
+                label = { Text("Section Name") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        val lIn = FractionUtils.parse(length)
+                        val sw = spindleWidth.toDoubleOrNull() ?: 1.5
+                        val mo = maxOpening.toDoubleOrNull() ?: 4.0
+                        
+                        if (lIn > 0) {
+                            val spindleCount = ceil((lIn - mo) / (sw + mo)).toInt()
+                            val spacing = (lIn - (spindleCount * sw)) / (spindleCount + 1)
+
+                            val entry = HandrailEntry(
+                                id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
+                                name = sectionName.ifEmpty { "Rail Section" },
+                                length = length,
+                                spindleWidth = spindleWidth,
+                                maxOpening = maxOpening,
+                                spindles = "$spindleCount Spindles",
+                                spacing = "${FractionUtils.formatInches(spacing)} O.C."
+                            )
+
+                            if (editingIndex != -1) {
+                                val newList = entries.toMutableList()
+                                newList[editingIndex] = entry
+                                onUpdateEntries(newList)
+                                editingIndex = -1
+                            } else {
+                                onUpdateEntries(entries + entry)
+                            }
+                            sectionName = ""
+                        }
+                    },
+                    modifier = Modifier.weight(2f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                ) {
+                    Text(if (editingIndex != -1) "UPDATE & SAVE" else "CALCULATE & SAVE", textAlign = TextAlign.Center)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = { onUpdateEntries(emptyList()) },
+                    modifier = Modifier.weight(1f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFC62828)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828))
+                ) {
+                    Text("CLEAR LIST", textAlign = TextAlign.Center)
+                }
+            }
+
+            if (entries.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("SAVED RAILS", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                
+                entries.reversed().forEachIndexed { index, entry ->
+                    Card(elevation = 2.dp, shape = RoundedCornerShape(4.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(entry.name, fontWeight = FontWeight.Bold)
+                                    Text("Length: ${entry.length}", fontSize = 12.sp, color = Color.Gray)
+                                }
+                                IconButton(onClick = {
+                                    editingIndex = entries.size - 1 - index
+                                    sectionName = entry.name
+                                    length = entry.length
+                                }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray) }
+                                IconButton(onClick = {
+                                    val newList = entries.toMutableList()
+                                    newList.removeAt(entries.size - 1 - index)
+                                    onUpdateEntries(newList)
+                                }) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray) }
+                            }
+                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            Text(entry.spindles, fontSize = 14.sp)
+                            Text(entry.spacing, fontSize = 14.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PineLineCalculator(
+    entries: List<PineLineEntry>,
+    onUpdateEntries: (List<PineLineEntry>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var pitch by remember { mutableStateOf("6") }
+    var heel by remember { mutableStateOf("4") }
+    var wall by remember { mutableStateOf("3.5") }
+    var brick by remember { mutableStateOf("0") }
+    var frieze by remember { mutableStateOf("0.75") }
+    var overhang by remember { mutableStateOf("12") }
+    var fascia by remember { mutableStateOf("7.25") }
+    var reveal by remember { mutableStateOf("1") }
+    var sectionName by remember { mutableStateOf("") }
+    
+    var editingIndex by remember { mutableStateOf(-1) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Pine Line (Grade / Slope)", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("ROOF & WALL SPECS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = pitch,
+                    onValueChange = { pitch = it },
+                    label = "Pitch (/12)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = heel,
+                    onValueChange = { heel = it },
+                    label = "Heel Ht (HAP)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = wall,
+                    onValueChange = { wall = it },
+                    label = "Wall Stud (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = brick,
+                    onValueChange = { brick = it },
+                    label = "Brick/Ext (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = frieze,
+                    onValueChange = { frieze = it },
+                    label = "Frieze (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = overhang,
+                    onValueChange = { overhang = it },
+                    label = "Overhang (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = fascia,
+                    onValueChange = { fascia = it },
+                    label = "Fascia (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = reveal,
+                    onValueChange = { reveal = it },
+                    label = "Reveal (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = sectionName,
+                onValueChange = { sectionName = it },
+                label = { Text("Section Name") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        val p = pitch.toDoubleOrNull() ?: 6.0
+                        val h = FractionUtils.parse(heel)
+                        val w = FractionUtils.parse(wall)
+                        val b = FractionUtils.parse(brick)
+                        val f = FractionUtils.parse(frieze)
+                        val oh = FractionUtils.parse(overhang)
+                        val fa = FractionUtils.parse(fascia)
+                        val rv = FractionUtils.parse(reveal)
+                        
+                        if (h > 0) {
+                            val pineLineHt = PineLineEngine.calculate(p, h, w, b, f, oh, fa, rv)
+
+                            val entry = PineLineEntry(
+                                id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
+                                name = sectionName.ifEmpty { "Pine Line Section" },
+                                pitch = "$pitch / 12",
+                                heel = heel,
+                                wall = wall,
+                                brick = brick,
+                                frieze = frieze,
+                                overhang = overhang,
+                                fascia = fascia,
+                                reveal = reveal,
+                                drop = FractionUtils.formatInches(pineLineHt)
+                            )
+
+                            if (editingIndex != -1) {
+                                val newList = entries.toMutableList()
+                                newList[editingIndex] = entry
+                                onUpdateEntries(newList)
+                                editingIndex = -1
+                            } else {
+                                onUpdateEntries(entries + entry)
+                            }
+                            sectionName = ""
+                        }
+                    },
+                    modifier = Modifier.weight(2f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                ) {
+                    Text(if (editingIndex != -1) "UPDATE & SAVE" else "CALCULATE & SAVE", textAlign = TextAlign.Center)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = { onUpdateEntries(emptyList()) },
+                    modifier = Modifier.weight(1f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFC62828)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828))
+                ) {
+                    Text("CLEAR LIST", textAlign = TextAlign.Center)
+                }
+            }
+
+            if (entries.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("SAVED PINE LINES", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                
+                entries.reversed().forEachIndexed { index, entry ->
+                    Card(elevation = 2.dp, shape = RoundedCornerShape(4.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(entry.name, fontWeight = FontWeight.Bold)
+                                    Text("Pitch: ${entry.pitch}", fontSize = 12.sp, color = Color.Gray)
+                                }
+                                IconButton(onClick = {
+                                    editingIndex = entries.size - 1 - index
+                                    sectionName = entry.name
+                                }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray) }
+                                IconButton(onClick = {
+                                    val newList = entries.toMutableList()
+                                    newList.removeAt(entries.size - 1 - index)
+                                    onUpdateEntries(newList)
+                                }) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray) }
+                            }
+                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            Text("Vertical Drop from Wall Plate: ${entry.drop}", fontWeight = FontWeight.Bold, color = BlueTool)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DeckCalculator(
+    entries: List<DeckEntry>,
+    onUpdateEntries: (List<DeckEntry>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var length by remember { mutableStateOf("") }
+    var width by remember { mutableStateOf("") }
+    var boardWidth by remember { mutableStateOf("5.5") }
+    var gap by remember { mutableStateOf("0.125") }
+    var sectionName by remember { mutableStateOf("") }
+    
+    var editingIndex by remember { mutableStateOf(-1) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Deck Boards", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("DECK DIMENSIONS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = length,
+                    onValueChange = { length = it },
+                    label = "Length (ft/in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = width,
+                    onValueChange = { width = it },
+                    label = "Width (ft/in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = boardWidth,
+                    onValueChange = { boardWidth = it },
+                    label = "Board Width (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = gap,
+                    onValueChange = { gap = it },
+                    label = "Gap (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = sectionName,
+                onValueChange = { sectionName = it },
+                label = { Text("Section Name") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        val lIn = FractionUtils.parse(length)
+                        val wIn = FractionUtils.parse(width)
+                        val bw = boardWidth.toDoubleOrNull() ?: 5.5
+                        val g = gap.toDoubleOrNull() ?: 0.125
+                        
+                        if (lIn > 0 && wIn > 0) {
+                            val boardCount = ceil(wIn / (bw + g)).toInt()
+                            // Assuming 16" OC joists for fastener count
+                            val joistCount = ceil(lIn / 16.0).toInt() + 1
+                            val fasteners = boardCount * joistCount * 2
+
+                            val entry = DeckEntry(
+                                id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
+                                name = sectionName.ifEmpty { "Deck Section" },
+                                length = length,
+                                width = width,
+                                boardWidth = boardWidth,
+                                gap = gap,
+                                boards = "$boardCount Boards (${FractionUtils.formatInches(lIn)})",
+                                fasteners = "$fasteners Screws"
+                            )
+
+                            if (editingIndex != -1) {
+                                val newList = entries.toMutableList()
+                                newList[editingIndex] = entry
+                                onUpdateEntries(newList)
+                                editingIndex = -1
+                            } else {
+                                onUpdateEntries(entries + entry)
+                            }
+                            sectionName = ""
+                        }
+                    },
+                    modifier = Modifier.weight(2f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                ) {
+                    Text(if (editingIndex != -1) "UPDATE & SAVE" else "CALCULATE & SAVE", textAlign = TextAlign.Center)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = { onUpdateEntries(emptyList()) },
+                    modifier = Modifier.weight(1f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFC62828)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828))
+                ) {
+                    Text("CLEAR LIST", textAlign = TextAlign.Center)
+                }
+            }
+
+            if (entries.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("SAVED DECKS", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                
+                entries.reversed().forEachIndexed { index, entry ->
+                    Card(elevation = 2.dp, shape = RoundedCornerShape(4.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(entry.name, fontWeight = FontWeight.Bold)
+                                    Text("${entry.length} x ${entry.width}", fontSize = 12.sp, color = Color.Gray)
+                                }
+                                IconButton(onClick = {
+                                    editingIndex = entries.size - 1 - index
+                                    sectionName = entry.name
+                                    length = entry.length
+                                    width = entry.width
+                                }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray) }
+                                IconButton(onClick = {
+                                    val newList = entries.toMutableList()
+                                    newList.removeAt(entries.size - 1 - index)
+                                    onUpdateEntries(newList)
+                                }) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray) }
+                            }
+                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            Text(entry.boards, fontSize = 14.sp)
+                            Text(entry.fasteners, fontSize = 14.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun FloorCalculator(
+    entries: List<FloorEntry>,
+    onUpdateEntries: (List<FloorEntry>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var length by remember { mutableStateOf("") }
+    var width by remember { mutableStateOf("") }
+    var spacing by remember { mutableStateOf("16") }
+    var sectionName by remember { mutableStateOf("") }
+    
+    var editingIndex by remember { mutableStateOf(-1) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Floor / Joists", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("FLOOR DIMENSIONS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = length,
+                    onValueChange = { length = it },
+                    label = "Span/Length (ft/in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = width,
+                    onValueChange = { width = it },
+                    label = "Width (ft/in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            ConstructionTextField(
+                value = spacing,
+                onValueChange = { spacing = it },
+                label = "Joist O.C. Spacing (in)",
+                modifier = Modifier.fillMaxWidth(),
+                onFocus = onFocus
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = sectionName,
+                onValueChange = { sectionName = it },
+                label = { Text("Section Name") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        val lIn = FractionUtils.parse(length)
+                        val wIn = FractionUtils.parse(width)
+                        val s = spacing.toDoubleOrNull() ?: 16.0
+                        
+                        if (lIn > 0 && wIn > 0) {
+                            val joistCount = ceil(wIn / s).toInt() + 1
+                            val sheetCount = ceil((lIn * wIn) / (32.0 * 144.0)).toInt()
+
+                            val entry = FloorEntry(
+                                id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
+                                name = sectionName.ifEmpty { "Floor Section" },
+                                length = length,
+                                width = width,
+                                spacing = "$s\" OC",
+                                joists = "$joistCount Joists",
+                                sheets = "$sheetCount Subfloor Sheets"
+                            )
+
+                            if (editingIndex != -1) {
+                                val newList = entries.toMutableList()
+                                newList[editingIndex] = entry
+                                onUpdateEntries(newList)
+                                editingIndex = -1
+                            } else {
+                                onUpdateEntries(entries + entry)
+                            }
+                            sectionName = ""
+                        }
+                    },
+                    modifier = Modifier.weight(2f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                ) {
+                    Text(if (editingIndex != -1) "UPDATE & SAVE" else "CALCULATE & SAVE", textAlign = TextAlign.Center)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = { onUpdateEntries(emptyList()) },
+                    modifier = Modifier.weight(1f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFC62828)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828))
+                ) {
+                    Text("CLEAR LIST", textAlign = TextAlign.Center)
+                }
+            }
+
+            if (entries.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("SAVED FLOORS", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                
+                entries.reversed().forEachIndexed { index, entry ->
+                    Card(elevation = 2.dp, shape = RoundedCornerShape(4.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(entry.name, fontWeight = FontWeight.Bold)
+                                    Text("${entry.length} x ${entry.width}", fontSize = 12.sp, color = Color.Gray)
+                                }
+                                IconButton(onClick = {
+                                    editingIndex = entries.size - 1 - index
+                                    sectionName = entry.name
+                                    length = entry.length
+                                    width = entry.width
+                                }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray) }
+                                IconButton(onClick = {
+                                    val newList = entries.toMutableList()
+                                    newList.removeAt(entries.size - 1 - index)
+                                    onUpdateEntries(newList)
+                                }) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray) }
+                            }
+                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            Text(entry.joists, fontSize = 14.sp)
+                            Text(entry.sheets, fontSize = 14.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MasonryCalculator(
+    entries: List<MasonryEntry>,
+    onUpdateEntries: (List<MasonryEntry>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var areaInput by remember { mutableStateOf("") }
+    var sectionName by remember { mutableStateOf("") }
+    
+    var editingIndex by remember { mutableStateOf(-1) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Masonry Supply", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("WALL DIMENSIONS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            ConstructionTextField(
+                value = areaInput,
+                onValueChange = { areaInput = it },
+                label = "Wall Area (sq ft)",
+                modifier = Modifier.fillMaxWidth(),
+                onFocus = onFocus
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = sectionName,
+                onValueChange = { sectionName = it },
+                label = { Text("Section Name / Location") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        val area = areaInput.toDoubleOrNull() ?: 0.0
+                        if (area > 0) {
+                            val blockCount = ceil(area * 1.125).toInt()
+                            val brickCount = ceil(area * 7.0).toInt()
+                            val blockMortar = ceil(blockCount / 35.0).toInt()
+                            val brickMortar = ceil(brickCount / 135.0).toInt()
+
+                            val entry = MasonryEntry(
+                                id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
+                                name = sectionName.ifEmpty { "Masonry Section" },
+                                area = "$area sq ft",
+                                blocks = "$blockCount Blocks",
+                                blockMortar = "$blockMortar bags",
+                                bricks = "$brickCount Bricks",
+                                brickMortar = "$brickMortar bags"
+                            )
+
+                            if (editingIndex != -1) {
+                                val newList = entries.toMutableList()
+                                newList[editingIndex] = entry
+                                onUpdateEntries(newList)
+                                editingIndex = -1
+                            } else {
+                                onUpdateEntries(entries + entry)
+                            }
+                            sectionName = ""; areaInput = ""
+                        }
+                    },
+                    modifier = Modifier.weight(2f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                ) {
+                    Text(if (editingIndex != -1) "UPDATE & SAVE" else "CALCULATE & SAVE", textAlign = TextAlign.Center)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = { onUpdateEntries(emptyList()) },
+                    modifier = Modifier.weight(1f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFC62828)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828))
+                ) {
+                    Text("CLEAR LIST", textAlign = TextAlign.Center)
+                }
+            }
+
+            if (entries.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("SAVED MASONRY", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                
+                entries.reversed().forEachIndexed { index, entry ->
+                    Card(elevation = 2.dp, shape = RoundedCornerShape(4.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(entry.name, fontWeight = FontWeight.Bold)
+                                    Text("Area: ${entry.area}", fontSize = 12.sp, color = Color.Gray)
+                                }
+                                IconButton(onClick = {
+                                    editingIndex = entries.size - 1 - index
+                                    sectionName = entry.name
+                                    areaInput = entry.area.replace(" sq ft", "")
+                                }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray) }
+                                IconButton(onClick = {
+                                    val newList = entries.toMutableList()
+                                    newList.removeAt(entries.size - 1 - index)
+                                    onUpdateEntries(newList)
+                                }) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray) }
+                            }
+                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            Text(entry.blocks, fontSize = 14.sp)
+                            Text(entry.bricks, fontSize = 14.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DrywallCalculator(
+    entries: List<DrywallEntry>,
+    onUpdateEntries: (List<DrywallEntry>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var areaInput by remember { mutableStateOf("") }
+    var sheetSize by remember { mutableStateOf("4x8") }
+    var sectionName by remember { mutableStateOf("") }
+    
+    var editingIndex by remember { mutableStateOf(-1) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Drywall Finish", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("FINISH AREA & MATERIAL", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            ConstructionTextField(
+                value = areaInput,
+                onValueChange = { areaInput = it },
+                label = "Total Area (sq ft)",
+                modifier = Modifier.fillMaxWidth(),
+                onFocus = onFocus
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Sheet Size:", modifier = Modifier.weight(1f))
+                Row(modifier = Modifier.weight(2f), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    listOf("4x8", "4x10", "4x12").forEach { size ->
+                        val selected = sheetSize == size
+                        Button(
+                            onClick = { sheetSize = size },
+                            colors = ButtonDefaults.buttonColors(
+                                backgroundColor = if (selected) BlueTool else Color.White,
+                                contentColor = if (selected) Color.White else Color.Black
+                            ),
+                            elevation = ButtonDefaults.elevation(0.dp),
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        ) { Text(size) }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = sectionName,
+                onValueChange = { sectionName = it },
+                label = { Text("Section Name") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        val area = areaInput.toDoubleOrNull() ?: 0.0
+                        if (area > 0) {
+                            val divisor = when(sheetSize) {
+                                "4x8" -> 32.0
+                                "4x10" -> 40.0
+                                "4x12" -> 48.0
+                                else -> 32.0
+                            }
+                            val sheets = ceil(area / divisor).toInt()
+                            val mud = (area * 0.05).roundToOneDecimal()
+                            val tape = ceil(area * 1.5).toInt()
+
+                            val entry = DrywallEntry(
+                                id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
+                                name = sectionName.ifEmpty { "Drywall Section" },
+                                area = "$area sq ft",
+                                sheets = "$sheets Sheets",
+                                sheetSize = sheetSize,
+                                mud = "$mud lbs Mud",
+                                tape = "$tape ft Tape"
+                            )
+
+                            if (editingIndex != -1) {
+                                val newList = entries.toMutableList()
+                                newList[editingIndex] = entry
+                                onUpdateEntries(newList)
+                                editingIndex = -1
+                            } else {
+                                onUpdateEntries(entries + entry)
+                            }
+                            sectionName = ""; areaInput = ""
+                        }
+                    },
+                    modifier = Modifier.weight(2f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                ) {
+                    Text(if (editingIndex != -1) "UPDATE & SAVE" else "CALCULATE & SAVE", textAlign = TextAlign.Center)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = { onUpdateEntries(emptyList()) },
+                    modifier = Modifier.weight(1f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFC62828)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828))
+                ) {
+                    Text("CLEAR LIST", textAlign = TextAlign.Center)
+                }
+            }
+
+
+            if (entries.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("SAVED DRYWALL", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                
+                entries.reversed().forEachIndexed { index, entry ->
+                    Card(elevation = 2.dp, shape = RoundedCornerShape(4.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(entry.name, fontWeight = FontWeight.Bold)
+                                    Text("Area: ${entry.area}", fontSize = 12.sp, color = Color.Gray)
+                                }
+                                IconButton(onClick = {
+                                    editingIndex = entries.size - 1 - index
+                                    sectionName = entry.name
+                                    areaInput = entry.area.replace(" sq ft", "")
+                                }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray) }
+                                IconButton(onClick = {
+                                    val newList = entries.toMutableList()
+                                    newList.removeAt(entries.size - 1 - index)
+                                    onUpdateEntries(newList)
+                                }) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray) }
+                            }
+                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            Text("${entry.sheets} | ${entry.mud} | ${entry.tape}", fontSize = 14.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ConcreteCalculator(
+    entries: List<ConcreteEntry>,
+    onUpdateEntries: (List<ConcreteEntry>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var length by remember { mutableStateOf("") }
+    var width by remember { mutableStateOf("") }
+    var thick by remember { mutableStateOf("") }
+    var rebarSpacing by remember { mutableStateOf("12") }
+    var qty by remember { mutableStateOf("1") }
+    var sectionName by remember { mutableStateOf("") }
+    
+    var resultYds by remember { mutableStateOf("0.00 cu yd") }
+    var rebarTotal by remember { mutableStateOf("0.00 lin ft") }
+    
+    var editingIndex by remember { mutableStateOf(-1) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Concrete & Rebar", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("SLAB DIMENSIONS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            ConstructionTextField(
+                value = length,
+                onValueChange = { length = it },
+                label = "Length (ft / in)",
+                modifier = Modifier.fillMaxWidth(),
+                onFocus = onFocus
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            ConstructionTextField(
+                value = width,
+                onValueChange = { width = it },
+                label = "Width (ft / in)",
+                modifier = Modifier.fillMaxWidth(),
+                onFocus = onFocus
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = thick,
+                    onValueChange = { thick = it },
+                    label = "Thick (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = rebarSpacing,
+                    onValueChange = { rebarSpacing = it },
+                    label = "Rebar OC (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = qty,
+                    onValueChange = { qty = it },
+                    label = "Quantity",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedTextField(
+                    value = sectionName,
+                    onValueChange = { sectionName = it },
+                    label = { Text("Section Name") },
+                    modifier = Modifier.weight(2f)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        val lFeet = FractionUtils.parse(length) / 12.0
+                        val wFeet = FractionUtils.parse(width) / 12.0
+                        val tInches = FractionUtils.parse(thick)
+                        val rsInches = if (rebarSpacing.isBlank()) 12.0 else FractionUtils.parse(rebarSpacing)
+                        val q = qty.toDoubleOrNull() ?: 1.0
+                        
+                        if (lFeet > 0 && wFeet > 0 && tInches > 0) {
+                            val vol = ConcreteEngine.calculateVolume(lFeet, wFeet, tInches) * q
+                            val reb = ConcreteEngine.calculateRebarGrid(lFeet, wFeet, rsInches) * q
+                            
+                            resultYds = "${vol.roundToOneDecimal()} cu yd"
+                            rebarTotal = "${reb.roundToInt()} lin ft"
+
+                            val entry = ConcreteEntry(
+                                id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
+                                name = sectionName.ifEmpty { "Slab Section" },
+                                qty = q.toInt().toString(),
+                                volume = resultYds,
+                                rebar = rebarTotal,
+                                spacing = "$rsInches\" OC",
+                                dimensions = "${length} x ${width} x ${thick}"
+                            )
+
+                            if (editingIndex != -1) {
+                                val newList = entries.toMutableList()
+                                newList[editingIndex] = entry
+                                onUpdateEntries(newList)
+                                editingIndex = -1
+                            } else {
+                                onUpdateEntries(entries + entry)
+                            }
+                            sectionName = ""
+                        }
+                    },
+                    modifier = Modifier.weight(2f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                ) {
+                    Text(if (editingIndex != -1) "UPDATE & SAVE" else "CALCULATE & SAVE", textAlign = TextAlign.Center)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = { onUpdateEntries(emptyList()); resultYds = "0.00 cu yd"; rebarTotal = "0.00 lin ft" },
+                    modifier = Modifier.weight(1f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFC62828)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828))
+                ) {
+                    Text("CLEAR LIST", textAlign = TextAlign.Center)
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("ESTIMATED MATERIALS", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    if (resultYds != "0.00 cu yd") {
+                        FootingCrossSection(
+                            width = FractionUtils.parse(width),
+                            thickness = FractionUtils.parse(thick),
+                            rebarOC = if (rebarSpacing.isBlank()) 12.0 else FractionUtils.parse(rebarSpacing)
+                        )
+                    }
+                    
+                    Text(resultYds, style = MaterialTheme.typography.h4, color = BlueTool)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("REBAR (#4 @ ${rebarSpacing}\" O.C.)", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                    Text(rebarTotal, style = MaterialTheme.typography.h5, color = GrayBtn)
+                }
+            }
+
+            if (entries.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("SAVED SLABS", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                
+                entries.reversed().forEachIndexed { index, entry ->
+                    Card(elevation = 1.dp, shape = RoundedCornerShape(4.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(entry.name, fontWeight = FontWeight.Bold)
+                                    Text("Qty: ${entry.qty} | Dimens: ${entry.dimensions} | ${entry.spacing}", fontSize = 12.sp, color = Color.Gray)
+                                }
+                                IconButton(onClick = {
+                                    editingIndex = entries.size - 1 - index
+                                    sectionName = entry.name
+                                    val dims = entry.dimensions.split(" x ")
+                                    if (dims.size == 3) {
+                                        length = dims[0]
+                                        width = dims[1]
+                                        thick = dims[2].replace("\"", "")
+                                    }
+                                }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray) }
+                                IconButton(onClick = {
+                                    val newList = entries.toMutableList()
+                                    newList.removeAt(entries.size - 1 - index)
+                                    onUpdateEntries(newList)
+                                }) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray) }
+                            }
+                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            Text("Volume: ${entry.volume}", fontWeight = FontWeight.Bold, color = BlueTool)
+                            Text("Rebar: ${entry.rebar}", fontSize = 13.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TrigCalculator(
+    entries: List<TrigEntry>,
+    onUpdateEntries: (List<TrigEntry>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var sideA by remember { mutableStateOf("") }
+    var sideB by remember { mutableStateOf("") }
+    var hypotenuse by remember { mutableStateOf("") }
+    var angleA by remember { mutableStateOf("") }
+    var sectionName by remember { mutableStateOf("") }
+
+    var results by remember { mutableStateOf<TrigEngine.RightTriangleResult?>(null) }
+    var editingIndex by remember { mutableStateOf(-1) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Trig Solutions", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("RIGHT TRIANGLE (ENTER ANY 2)", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(value = sideA, onValueChange = { sideA = it }, label = "Side A (Rise)", modifier = Modifier.weight(1f), onFocus = onFocus)
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(value = sideB, onValueChange = { sideB = it }, label = "Side B (Run)", modifier = Modifier.weight(1f), onFocus = onFocus)
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(value = hypotenuse, onValueChange = { hypotenuse = it }, label = "Hypotenuse", modifier = Modifier.weight(1f), onFocus = onFocus)
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(value = angleA, onValueChange = { angleA = it }, label = "Angle A (°)", modifier = Modifier.weight(1f), onFocus = onFocus)
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(value = sectionName, onValueChange = { sectionName = it }, label = { Text("Section Name") }, modifier = Modifier.fillMaxWidth())
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    val a = sideA.toDoubleOrNull(); val b = sideB.toDoubleOrNull()
+                    val c = hypotenuse.toDoubleOrNull(); val ang = angleA.toDoubleOrNull()
+                    val res = TrigEngine.solveRight(a, b, c, ang)
+                    results = res
+                    val entry = TrigEntry(
+                        id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
+                        name = sectionName.ifEmpty { "Trig Section" },
+                        sideA = FractionUtils.formatInches(res.sideA),
+                        sideB = FractionUtils.formatInches(res.sideB),
+                        hypotenuse = FractionUtils.formatInches(res.hypotenuse),
+                        angleA = "${res.angleA.roundToOneDecimal()}°",
+                        angleB = "${res.angleB.roundToOneDecimal()}°"
+                    )
+                    onUpdateEntries(entries + entry); sectionName = ""
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) { Text("SOLVE & SAVE") }
+
+            results?.let { res ->
+                Spacer(modifier = Modifier.height(24.dp))
+                Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("TRIANGLE RESULTS", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Hypotenuse: ${FractionUtils.formatInches(res.hypotenuse)}", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = BlueTool)
+                        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Angle A", fontSize = 11.sp, color = Color.Gray)
+                                Text("${res.angleA.roundToOneDecimal()}°", fontWeight = FontWeight.Bold)
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Angle B", fontSize = 11.sp, color = Color.Gray)
+                                Text("${res.angleB.roundToOneDecimal()}°", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ColumnCalculator(
+    entries: List<ColumnEntry>,
+    onUpdateEntries: (List<ColumnEntry>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var diameter by remember { mutableStateOf("") }
+    var height by remember { mutableStateOf("") }
+    var sectionName by remember { mutableStateOf("") }
+
+    var results by remember { mutableStateOf<ColumnEngine.ColumnResult?>(null) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Columns / Circles", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            ConstructionTextField(value = diameter, onValueChange = { diameter = it }, label = "Diameter (ft/in)", modifier = Modifier.fillMaxWidth(), onFocus = onFocus)
+            Spacer(modifier = Modifier.height(8.dp))
+            ConstructionTextField(value = height, onValueChange = { height = it }, label = "Height / Length (ft/in)", modifier = Modifier.fillMaxWidth(), onFocus = onFocus)
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(value = sectionName, onValueChange = { sectionName = it }, label = { Text("Section Name") }, modifier = Modifier.fillMaxWidth())
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    val d = FractionUtils.parse(diameter); val h = FractionUtils.parse(height)
+                    if (d > 0) {
+                        val res = ColumnEngine.calculate(d, h)
+                        results = res
+                        val entry = ColumnEntry(
+                            id = (entries.size + 1).toString(),
+                            name = sectionName.ifEmpty { "Column Section" },
+                            diameter = diameter,
+                            height = height,
+                            volume = "${(res.volume / 46656.0).roundToOneDecimal()} cu yd",
+                            surfaceArea = "${(res.surfaceArea / 144.0).roundToOneDecimal()} sq ft",
+                            circumference = FractionUtils.formatInches(res.circumference)
+                        )
+                        onUpdateEntries(entries + entry); sectionName = ""
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp)
+            ) { Text("CALCULATE & SAVE") }
+
+            results?.let { res ->
+                Spacer(modifier = Modifier.height(24.dp))
+                Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("CIRCLE / COLUMN RESULTS", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Volume: ${(res.volume / 46656.0).roundToOneDecimal()} cu yd", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = BlueTool)
+                        Text("Circumference: ${FractionUtils.formatInches(res.circumference)}", fontSize = 16.sp)
+                        Text("Surface Area: ${(res.surfaceArea / 144.0).roundToOneDecimal()} sq ft", fontSize = 16.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+@Composable
+fun CircularStairCalculator(
+    entries: List<CircularStairEntry>,
+    onUpdateEntries: (List<CircularStairEntry>) -> Unit,
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var totalRise by remember { mutableStateOf("") }
+    var radius by remember { mutableStateOf("") }
+    var innerRadius by remember { mutableStateOf("1.75") }
+    var rotation by remember { mutableStateOf("270") }
+    var sectionName by remember { mutableStateOf("") }
+
+    var results by remember { mutableStateOf<CircularStairEngine.CircStairResult?>(null) }
+    var editingIndex by remember { mutableStateOf(-1) }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
+            Text("Circular / Spiral Stairs", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("STAIR DIMENSIONS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(value = totalRise, onValueChange = { totalRise = it }, label = "Total Rise (ft/in)", modifier = Modifier.weight(1f), onFocus = onFocus)
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(value = radius, onValueChange = { radius = it }, label = "Outer Radius (ft/in)", modifier = Modifier.weight(1f), onFocus = onFocus)
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(value = innerRadius, onValueChange = { innerRadius = it }, label = "Inner / Post Rad (in)", modifier = Modifier.weight(1f), onFocus = onFocus)
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(value = rotation, onValueChange = { rotation = it }, label = "Rotation (°)", modifier = Modifier.weight(1f), onFocus = onFocus)
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(value = sectionName, onValueChange = { sectionName = it }, label = { Text("Section Name") }, modifier = Modifier.fillMaxWidth())
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        val tr = FractionUtils.parse(totalRise)
+                        val r = FractionUtils.parse(radius)
+                        val ir = FractionUtils.parse(innerRadius)
+                        val rot = rotation.toDoubleOrNull() ?: 270.0
+                        if (tr > 0 && r > 0) {
+                            val res = CircularStairEngine.calculate(tr, r, ir, rot)
+                            results = res
+                            val entry = CircularStairEntry(
+                                id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
+                                name = sectionName.ifEmpty { "Spiral Section" },
+                                totalRise = totalRise,
+                                radius = radius,
+                                rotation = "$rotation°",
+                                riserCount = res.riserCount.toString(),
+                                actualRise = FractionUtils.formatInches(res.actualRise),
+                                walkTread = FractionUtils.formatInches(res.walkLineTread),
+                                innerTread = FractionUtils.formatInches(res.innerTreadWidth),
+                                outerTread = FractionUtils.formatInches(res.outerTreadWidth)
+                            )
+                            if (editingIndex != -1) {
+                                val newList = entries.toMutableList(); newList[editingIndex] = entry
+                                onUpdateEntries(newList); editingIndex = -1
+                            } else { onUpdateEntries(entries + entry) }
+                            sectionName = ""
+                        }
+                    },
+                    modifier = Modifier.weight(2f).height(64.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                ) { Text("CALCULATE & SAVE") }
+            }
+
+            results?.let { res ->
+                Spacer(modifier = Modifier.height(24.dp))
+                Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("SPIRAL LAYOUT", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("${res.riserCount} Risers @ ${FractionUtils.formatInches(res.actualRise)}", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Text("Tread Angle: ${res.treadAngle.roundToOneDecimal()}°", fontSize = 14.sp)
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        Text("Tread Width (at Walk Line):", fontSize = 12.sp, color = Color.Gray)
+                        Text(FractionUtils.formatInches(res.walkLineTread), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = BlueTool)
+                        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Inner Width", fontSize = 11.sp, color = Color.Gray)
+                                Text(FractionUtils.formatInches(res.innerTreadWidth), fontWeight = FontWeight.Bold)
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Outer Width", fontSize = 11.sp, color = Color.Gray)
+                                Text(FractionUtils.formatInches(res.outerTreadWidth), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ScientificCalculator(projectName: String, onBack: () -> Unit, onNavigate: (Screen) -> Unit) {
+    var expression by remember { mutableStateOf("") }
+    var isGraphingMode by remember { mutableStateOf(true) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Project: $projectName", color = Color.White) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null, tint = Color.White) } },
+                backgroundColor = BlueTool
+            )
+        }
+    ) { padding ->
+        Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).padding(padding)) {
+            // Display / Plot Area
+            Box(modifier = Modifier.fillMaxWidth().weight(1.5f).background(Color(0xFFB9C4B1))) {
+                if (isGraphingMode) {
+                    GraphPlotter(expression)
+                    Text(
+                        text = "y =",
+                        modifier = Modifier.align(Alignment.CenterEnd).padding(end = 120.dp),
+                        fontSize = 48.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black.copy(alpha = 0.4f)
+                    )
+                }
+                Text(
+                    text = expression.ifEmpty { "0." },
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                    fontSize = if (isGraphingMode) 48.sp else 64.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    maxLines = 1
+                )
+            }
+
+            // Keypad
+            Column(modifier = Modifier.fillMaxWidth().weight(2.5f).padding(1.dp)) {
+                // Scientific Rows (5 columns)
+                Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                    SciBtn("SIN") { expression += "sin(" }
+                    SciBtn("COS") { expression += "cos(" }
+                    SciBtn("TAN") { expression += "tan(" }
+                    SciBtn("LOG") { expression += "log(" }
+                    SciBtn("LN") { expression += "ln(" }
+                }
+                Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                    SciBtn("√") { expression += "sqrt(" }
+                    SciBtn("^") { expression += "^" }
+                    SciBtn("(") { expression += "(" }
+                    SciBtn(")") { expression += ")" }
+                    SciBtn("X") { expression += "x" }
+                }
+                Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                    SciBtn("π") { expression += "pi" }
+                    SciBtn("E") { expression += "e" }
+                    SciBtn("1/X") { expression += "1/" }
+                    SciBtn("ABS") { expression += "abs(" }
+                    CalcButton("AC", "", Color(0xFFD32F2F), Modifier.weight(1f)) { expression = "" }
+                }
+                
+                // Shared Numeric and Basic Operators
+                Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                    CalcButton("STANDARD", "", Color(0xFFFF9800), Modifier.weight(1f)) { onBack() }
+                    NumBtn("7") { expression += "7" }
+                    NumBtn("8") { expression += "8" }
+                    NumBtn("9") { expression += "9" }
+                    CalcButton("÷", "", Color(0xFFFF9800), Modifier.weight(1f)) { expression += "/" }
+                }
+                Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                    CalcButton("HELP", "", GrayBtn, Modifier.weight(1f)) { onNavigate(Screen.CalculatorHelp) }
+                    NumBtn("4") { expression += "4" }
+                    NumBtn("5") { expression += "5" }
+                    NumBtn("6") { expression += "6" }
+                    CalcButton("x", "", Color(0xFFFF9800), Modifier.weight(1f)) { expression += "*" }
+                }
+                Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                    CalcButton("GRAPH", "", if (isGraphingMode) Color.DarkGray else Color(0xFFFF9800), Modifier.weight(1f)) { isGraphingMode = !isGraphingMode }
+                    NumBtn("1") { expression += "1" }
+                    NumBtn("2") { expression += "2" }
+                    NumBtn("3") { expression += "3" }
+                    CalcButton("-", "", Color(0xFFFF9800), Modifier.weight(1f)) { expression += "-" }
+                }
+                Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                    CalcButton("BACK", "", Color(0xFFD32F2F), Modifier.weight(1f)) { 
+                        if (expression.isNotEmpty()) expression = expression.dropLast(1)
+                    }
+                    NumBtn("0") { expression += "0" }
+                    NumBtn(".") { expression += "." }
+                    CalcButton("=", "", Color(0xFFFF9800), Modifier.weight(1f)) {
+                        val res = MathEngine.evaluate(expression)
+                        expression = if (res.isNaN()) "Error" else if (res % 1.0 == 0.0) res.toLong().toString() else res.toString()
+                    }
+                    CalcButton("+", "", Color(0xFFFF9800), Modifier.weight(1f)) { expression += "+" }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CalculatorHelpScreen(onBack: () -> Unit) {
+    Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null, tint = Color.White) }
+            Text("Calculator Guide", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(modifier = Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
+            Text("SCIENTIFIC INSTRUCTIONS", fontWeight = FontWeight.Bold, color = BlueTool, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            HelpText("• Use parentheses for nested logic: sin(pi / 2)")
+            HelpText("• Power operator (^) for exponents: 2 ^ 8")
+            HelpText("• Constants pi and e are built-in")
+            HelpText("• Trigonometry functions use radians")
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("GRAPHING EXAMPLES", fontWeight = FontWeight.Bold, color = BlueTool, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            EquationExample("Standard Line:", "0.5 * x + 2")
+            EquationExample("Parabola:", "x ^ 2")
+            EquationExample("Sine Wave:", "sin(x)")
+            EquationExample("Complex Curve:", "sin(x) * x")
+            EquationExample("Absolute Value:", "abs(x)")
+            EquationExample("Discontinuity:", "1 / x")
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("GRAPHING TIPS", fontWeight = FontWeight.Bold, color = BlueTool, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            HelpText("• Toggle between STANDARD and GRAPH mode using the orange button")
+            HelpText("• The variable 'x' is required for any plot to appear")
+            HelpText("• Use 'AC' to clear the current equation")
+        }
+    }
+}
+
+@Composable
+fun AboutScreen(onBack: () -> Unit) {
+    Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null, tint = Color.White) }
+            Text("About Pro Calc", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Default.Calculate,
+                contentDescription = null,
+                tint = BlueTool,
+                modifier = Modifier.size(120.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Pro Construction Calculator", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = BlueTool, textAlign = TextAlign.Center)
+            Text("Version 2.0.0", fontSize = 14.sp, color = Color.Gray)
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            Text(
+                text = "The ultimate professional tool for framing, stairs, rafters, and field takeoff. Built for builders, by builders.",
+                textAlign = TextAlign.Center,
+                fontSize = 16.sp,
+                color = Color.DarkGray
+            )
+            
+            Spacer(modifier = Modifier.weight(1f))
+            Text("© 2026 Construction Solutions Inc.", fontSize = 12.sp, color = Color.LightGray)
+        }
+    }
+}
+
+@Composable
+fun HelpText(text: String) {
+    Text(text = text, fontSize = 14.sp, color = Color.DarkGray, modifier = Modifier.padding(vertical = 4.dp))
+}
+
+@Composable
+fun EquationExample(label: String, equation: String) {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Text(label, fontSize = 12.sp, color = Color.Gray)
+        Card(backgroundColor = Color(0xFFF5F5F5), elevation = 0.dp, shape = RoundedCornerShape(4.dp)) {
+            Text(equation, modifier = Modifier.padding(8.dp), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = BlueTool)
+        }
+    }
+}
+
+@Composable
+fun RowScope.SciBtn(label: String, onClick: () -> Unit) {
+    CalcButton(label, "", BlueTool, Modifier.weight(1f), onClick)
+}
+
+@Composable
+fun RowScope.NumBtn(label: String, onClick: () -> Unit) {
+    CalcButton(label, "", Color.Gray, Modifier.weight(1f), onClick)
+}
+
+@Composable
+fun GraphingCalculator(projectName: String, onBack: () -> Unit, onNavigate: (Screen) -> Unit) {
+    ScientificCalculator(projectName, onBack, onNavigate) // Unified implementation
+}
+
+

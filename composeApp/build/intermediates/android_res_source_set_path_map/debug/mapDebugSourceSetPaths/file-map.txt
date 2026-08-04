@@ -1,0 +1,11 @@
+com.djran.constructioncalculator.composeApp-pngs-0 C:\Users\djran\AndroidStudioProjects\ProCalcMultiplatform\composeApp\build\generated\res\pngs\debug
+com.djran.constructioncalculator.composeApp-res-1 C:\Users\djran\AndroidStudioProjects\ProCalcMultiplatform\composeApp\build\generated\res\processDebugGoogleServices
+com.djran.constructioncalculator.composeApp-updated_navigation_xml-2 C:\Users\djran\AndroidStudioProjects\ProCalcMultiplatform\composeApp\build\generated\updated_navigation_xml\debug
+com.djran.constructioncalculator.composeApp-packageDebugResources-3 C:\Users\djran\AndroidStudioProjects\ProCalcMultiplatform\composeApp\build\intermediates\incremental\debug\packageDebugResources\merged.dir
+com.djran.constructioncalculator.composeApp-packageDebugResources-4 C:\Users\djran\AndroidStudioProjects\ProCalcMultiplatform\composeApp\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
+com.djran.constructioncalculator.composeApp-debug-5 C:\Users\djran\AndroidStudioProjects\ProCalcMultiplatform\composeApp\build\intermediates\merged_res\debug\mergeDebugResources
+com.djran.constructioncalculator.composeApp-androidDebug-6 C:\Users\djran\AndroidStudioProjects\ProCalcMultiplatform\composeApp\src\androidDebug\res
+com.djran.constructioncalculator.composeApp-androidMain-7 C:\Users\djran\AndroidStudioProjects\ProCalcMultiplatform\composeApp\src\androidMain\res
+com.djran.constructioncalculator.composeApp-debug-8 C:\Users\djran\AndroidStudioProjects\ProCalcMultiplatform\composeApp\src\debug\res
+com.djran.constructioncalculator.composeApp-main-9 C:\Users\djran\AndroidStudioProjects\ProCalcMultiplatform\composeApp\src\main\res
+gradleHome-0 C:\Users\djran\.gradle
