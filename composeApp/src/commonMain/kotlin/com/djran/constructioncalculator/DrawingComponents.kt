@@ -225,6 +225,72 @@ fun RafterDetail(
 }
 
 @Composable
+fun FloorDiagram(
+    floorLength: Double,
+    floorWidth: Double,
+    joistOC: Double = 16.0,
+    numBeams: Int = 0,
+    spanDirection: String = "Span Length"
+) {
+    Canvas(modifier = Modifier.fillMaxWidth().height(220.dp).background(Color.White).padding(16.dp)) {
+        if (floorLength <= 0 || floorWidth <= 0) return@Canvas
+
+        val w = size.width
+        val h = size.height
+
+        val margin = 50f
+        val drawW = (w - margin * 2).coerceAtLeast(10f)
+        val drawH = (h - margin * 2).coerceAtLeast(10f)
+
+        val scale = min(drawW / floorLength.toFloat(), drawH / floorWidth.toFloat())
+
+        val sLen = (floorLength * scale).toFloat()
+        val sWid = (floorWidth * scale).toFloat()
+
+        val startX = (w - sLen) / 2f
+        val startY = (h - sWid) / 2f
+
+        // 1. Draw Perimeter (Rim Joists)
+        drawRect(
+            color = Color.Red,
+            topLeft = Offset(startX, startY),
+            size = Size(sLen, sWid),
+            style = Stroke(3f)
+        )
+
+        // 2. Draw Beams if any
+        if (numBeams > 0) {
+            val beamSpacing = if (spanDirection == "Span Length") sLen / (numBeams + 1) else sWid / (numBeams + 1)
+            for (i in 1..numBeams) {
+                if (spanDirection == "Span Length") {
+                    val bx = startX + i * beamSpacing
+                    drawLine(Color.Red, Offset(bx, startY), Offset(bx, startY + sWid), strokeWidth = 4f)
+                } else {
+                    val by = startY + i * beamSpacing
+                    drawLine(Color.Red, Offset(startX, by), Offset(startX + sLen, by), strokeWidth = 4f)
+                }
+            }
+        }
+
+        // 3. Draw Joists
+        val sOC = (joistOC * scale).toFloat().coerceAtLeast(4f)
+        if (spanDirection == "Span Length") {
+            var curY = startY + sOC
+            while (curY < startY + sWid) {
+                drawLine(Color.Red, Offset(startX, curY), Offset(startX + sLen, curY), strokeWidth = 2f)
+                curY += sOC
+            }
+        } else {
+            var curX = startX + sOC
+            while (curX < startX + sLen) {
+                drawLine(Color.Red, Offset(curX, startY), Offset(curX, startY + sWid), strokeWidth = 2f)
+                curX += sOC
+            }
+        }
+    }
+}
+
+@Composable
 fun FootingCrossSection(
     width: Double,
     thickness: Double,

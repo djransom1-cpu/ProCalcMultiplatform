@@ -1,5 +1,5 @@
 
-Ï`
+Âa
 BlueTool
 androidx
 compose
@@ -590,7 +590,19 @@ SquareRoot
 WallResults
 CrownResults
 
-ArcResultsù
+ArcResults
+FloorResult
+lengthIn
+widthIn
+
+joistCount
+joistCutLenIn
+rimJoistPerimeterIn
+
+sheetCount
+	spacingIn
+beams
+	direction¶
 
 
  
@@ -750,7 +762,8 @@ ArcResultsù
 ú 
 ù 
 û 
-ü á38H“
+ü 
+† á38H“
 “
 ‡
 2(2(8H“
@@ -2407,7 +2420,25 @@ H Ä"H Ä"H ÄÚà
 0?
 0;“
 F	À¯
+"ƒÇ ûB?°(¢(£(§(•(¶(ß(®(©(Jµ8H∆‡
+J∂8H∆‡
+J∑8H∆‡
+J∏8H∆‡
+Jπ8H∆‡
+J∫8H∆‡
+Jª8H∆‡
+Jº8H∆‡
+JΩ8H∆‡
+J\¬2°(2¢(2£(2§(2•(2¶(2ß(2®(2©(8H∆‡
+J√2ƒ(8H÷ÉJ	≈8H÷ÅJ	∆8H÷ÅR°HÄR¢HÄR£HÄR§HÄR•HÄR¶HÄRßHÄR®HÄR©HÄÚ
+0?
+0%
+0;
+0
+0û
+0
+0?¯
 ‡
  Í
  com.djran.constructioncalculatorÚ
-s$GP*QR+ST,UV-WX.YZ/[\#]^0_`1ab2cd3ef4gh5ijklm no7pq8rs9tu6vwxyz|}"~ÄÇÉÑèïêëíçóòôñåìéîöõúù
+u$GP*QR+ST,UV-WX.YZ/[\#]^0_`1ab2cd3ef4gh5ijklm no7pq8rs9tu6vwxyz|}"~ÄÇÉÑèïêëíçóòôñåìéîöõúùû

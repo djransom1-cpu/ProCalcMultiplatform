@@ -5001,9 +5001,14 @@ fun FloorCalculator(
 ) {
     var length by remember { mutableStateOf("") }
     var width by remember { mutableStateOf("") }
+    var joistSize by remember { mutableStateOf("2x10") }
     var spacing by remember { mutableStateOf("16") }
+    var numBeams by remember { mutableStateOf("0") }
+    var plyThick by remember { mutableStateOf("3/4\"") }
+    var direction by remember { mutableStateOf("Span Length") }
     var sectionName by remember { mutableStateOf("") }
     
+    var results by remember { mutableStateOf<FloorResult?>(null) }
     var editingIndex by remember { mutableStateOf(-1) }
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
@@ -5012,18 +5017,18 @@ fun FloorCalculator(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
-            Text("Floor / Joists", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text("Floor Framing & Subfloor", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
 
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("FLOOR DIMENSIONS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text("FLOOR DIMENSIONS & FRAMING SPECIFICATIONS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 ConstructionTextField(
                     value = length,
                     onValueChange = { length = it },
-                    label = "Span/Length (ft/in)",
+                    label = "Length (ft/in)",
                     modifier = Modifier.weight(1f),
                     onFocus = onFocus
                 )
@@ -5037,18 +5042,75 @@ fun FloorCalculator(
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
-            ConstructionTextField(
-                value = spacing,
-                onValueChange = { spacing = it },
-                label = "Joist O.C. Spacing (in)",
-                modifier = Modifier.fillMaxWidth(),
-                onFocus = onFocus
-            )
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = spacing,
+                    onValueChange = { spacing = it },
+                    label = "Joist O.C. (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(
+                    value = numBeams,
+                    onValueChange = { numBeams = it },
+                    label = "Support Beams",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+            }
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Joist Member & Subfloor Options
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = joistSize,
+                    onValueChange = { joistSize = it },
+                    label = { Text("Joist Member (2x10, TJI, LVL)") },
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedTextField(
+                    value = plyThick,
+                    onValueChange = { plyThick = it },
+                    label = { Text("Subfloor Plywood (3/4\")") },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Span Direction Toggle Buttons
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Span Direction:", fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.padding(end = 8.dp))
+                Button(
+                    onClick = { direction = "Span Length" },
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = if (direction == "Span Length") BlueTool else Color.LightGray,
+                        contentColor = if (direction == "Span Length") Color.White else Color.Black
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Span Length", fontSize = 12.sp)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = { direction = "Span Width" },
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = if (direction == "Span Width") BlueTool else Color.LightGray,
+                        contentColor = if (direction == "Span Width") Color.White else Color.Black
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Span Width", fontSize = 12.sp)
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
             OutlinedTextField(
                 value = sectionName,
                 onValueChange = { sectionName = it },
-                label = { Text("Section Name") },
+                label = { Text("Section Name / Location") },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -5059,20 +5121,45 @@ fun FloorCalculator(
                     onClick = {
                         val lIn = FractionUtils.parseFeet(length)
                         val wIn = FractionUtils.parseFeet(width)
-                        val s = spacing.toDoubleOrNull() ?: 16.0
-                        
+                        val s = FractionUtils.parse(spacing).takeIf { it > 0 } ?: 16.0
+                        val beams = numBeams.toIntOrNull() ?: 0
+
                         if (lIn > 0 && wIn > 0) {
-                            val joistCount = ceil(wIn / s).toInt() + 1
-                            val sheetCount = ceil((lIn * wIn) / (32.0 * 144.0)).toInt()
+                            val sheetsNeeded = ceil((lIn * wIn) / 4608.0).toInt()
+
+                            val runDistIn = if (direction == "Span Length") wIn else lIn
+                            val spanDistIn = if (direction == "Span Length") lIn else wIn
+                            val perimeterIn = (lIn * 2.0) + (wIn * 2.0)
+
+                            var individualJoistLenIn = spanDistIn / (beams + 1)
+                            val standardFt = ceil(individualJoistLenIn / 24.0) * 2.0
+                            individualJoistLenIn = standardFt * 12.0
+                            if (beams > 0) individualJoistLenIn += 3.0
+
+                            val joistCountPerRun = (ceil(runDistIn / s) + 1).toInt()
+                            val totalJoists = joistCountPerRun * (beams + 1)
+
+                            val res = FloorResult(
+                                lengthIn = lIn,
+                                widthIn = wIn,
+                                joistCount = totalJoists,
+                                joistCutLenIn = individualJoistLenIn,
+                                rimJoistPerimeterIn = perimeterIn,
+                                sheetCount = sheetsNeeded,
+                                spacingIn = s,
+                                beams = beams,
+                                direction = direction
+                            )
+                            results = res
 
                             val entry = FloorEntry(
                                 id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
                                 name = sectionName.ifEmpty { "Floor Section" },
                                 length = length,
                                 width = width,
-                                spacing = "$s\" OC",
-                                joists = "$joistCount Joists",
-                                sheets = "$sheetCount Subfloor Sheets"
+                                spacing = "${s.toInt()}\" OC",
+                                joists = "$totalJoists Joists ($joistSize @ ${FractionUtils.formatInches(individualJoistLenIn)})",
+                                sheets = "$sheetsNeeded Sheets ($plyThick)"
                             )
 
                             if (editingIndex != -1) {
@@ -5083,24 +5170,62 @@ fun FloorCalculator(
                             } else {
                                 onUpdateEntries(entries + entry)
                             }
-                            sectionName = ""
                         }
                     },
-                    modifier = Modifier.weight(2f).height(64.dp),
+                    modifier = Modifier.weight(2f).height(56.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
                 ) {
-                    Text(if (editingIndex != -1) "UPDATE & SAVE" else "CALCULATE & SAVE", textAlign = TextAlign.Center)
+                    Text(if (editingIndex != -1) "UPDATE TAKEOFF" else "CALCULATE & SAVE", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
+
                 Spacer(modifier = Modifier.width(8.dp))
                 OutlinedButton(
                     onClick = { onUpdateEntries(emptyList()) },
-                    modifier = Modifier.weight(1f).height(64.dp),
+                    modifier = Modifier.weight(1f).height(56.dp),
                     shape = RoundedCornerShape(12.dp),
                     border = BorderStroke(1.dp, Color(0xFFC62828)),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828))
                 ) {
                     Text("CLEAR LIST", textAlign = TextAlign.Center)
+                }
+            }
+
+            results?.let { res ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Card(modifier = Modifier.fillMaxWidth(), elevation = 4.dp, shape = RoundedCornerShape(12.dp)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("FLOOR FRAMING RESULTS", fontWeight = FontWeight.Bold, color = BlueTool, fontSize = 16.sp)
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Joists Required:", fontWeight = FontWeight.SemiBold)
+                            Text("${res.joistCount} Joists", fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Cut Length / Joist:", fontWeight = FontWeight.SemiBold)
+                            Text(FractionUtils.formatInches(res.joistCutLenIn), fontWeight = FontWeight.Bold)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Subfloor 4x8 Sheets:", fontWeight = FontWeight.SemiBold)
+                            Text("${res.sheetCount} Sheets ($plyThick)", fontWeight = FontWeight.Bold, color = Color(0xFFC62828))
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Rim Joist Perimeter:", fontWeight = FontWeight.SemiBold)
+                            Text(FractionUtils.formatInches(res.rimJoistPerimeterIn), fontWeight = FontWeight.Bold)
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Framing Layout Plan:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        FloorDiagram(
+                            floorLength = res.lengthIn,
+                            floorWidth = res.widthIn,
+                            joistOC = res.spacingIn,
+                            numBeams = res.beams,
+                            spanDirection = res.direction
+                        )
+                    }
                 }
             }
 
@@ -5140,6 +5265,18 @@ fun FloorCalculator(
         }
     }
 }
+
+private data class FloorResult(
+    val lengthIn: Double,
+    val widthIn: Double,
+    val joistCount: Int,
+    val joistCutLenIn: Double,
+    val rimJoistPerimeterIn: Double,
+    val sheetCount: Int,
+    val spacingIn: Double,
+    val beams: Int,
+    val direction: String
+)
 
 @Composable
 fun MasonryCalculator(
