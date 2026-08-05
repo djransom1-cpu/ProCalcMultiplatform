@@ -294,29 +294,58 @@ fun FloorDiagram(
 fun FootingCrossSection(
     width: Double,
     thickness: Double,
-    rebarOC: Double = 12.0
+    rebarMode: Int = 0, // 0 = Grid, 1 = Continuous (Top & Bottom)
+    rebarOC: Double = 12.0,
+    barsTop: Int = 0,
+    barsBottom: Int = 2
 ) {
-    Canvas(modifier = Modifier.fillMaxWidth().height(150.dp).background(Color.White).padding(16.dp)) {
-        val scale = min(size.width / width.toFloat(), size.height / thickness.toFloat()) * 0.7f
+    Canvas(modifier = Modifier.fillMaxWidth().height(160.dp).background(Color.White).padding(16.dp)) {
+        if (width <= 0 || thickness <= 0) return@Canvas
+
+        val scale = min((size.width * 0.8f) / width.toFloat(), (size.height * 0.8f) / thickness.toFloat())
         val wPx = (width * scale).toFloat()
         val tPx = (thickness * scale).toFloat()
-        
+
         val startX = (size.width - wPx) / 2f
         val startY = (size.height - tPx) / 2f
-        
-        // Concrete
-        drawRect(Color(0xFFCCCCCC), Offset(startX, startY), Size(wPx, tPx))
-        drawRect(Color.Black, Offset(startX, startY), Size(wPx, tPx), style = Stroke(2f))
-        
-        // Rebar (3" cover)
-        val cover = 3.0 * scale
-        val rebarY = startY + tPx - cover.toFloat()
-        
-        val rebarCount = max(2.0, width / rebarOC).toInt()
-        val spacing = (wPx - (2 * cover)) / (rebarCount - 1).coerceAtLeast(1)
-        
-        for (i in 0 until rebarCount) {
-            drawCircle(Color.Red, radius = 4f, center = Offset((startX + cover + i * spacing).toFloat(), rebarY))
+
+        // Concrete Cross Section Block
+        drawRect(Color(0xFFE0E0E0), Offset(startX, startY), Size(wPx, tPx))
+        drawRect(Color.DarkGray, Offset(startX, startY), Size(wPx, tPx), style = Stroke(3f))
+
+        val cover = (3.0 * scale).toFloat().coerceAtMost(tPx * 0.25f)
+
+        if (rebarMode == 0) {
+            // GRID REBAR: Bottom mat rebar dots
+            val rebarY = startY + tPx - cover
+            val rebarCount = max(2.0, width / rebarOC.coerceAtLeast(1.0)).toInt()
+            val spacing = (wPx - (2 * cover)) / (rebarCount - 1).coerceAtLeast(1)
+
+            // Main transverse line
+            drawLine(Color.Red, Offset(startX + cover, rebarY), Offset(startX + wPx - cover, rebarY), strokeWidth = 3f)
+
+            // Rebar dots
+            for (i in 0 until rebarCount) {
+                drawCircle(Color.Red, radius = 5f, center = Offset(startX + cover + i * spacing, rebarY))
+            }
+        } else {
+            // CONTINUOUS BARS: Top & Bottom bars
+            if (barsTop > 0) {
+                val topY = startY + cover
+                val topSpacing = if (barsTop > 1) (wPx - (2 * cover)) / (barsTop - 1) else 0f
+                for (i in 0 until barsTop) {
+                    val cx = if (barsTop == 1) startX + wPx / 2f else startX + cover + i * topSpacing
+                    drawCircle(Color.Red, radius = 6f, center = Offset(cx, topY))
+                }
+            }
+            if (barsBottom > 0) {
+                val botY = startY + tPx - cover
+                val botSpacing = if (barsBottom > 1) (wPx - (2 * cover)) / (barsBottom - 1) else 0f
+                for (i in 0 until barsBottom) {
+                    val cx = if (barsBottom == 1) startX + wPx / 2f else startX + cover + i * botSpacing
+                    drawCircle(Color.Red, radius = 6f, center = Offset(cx, botY))
+                }
+            }
         }
     }
 }

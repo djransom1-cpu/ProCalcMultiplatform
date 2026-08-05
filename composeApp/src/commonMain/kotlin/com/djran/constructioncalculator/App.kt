@@ -5567,14 +5567,16 @@ fun ConcreteCalculator(
 ) {
     var length by remember { mutableStateOf("") }
     var width by remember { mutableStateOf("") }
-    var thick by remember { mutableStateOf("") }
+    var thick by remember { mutableStateOf("4") }
+    var rebarMode by remember { mutableStateOf(0) } // 0 = Grid, 1 = Continuous
     var rebarSpacing by remember { mutableStateOf("12") }
+    var rebarMats by remember { mutableStateOf("1") }
+    var barsTop by remember { mutableStateOf("0") }
+    var barsBottom by remember { mutableStateOf("2") }
     var qty by remember { mutableStateOf("1") }
     var sectionName by remember { mutableStateOf("") }
     
-    var resultYds by remember { mutableStateOf("0.00 cu yd") }
-    var rebarTotal by remember { mutableStateOf("0.00 lin ft") }
-    
+    var results by remember { mutableStateOf<ConcreteResult?>(null) }
     var editingIndex by remember { mutableStateOf(-1) }
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
@@ -5583,48 +5585,40 @@ fun ConcreteCalculator(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
-            Text("Concrete & Rebar", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text("Concrete & Rebar Master", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
 
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("SLAB DIMENSIONS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text("SLAB & FOOTING DIMENSIONS", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(8.dp))
             
-            ConstructionTextField(
-                value = length,
-                onValueChange = { length = it },
-                label = "Length (ft / in)",
-                modifier = Modifier.fillMaxWidth(),
-                onFocus = onFocus
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            ConstructionTextField(
-                value = width,
-                onValueChange = { width = it },
-                label = "Width (ft / in)",
-                modifier = Modifier.fillMaxWidth(),
-                onFocus = onFocus
-            )
-            Spacer(modifier = Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth()) {
                 ConstructionTextField(
-                    value = thick,
-                    onValueChange = { thick = it },
-                    label = "Thick (in)",
+                    value = length,
+                    onValueChange = { length = it },
+                    label = "Length (ft / in)",
                     modifier = Modifier.weight(1f),
                     onFocus = onFocus
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 ConstructionTextField(
-                    value = rebarSpacing,
-                    onValueChange = { rebarSpacing = it },
-                    label = "Rebar OC (in)",
+                    value = width,
+                    onValueChange = { width = it },
+                    label = "Width (ft / in)",
                     modifier = Modifier.weight(1f),
                     onFocus = onFocus
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(
+                    value = thick,
+                    onValueChange = { thick = it },
+                    label = "Thick/Depth (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 ConstructionTextField(
                     value = qty,
                     onValueChange = { qty = it },
@@ -5632,41 +5626,137 @@ fun ConcreteCalculator(
                     modifier = Modifier.weight(1f),
                     onFocus = onFocus
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                OutlinedTextField(
-                    value = sectionName,
-                    onValueChange = { sectionName = it },
-                    label = { Text("Section Name") },
-                    modifier = Modifier.weight(2f)
-                )
             }
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Rebar Reinforcement Specifications
+            Text("REBAR REINFORCEMENT", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Button(
+                    onClick = { rebarMode = 0 },
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = if (rebarMode == 0) BlueTool else Color.LightGray,
+                        contentColor = if (rebarMode == 0) Color.White else Color.Black
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Rebar Grid (Slabs)", fontSize = 12.sp)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = { rebarMode = 1 },
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = if (rebarMode == 1) BlueTool else Color.LightGray,
+                        contentColor = if (rebarMode == 1) Color.White else Color.Black
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Continuous Bars (Footings)", fontSize = 12.sp)
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (rebarMode == 0) {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    ConstructionTextField(
+                        value = rebarSpacing,
+                        onValueChange = { rebarSpacing = it },
+                        label = "Grid O.C. (in)",
+                        modifier = Modifier.weight(1f),
+                        onFocus = onFocus
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    ConstructionTextField(
+                        value = rebarMats,
+                        onValueChange = { rebarMats = it },
+                        label = "Number of Mats",
+                        modifier = Modifier.weight(1f),
+                        onFocus = onFocus
+                    )
+                }
+            } else {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    ConstructionTextField(
+                        value = barsTop,
+                        onValueChange = { barsTop = it },
+                        label = "Top Bars",
+                        modifier = Modifier.weight(1f),
+                        onFocus = onFocus
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    ConstructionTextField(
+                        value = barsBottom,
+                        onValueChange = { barsBottom = it },
+                        label = "Bottom Bars",
+                        modifier = Modifier.weight(1f),
+                        onFocus = onFocus
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = sectionName,
+                onValueChange = { sectionName = it },
+                label = { Text("Section Name / Location") },
+                modifier = Modifier.fillMaxWidth()
+            )
             
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             
             Row(modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
-                        val lFeet = FractionUtils.parseFeet(length) / 12.0
-                        val wFeet = FractionUtils.parseFeet(width) / 12.0
-                        val tInches = FractionUtils.parse(thick)
-                        val rsInches = if (rebarSpacing.isBlank()) 12.0 else FractionUtils.parse(rebarSpacing)
+                        val lIn = FractionUtils.parseFeet(length)
+                        val wIn = FractionUtils.parseFeet(width)
+                        val tIn = FractionUtils.parse(thick)
                         val q = qty.toDoubleOrNull() ?: 1.0
                         
-                        if (lFeet > 0 && wFeet > 0 && tInches > 0) {
-                            val vol = ConcreteEngine.calculateVolume(lFeet, wFeet, tInches) * q
-                            val reb = ConcreteEngine.calculateRebarGrid(lFeet, wFeet, rsInches) * q
-                            
-                            resultYds = "${vol.roundToOneDecimal()} cu yd"
-                            rebarTotal = "${reb.roundToInt()} lin ft"
+                        if (lIn > 0 && wIn > 0 && tIn > 0) {
+                            val singleCuFt = (lIn / 12.0) * (wIn / 12.0) * (tIn / 12.0)
+                            val totalCuFt = singleCuFt * q
+                            val totalCuYd = totalCuFt / 27.0
+
+                            val ocIn = rebarSpacing.toDoubleOrNull() ?: 12.0
+                            val mats = rebarMats.toDoubleOrNull() ?: 1.0
+                            val bTop = barsTop.toIntOrNull() ?: 0
+                            val bBot = barsBottom.toIntOrNull() ?: 2
+
+                            val totalRebarFt: Double = if (rebarMode == 0) {
+                                if (ocIn > 0) {
+                                    val rows = (wIn / ocIn) + 1.0
+                                    val cols = (lIn / ocIn) + 1.0
+                                    ((rows * (lIn / 12.0)) + (cols * (wIn / 12.0))) * mats * q
+                                } else 0.0
+                            } else {
+                                (bTop + bBot).toDouble() * (lIn / 12.0) * q
+                            }
+
+                            val res = ConcreteResult(
+                                lengthIn = lIn,
+                                widthIn = wIn,
+                                thickIn = tIn,
+                                qty = q.toInt(),
+                                totalCuFt = totalCuFt,
+                                totalCuYd = totalCuYd,
+                                totalRebarFt = totalRebarFt,
+                                rebarMode = rebarMode,
+                                rebarOC = ocIn,
+                                barsTop = bTop,
+                                barsBottom = bBot
+                            )
+                            results = res
 
                             val entry = ConcreteEntry(
                                 id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
-                                name = sectionName.ifEmpty { "Slab Section" },
+                                name = sectionName.ifEmpty { "Concrete Section" },
                                 qty = q.toInt().toString(),
-                                volume = resultYds,
-                                rebar = rebarTotal,
-                                spacing = "$rsInches\" OC",
-                                dimensions = "${length} x ${width} x ${thick}"
+                                volume = "${totalCuYd.roundToOneDecimal()} cu yd (${totalCuFt.roundToOneDecimal()} cu ft)",
+                                rebar = "${totalRebarFt.roundToOneDecimal()} lin ft",
+                                spacing = if (rebarMode == 0) "${ocIn.toInt()}\" OC Grid" else "$bTop Top / $bBot Bot Bars",
+                                dimensions = "${length} x ${width} x ${thick}\""
                             )
 
                             if (editingIndex != -1) {
@@ -5680,16 +5770,16 @@ fun ConcreteCalculator(
                             sectionName = ""
                         }
                     },
-                    modifier = Modifier.weight(2f).height(64.dp),
+                    modifier = Modifier.weight(2f).height(56.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
                 ) {
-                    Text(if (editingIndex != -1) "UPDATE & SAVE" else "CALCULATE & SAVE", textAlign = TextAlign.Center)
+                    Text(if (editingIndex != -1) "UPDATE TAKEOFF" else "CALCULATE & SAVE", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 OutlinedButton(
-                    onClick = { onUpdateEntries(emptyList()); resultYds = "0.00 cu yd"; rebarTotal = "0.00 lin ft" },
-                    modifier = Modifier.weight(1f).height(64.dp),
+                    onClick = { onUpdateEntries(emptyList()); results = null },
+                    modifier = Modifier.weight(1f).height(56.dp),
                     shape = RoundedCornerShape(12.dp),
                     border = BorderStroke(1.dp, Color(0xFFC62828)),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828))
@@ -5698,25 +5788,32 @@ fun ConcreteCalculator(
                 }
             }
             
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("ESTIMATED MATERIALS", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    if (resultYds != "0.00 cu yd") {
+            results?.let { res ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Card(modifier = Modifier.fillMaxWidth(), elevation = 4.dp, shape = RoundedCornerShape(12.dp)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("ESTIMATED CONCRETE & REBAR", fontWeight = FontWeight.Bold, color = BlueTool, fontSize = 16.sp)
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+
                         FootingCrossSection(
-                            width = FractionUtils.parse(width),
-                            thickness = FractionUtils.parse(thick),
-                            rebarOC = if (rebarSpacing.isBlank()) 12.0 else FractionUtils.parse(rebarSpacing)
+                            width = res.widthIn,
+                            thickness = res.thickIn,
+                            rebarMode = res.rebarMode,
+                            rebarOC = res.rebarOC,
+                            barsTop = res.barsTop,
+                            barsBottom = res.barsBottom
                         )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Concrete Volume:", fontWeight = FontWeight.SemiBold)
+                            Text("${res.totalCuYd.roundToOneDecimal()} cu yd (${res.totalCuFt.roundToOneDecimal()} cu ft)", fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Rebar Total Footage:", fontWeight = FontWeight.SemiBold)
+                            Text("${res.totalRebarFt.roundToOneDecimal()} lin ft", fontWeight = FontWeight.Bold, color = Color(0xFFC62828))
+                        }
                     }
-                    
-                    Text(resultYds, style = MaterialTheme.typography.h4, color = BlueTool)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text("REBAR (#4 @ ${rebarSpacing}\" O.C.)", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
-                    Text(rebarTotal, style = MaterialTheme.typography.h5, color = GrayBtn)
                 }
             }
 
@@ -5724,10 +5821,10 @@ fun ConcreteCalculator(
                 Spacer(modifier = Modifier.height(24.dp))
                 Divider()
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("SAVED SLABS", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("SAVED CONCRETE SECTIONS", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 
                 entries.reversed().forEachIndexed { index, entry ->
-                    Card(elevation = 1.dp, shape = RoundedCornerShape(4.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+                    Card(elevation = 2.dp, shape = RoundedCornerShape(4.dp), modifier = Modifier.padding(vertical = 4.dp)) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Column(modifier = Modifier.weight(1f)) {
@@ -5760,6 +5857,20 @@ fun ConcreteCalculator(
         }
     }
 }
+
+private data class ConcreteResult(
+    val lengthIn: Double,
+    val widthIn: Double,
+    val thickIn: Double,
+    val qty: Int,
+    val totalCuFt: Double,
+    val totalCuYd: Double,
+    val totalRebarFt: Double,
+    val rebarMode: Int,
+    val rebarOC: Double,
+    val barsTop: Int,
+    val barsBottom: Int
+)
 
 @Composable
 fun TrigCalculator(
