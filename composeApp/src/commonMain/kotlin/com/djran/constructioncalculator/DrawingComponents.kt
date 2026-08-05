@@ -51,43 +51,75 @@ fun StairDiagram(
     distOut: Double,
     showOpening: Boolean = true
 ) {
-    Canvas(modifier = Modifier.fillMaxWidth().height(200.dp).background(Color.White).padding(16.dp)) {
+    Canvas(modifier = Modifier.fillMaxWidth().height(240.dp).background(Color.White).padding(16.dp)) {
+        if (totalRise <= 0 || riserCount <= 0) return@Canvas
+
         val w = size.width
         val h = size.height
 
-        val scale = min((w * 0.8f) / totalRun.toFloat(), (h * 0.8f) / totalRise.toFloat())
-        val sw = (totalRun / riserCount * scale).toFloat()
-        val sh = (totalRise / riserCount * scale).toFloat()
+        val leftMargin = 60f
+        val rightMargin = 80f
+        val topMargin = 40f
+        val bottomMargin = 40f
+
+        val drawW = (w - leftMargin - rightMargin).coerceAtLeast(10f)
+        val drawH = (h - topMargin - bottomMargin).coerceAtLeast(10f)
+
+        val actualNumRises = riserCount.coerceAtLeast(1)
+        val actualRiseInches = totalRise / actualNumRises
+        val actualRunInches = if (actualNumRises > 1) (totalRun / (actualNumRises - 1)).coerceAtLeast(1.0) else 10.0
+        
+        val scaleX = drawW / totalRun.toFloat().coerceAtLeast(1f)
+        val scaleY = drawH / totalRise.toFloat().coerceAtLeast(1f)
+        val scale = min(scaleX, scaleY)
+
+        val sw = (actualRunInches * scale).toFloat()
+        val sh = (actualRiseInches * scale).toFloat()
         val sf = (floorThickness * scale).toFloat()
 
-        val groundY = h - 20f
-        val startX = 20f
+        val groundY = h - bottomMargin
+        val startX = leftMargin + 20f
         val topFloorY = groundY - (totalRise * scale).toFloat()
+        val bottomFloorY = topFloorY + sf
+        val headerX = startX + (actualNumRises - 1) * sw
 
-        // 1. Draw Stairs
-        val path = Path()
-        path.moveTo(startX, groundY)
-        for (i in 0 until riserCount) {
+        // 1. Draw Floor Header Box
+        drawRect(Color.LightGray, Offset(headerX, topFloorY), Size(w - headerX - 10f, sf))
+        drawRect(Color.Black, Offset(headerX, topFloorY), Size(w - headerX - 10f, sf), style = Stroke(2f))
+
+        // 2. Draw Stair Tread / Riser Steps Path
+        val topPath = Path()
+        val bottomPath = Path()
+
+        topPath.moveTo(startX, groundY)
+        for (i in 0 until actualNumRises) {
             val curX = startX + i * sw
-            val curY = groundY - i * sh
-            path.lineTo(curX, curY - sh) // Riser
-            path.lineTo(curX + sw, curY - sh) // Tread
+            val nextX = startX + (i + 1) * sw
+            val nextY = groundY - (i + 1) * sh
+
+            topPath.lineTo(curX, nextY) // Vertical Riser
+            if (i < actualNumRises - 1) {
+                topPath.lineTo(nextX, nextY) // Horizontal Tread
+            }
         }
-        drawPath(path, Color.Black, style = Stroke(3f))
+        topPath.lineTo(headerX, topFloorY)
 
-        // 2. Draw Floor Opening
+        // Stringer Bottom Line
+        val botBackX = startX + sw
+        bottomPath.moveTo(startX, groundY)
+        bottomPath.lineTo(botBackX, groundY)
+        bottomPath.lineTo(headerX, bottomFloorY)
+
+        drawPath(topPath, Color.Black, style = Stroke(3f))
+        drawPath(bottomPath, BlueTool, style = Stroke(3f))
+
+        // 3. Headroom Line (81" clearance line)
         if (showOpening) {
-            val headerX = startX + (distOut.toFloat() * scale)
-            drawRect(Color.LightGray, Offset(headerX, topFloorY), Size(w - headerX, sf))
-            drawRect(Color.Black, Offset(headerX, topFloorY), Size(w - headerX, sf), style = Stroke(2f))
-
-            // Headroom Line (81" Clearance)
-            val hrPx = 81.0 * scale
-            // Draw a vertical line showing clearance at the critical point
+            val hrPx = (81.0 * scale).toFloat()
             drawLine(
                 color = Color.Red,
                 start = Offset(headerX, topFloorY + sf),
-                end = Offset(headerX, (topFloorY + sf + hrPx).toFloat()),
+                end = Offset(headerX, (topFloorY + sf + hrPx).coerceAtMost(groundY)),
                 strokeWidth = 2f,
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
             )
@@ -104,57 +136,91 @@ fun RafterDetail(
     lumberDepth: Double = 7.25,
     overhang: Double = 12.0
 ) {
-    Canvas(modifier = Modifier.fillMaxWidth().height(200.dp).background(Color.White).padding(16.dp)) {
+    Canvas(modifier = Modifier.fillMaxWidth().height(260.dp).background(Color.White).padding(16.dp)) {
+        if (run <= 0 || rise <= 0) return@Canvas
+
+        val w = size.width
+        val h = size.height
+
+        val leftMargin = 120f
+        val rightMargin = 80f
+        val topMargin = 40f
+        val bottomMargin = 40f
+
+        val drawW = (w - leftMargin - rightMargin).coerceAtLeast(10f)
+        val drawH = (h - topMargin - bottomMargin).coerceAtLeast(10f)
+
         val angleRad = atan(pitch / 12.0)
         val cosA = cos(angleRad).toFloat()
-        val sinA = sin(angleRad).toFloat()
-        
-        val totalSpan = (run + overhang)
-        val scale = min(size.width / totalSpan.toFloat(), size.height / (rise + lumberDepth).toFloat()) * 0.8f
-        
-        val startX = 40f
-        val startY = size.height - 40f
-        
-        val runPx = (run * scale).toFloat()
-        val risePx = (rise * scale).toFloat()
-        val ohPx = (overhang * scale).toFloat()
-        val depthPx = (lumberDepth * scale).toFloat()
-        val heelPx = (heel * scale).toFloat()
-        
-        // Coordinates relative to the seat cut (wall plate corner)
-        // Seat cut is at (startX + runPx, startY - risePx)
-        val plateX = startX + runPx
-        val plateY = startY - risePx
-        
+        val slope = (pitch / 12.0).toFloat()
+
+        val actualDepthIn = lumberDepth
+        val ridgeDepthIn = lumberDepth + 2.0
+
+        val totalRunIn = run + overhang + 12.0
+        val totalRiseIn = rise + ridgeDepthIn + 12.0
+        val scale = min(drawW / totalRunIn.toFloat(), drawH / totalRiseIn.toFloat())
+
+        val sRun = (run * scale).toFloat()
+        val sRise = (rise * scale).toFloat()
+        val sHeel = (heel * scale).toFloat()
+        val sOverhang = (overhang * scale).toFloat()
+        val sDepth = (actualDepthIn * scale).toFloat()
+        val sRidgeDepth = (ridgeDepthIn * scale).toFloat()
+        val sPlumbDepth = sDepth / cosA
+
+        val ridgeFaceX = w - rightMargin
+        val wallLineX = ridgeFaceX - sRun
+        val tailEndX = wallLineX - sOverhang
+
+        val topPeakY = topMargin + (sRidgeDepth * 0.2f)
+        val topAtWallY = topPeakY + sRise
+        val topAtTailY = topAtWallY + (sOverhang * slope)
+
+        val botAtRidgeY = topPeakY + sPlumbDepth
+        val botAtWallY = topAtWallY + sPlumbDepth
+        val botAtTailY = topAtTailY + sPlumbDepth
+
+        val cornerY = topAtWallY + sHeel
+        val x_seatIntersect = wallLineX - (cornerY - botAtWallY) / slope
+
+        // 1. Ridge Board
+        drawRect(
+            color = Color(0xFFD32F2F),
+            topLeft = Offset(ridgeFaceX, topPeakY),
+            size = Size(20f, sRidgeDepth),
+            style = Stroke(3f)
+        )
+
+        // 2. Rafter Member Path
         val rafterPath = Path()
-        
-        // 1. Ridge Cut (Vertical)
-        rafterPath.moveTo(startX, plateY - risePx)
-        rafterPath.lineTo(startX, plateY - risePx + (depthPx / cosA))
-        
-        // 2. Bottom Edge
-        rafterPath.lineTo(plateX, plateY + heelPx)
-        
-        // 3. Seat Cut (Horizontal)
-        rafterPath.lineTo(plateX + (heelPx * tan(angleRad)).toFloat(), plateY)
-        
-        // 4. Tail
-        val tailEndDeltaX = ohPx
-        val tailEndDeltaY = (ohPx * (pitch / 12.0)).toFloat()
-        rafterPath.lineTo(plateX + tailEndDeltaX, plateY + tailEndDeltaY)
-        
-        // 5. Fascia Cut (Vertical)
-        rafterPath.lineTo(plateX + tailEndDeltaX, plateY + tailEndDeltaY - (depthPx / cosA))
-        
-        // 6. Top Edge
-        rafterPath.lineTo(startX, plateY - risePx)
-        
+        rafterPath.moveTo(ridgeFaceX, topPeakY)
+        rafterPath.lineTo(tailEndX, topAtTailY)
+        rafterPath.lineTo(tailEndX, botAtTailY)
+        rafterPath.lineTo(x_seatIntersect, botAtWallY + slope * (wallLineX - x_seatIntersect))
+        rafterPath.lineTo(x_seatIntersect, cornerY)
+        rafterPath.lineTo(wallLineX, cornerY)
+        rafterPath.lineTo(wallLineX, botAtWallY)
+        rafterPath.lineTo(ridgeFaceX, botAtRidgeY)
+        rafterPath.close()
+
         drawPath(rafterPath, BlueTool, style = Stroke(4f))
-        
-        // Label Pitch Triangle
+
+        // 3. Dashed Theory Length Line
+        drawLine(
+            color = Color.Red,
+            start = Offset(wallLineX, cornerY),
+            end = Offset(ridgeFaceX, topPeakY),
+            strokeWidth = 2f,
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
+        )
+
+        // 4. Pitch Triangle
         val triSize = 40f
-        drawLine(Color.Gray, Offset(startX + 100f, plateY - risePx + 100f), Offset(startX + 100f + triSize, plateY - risePx + 100f))
-        drawLine(Color.Gray, Offset(startX + 100f + triSize, plateY - risePx + 100f), Offset(startX + 100f + triSize, plateY - risePx + 100f - (triSize * (pitch/12f)).toFloat()))
+        val triX = (wallLineX + ridgeFaceX) / 2f
+        val triY = (topAtWallY + topPeakY) / 2f
+        drawLine(Color.Gray, Offset(triX, triY), Offset(triX + triSize, triY))
+        drawLine(Color.Gray, Offset(triX + triSize, triY), Offset(triX + triSize, triY - (triSize * slope)))
     }
 }
 
