@@ -243,7 +243,7 @@ object DxfExporter {
         val innerR = FractionUtils.parse(circ.radius)
         val tWidth = FractionUtils.parse(circ.walkTread)
         val outerR = innerR + tWidth
-        val totalTreads = circ.riserCount.toDoubleOrNull() ?: 8.0
+        val totalTreads = circ.numTreads.toDoubleOrNull() ?: 8.0
         val wedgeTreads = max(1.0, totalTreads)
         
         val totalSweep = 180.0

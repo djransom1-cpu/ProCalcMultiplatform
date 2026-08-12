@@ -2,6 +2,107 @@ package com.djran.constructioncalculator
 
 import kotlin.math.*
 
+/** Matches master's RoofCalcActivity formula exactly - a full framing material takeoff (rafter
+ * counts, hip/valley members, ridge length corrected for hip/valley geometry, jack rafter
+ * differences, sub-fascia footage, trapezoid-corrected sheathing area), not just a shingle
+ * coverage calculator. leftEndType/rightEndType: 0=Gable, 1=Hip, 2=Valley. */
+object RoofEngine {
+    data class RoofResult(
+        val run: Double,
+        val rise: Double,
+        val rafterToWall: Double,
+        val tailLen: Double,
+        val overallLen: Double,
+        val correctedRidgeLen: Double,
+        val commonCount: Int,
+        val hipRun: Double,
+        val hipPitch: Double,
+        val hipLen: Double,
+        val totalHips: Int,
+        val totalValleys: Int,
+        val commonDiff: Double,
+        val totalSubFasciaLF: Double,
+        val totalSqFt: Double,
+        val sheetCount: Int
+    )
+
+    fun calculate(
+        span: Double,
+        bldgLen: Double,
+        overhang: Double,
+        pitch: Double,
+        oc: Double,
+        leftEndType: Int,
+        rightEndType: Int,
+        isTruss: Boolean,
+        bothSides: Boolean
+    ): RoofResult {
+        val ridgeThick = 1.5
+        val run = (span / 2.0) - (ridgeThick / 2.0)
+
+        val diagFactor = sqrt(pitch.pow(2) + 144.0)
+        val rafterToWall = (diagFactor / 12.0) * run
+        val tailLen = (diagFactor / 12.0) * overhang
+        val overallLen = rafterToWall + tailLen
+
+        // Valley adds 1/2 span to the ridge, hip subtracts 1/2 span.
+        var correctedRidgeLen = bldgLen
+        if (leftEndType == 1) correctedRidgeLen -= (span / 2.0)
+        if (leftEndType == 2) correctedRidgeLen += (span / 2.0)
+        if (rightEndType == 1) correctedRidgeLen -= (span / 2.0)
+        if (rightEndType == 2) correctedRidgeLen += (span / 2.0)
+        if (correctedRidgeLen < 0) correctedRidgeLen = 0.0
+
+        // "King Common" rule: always at least 1 common rafter at the junction even if the
+        // ridge is fully consumed by hips.
+        var effectiveCommonLen = bldgLen
+        if (leftEndType == 1) effectiveCommonLen -= (span / 2.0)
+        if (rightEndType == 1) effectiveCommonLen -= (span / 2.0)
+        if (effectiveCommonLen < 0) effectiveCommonLen = 0.0
+        var commonCount = (effectiveCommonLen / oc).toInt() + 1
+        if (bothSides && !isTruss) commonCount *= 2
+
+        val rise = run * (pitch / 12.0)
+        val hipRun = run / cos(45.0 * (PI / 180.0))
+        val hipPitch = rise / (hipRun / 12.0)
+        val hipDiagFactor = sqrt(hipPitch.pow(2) + 144.0)
+        val hipLen = (hipDiagFactor / 12.0) * hipRun
+
+        var totalHips = 0
+        if (leftEndType == 1) totalHips += 1
+        if (rightEndType == 1) totalHips += 1
+        if (bothSides) totalHips *= 2
+
+        var totalValleys = 0
+        if (leftEndType == 2) totalValleys += 1
+        if (rightEndType == 2) totalValleys += 1
+        if (bothSides) totalValleys *= 2
+
+        val commonDiff = oc * (diagFactor / 12.0)
+
+        val eavesLF = bldgLen * (if (bothSides || isTruss) 2.0 else 1.0)
+        var rakesLF = 0.0
+        if (leftEndType == 0) rakesLF += overallLen * (if (bothSides || isTruss) 2.0 else 1.0)
+        if (rightEndType == 0) rakesLF += overallLen * (if (bothSides || isTruss) 2.0 else 1.0)
+        val totalSubFasciaLF = eavesLF + rakesLF
+
+        // Precision trapezoid: rectangle + triangle, accounting for a ridge shortened/lengthened
+        // by hip/valley ends instead of assuming a simple rectangular roof plane.
+        val rectLen = min(bldgLen, correctedRidgeLen)
+        val triLen = abs(bldgLen - correctedRidgeLen)
+        val areaPerSideSqIn = (overallLen * rectLen) + (overallLen * triLen / 2.0)
+        var totalSqFt = areaPerSideSqIn / 144.0
+        if (bothSides || isTruss) totalSqFt *= 2.0
+        val sheetCount = ceil(totalSqFt / 32.0).toInt()
+
+        return RoofResult(
+            run, rise, rafterToWall, tailLen, overallLen, correctedRidgeLen, commonCount,
+            hipRun, hipPitch, hipLen, totalHips, totalValleys, commonDiff,
+            totalSubFasciaLF, totalSqFt, sheetCount
+        )
+    }
+}
+
 object StairEngine {
     data class StairResult(
         val riserCount: Int, 
@@ -33,9 +134,45 @@ object StairEngine {
         val angleDeg = atan(actualRise / stringerRun) * (180.0 / PI)
         
         return StairResult(
-            riserCount, actualRise, treadCount, stringerRun, 
-            (treadCount * stringerRun + nosing), stringerLen, 
+            riserCount, actualRise, treadCount, stringerRun,
+            (treadCount * stringerRun + nosing), stringerLen,
             treadsOut, distOut, angleDeg
+        )
+    }
+
+    /**
+     * Calculates stairs when the total run is limited (Non-Conforming). Automatically finds
+     * the best riser count (targeting ~8") to fit within the limited run while maintaining at
+     * least a 9" tread run.
+     */
+    fun calculateLimitedRun(
+        totRise: Double,
+        limitedRun: Double,
+        totalTreadWidth: Double = 11.25,
+        desRise: Double = 8.0,
+        floorThick: Double = 10.75,
+        headroomReq: Double = 81.0
+    ): StairResult {
+        var riserCount = ceil(totRise / desRise).toInt().coerceAtLeast(1)
+        var treadCount = (riserCount - 1).coerceAtLeast(1)
+
+        while (treadCount * 9.0 > limitedRun && riserCount > 1) {
+            riserCount--
+            treadCount = (riserCount - 1).coerceAtLeast(1)
+        }
+
+        val actualRise = totRise / riserCount
+        val stringerRun = 9.0
+        val actualTotalRun = treadCount * stringerRun
+        val nosing = (totalTreadWidth - stringerRun).coerceAtLeast(0.0)
+        val stringerLen = sqrt(totRise.pow(2) + (treadCount * stringerRun).pow(2))
+        val treadsOut = (headroomReq + floorThick) / actualRise
+        val distOut = treadsOut * stringerRun
+        val angleDeg = atan(actualRise / stringerRun) * (180.0 / PI)
+
+        return StairResult(
+            riserCount, actualRise, treadCount, stringerRun, actualTotalRun,
+            stringerLen, treadsOut, distOut, angleDeg
         )
     }
 }
@@ -118,13 +255,20 @@ object ConcreteEngine {
 }
 
 object WallEngine {
+    // Matches master's WallCalcActivity exactly: at 16" O.C. master silently recalculates
+    // using 12" O.C. instead ("extra studs for bucks/corners/openings" - not a general 1.25x
+    // fudge factor, which is what this previously did and gave different counts from master
+    // for the same inputs).
     fun estimateStuds(length: Double, oc: Double = 16.0): Int {
-        // Standard framing practice: (L / OC) * 1.25 for junctions/corners + 2 end studs
-        return ceil((length * 12.0 / oc) * 1.25).toInt() + 2
+        val lengthIn = length * 12.0
+        val calcOC = if (oc == 16.0) 12.0 else oc
+        return ceil(lengthIn / calcOC).toInt() + 1
     }
 
-    fun estimatePlates(length: Double): Double {
-        return length * 3.0 // Standard 3-plate wall (1 sill, 2 top)
+    // Matches master: 3 plates (1 bottom, 2 top) standard, 4 once wall height exceeds 10ft.
+    fun estimatePlates(length: Double, height: Double = 8.0): Double {
+        val numPlates = if (height * 12.0 > 120.0) 4 else 3
+        return length * numPlates
     }
 
     /** Calculates blocking rows for walls > 10ft. Every 8ft interval. */
@@ -267,7 +411,11 @@ object FramingEngine {
         val spaceBetween: Double = 0.0,
         val studOC: Double = 16.0,
         val isDoor: Boolean = false,
-        val studSize: String = "2x4"
+        val studSize: String = "2x4",
+        // How many identical copies of this whole opening exist (e.g. 3 separate matching
+        // windows elsewhere on the wall) - independent of winCount, which groups multiple
+        // windows under a single shared header.
+        val qty: Int = 1
     )
 
     data class Result(
@@ -302,16 +450,16 @@ object FramingEngine {
 
         // Count Logic
         val cripsPerWin = (ceil(p.roWidth / p.studOC) + 1).toInt()
-        val totalLowerCrips = if (p.isDoor) 0 else p.winCount * cripsPerWin
-        val totalUpperCrips = (ceil(totalROWidth / p.studOC) + 1).toInt()
+        val totalLowerCrips = (if (p.isDoor) 0 else p.winCount * cripsPerWin) * p.qty
+        val totalUpperCrips = (ceil(totalROWidth / p.studOC) + 1).toInt() * p.qty
 
         return Result(
             studHeight = studHeight,
             headerLength = headerLength,
             headerNominal = getNominalSize(p.headerDepth),
-            jackCount = jackCount,
+            jackCount = jackCount * p.qty,
             jackLength = jackLength,
-            sillCount = if (p.isDoor) 0 else p.winCount,
+            sillCount = (if (p.isDoor) 0 else p.winCount) * p.qty,
             sillLength = sillLength,
             lowerCrippleCount = totalLowerCrips,
             lowerCrippleLength = lowerCripLen,
@@ -412,41 +560,48 @@ object GazeboEngine {
 
 object CircularStairEngine {
     data class CircStairResult(
-        val riserCount: Int,
-        val actualRise: Double,
-        val treadAngle: Double,
-        val totalRotation: Double,
-        val innerTreadWidth: Double,
-        val outerTreadWidth: Double,
-        val walkLineTread: Double,
-        val totalRun: Double
+        val outsideRadius: Double,
+        val outerCircPortion: Double,
+        val innerCircPortion: Double,
+        val outerArcTread: Double,
+        val innerArcTread: Double,
+        val anglePerTread: Double,
+        val actualRise: Double
     )
 
+    /** Matches master's CircularStairsActivity formula exactly: the user specifies how many
+     * treads they want and what portion of a circle the stair sweeps (circleFactor, e.g. 0.5
+     * for a half-circle "2/4" layout) rather than a target riser height + rotation - a real
+     * spiral-stair layout technique (with straightTreads/straightRun for a straight "kickoff"
+     * run before the curve starts), not just a differently-named version of a generic formula. */
     fun calculate(
-        totRise: Double,
-        radius: Double,
+        totalRise: Double,
         innerRadius: Double,
-        rotationDeg: Double,
-        desRise: Double = 7.5
+        treadWidth: Double,
+        numTreads: Double,
+        straightTreads: Double,
+        circleFactor: Double
     ): CircStairResult {
-        val riserCount = ceil(totRise / desRise).toInt().coerceAtLeast(1)
-        val actualRise = totRise / riserCount
-        val treadCount = (riserCount - 1).coerceAtLeast(1)
-        
-        val treadAngle = rotationDeg / treadCount
-        
-        // Walk line is typically 12" from the outer edge or at a specific offset
-        val walkLineRadius = radius - 12.0
-        
-        val innerTread = (2 * PI * innerRadius) * (treadAngle / 360.0)
-        val outerTread = (2 * PI * radius) * (treadAngle / 360.0)
-        val walkTread = (2 * PI * walkLineRadius) * (treadAngle / 360.0)
-        
-        val totalRun = (2 * PI * walkLineRadius) * (rotationDeg / 360.0)
-        
+        val wedgeTreads = max(1.0, numTreads - straightTreads)
+        val outsideRadius = innerRadius + treadWidth
+
+        val fullOuterCirc = 2 * PI * outsideRadius
+        val fullInnerCirc = 2 * PI * innerRadius
+        val portionOuterCirc = fullOuterCirc * circleFactor
+        val portionInnerCirc = fullInnerCirc * circleFactor
+
+        val arcPerOuterTread = portionOuterCirc / wedgeTreads
+        val arcPerInnerTread = portionInnerCirc / wedgeTreads
+
+        val totalAngle = 360.0 * circleFactor
+        val anglePerTread = totalAngle / wedgeTreads
+
+        val totalRises = numTreads + 1
+        val actualRise = totalRise / totalRises
+
         return CircStairResult(
-            riserCount, actualRise, treadAngle, rotationDeg,
-            innerTread, outerTread, walkTread, totalRun
+            outsideRadius, portionOuterCirc, portionInnerCirc,
+            arcPerOuterTread, arcPerInnerTread, anglePerTread, actualRise
         )
     }
 }
