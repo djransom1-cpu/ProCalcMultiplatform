@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.*
 
@@ -68,6 +69,7 @@ enum class Screen {
     JobNotes,
     ProjectList,
     JobSummary,
+    Account,
     About
 }
 
@@ -563,10 +565,9 @@ val RedBtn = Color(0xFFD32F2F)
 @Composable
 @Preview
 fun App() {
-    val persistenceManager = remember { 
-        val s = try { Settings() } catch (e: Throwable) { null }
-        PersistenceManager(s)
-    }
+    val appSettings = remember { try { Settings() } catch (e: Throwable) { null } }
+    val persistenceManager = remember { PersistenceManager(appSettings) }
+    val cloudSync = remember { CloudSync(appSettings) }
     val initialData = remember { persistenceManager.loadState() }
 
     var currentScreen by remember { mutableStateOf(Screen.Calculator) }
@@ -610,11 +611,48 @@ fun App() {
         keyboardVisible = true
     }
 
-    // Auto-save whenever critical state changes
+    fun currentAppState() = AppState(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes)
+
+    fun applyAppState(state: AppState) {
+        projectList = state.projectList
+        currentProjectName = state.currentProjectName
+        allStairEntries = state.allStairEntries
+        allRafterEntries = state.allRafterEntries
+        allArcEntries = state.allArcEntries
+        allWallEntries = state.allWallEntries
+        allCrownEntries = state.allCrownEntries
+        allGazeboEntries = state.allGazeboEntries
+        allConcreteEntries = state.allConcreteEntries
+        allRoofEntries = state.allRoofEntries
+        allCoordinatePaths = state.allCoordinatePaths
+        allMasonryEntries = state.allMasonryEntries
+        allDrywallEntries = state.allDrywallEntries
+        allDeckEntries = state.allDeckEntries
+        allFloorEntries = state.allFloorEntries
+        allHandrailEntries = state.allHandrailEntries
+        allPineLineEntries = state.allPineLineEntries
+        allCircularStairEntries = state.allCircularStairEntries
+        allTrigEntries = state.allTrigEntries
+        allColumnEntries = state.allColumnEntries
+        allFramingEntries = state.allFramingEntries
+        allJobNotes = state.allJobNotes
+    }
+
+    // Auto-save whenever critical state changes, then push to the cloud once edits settle
     LaunchedEffect(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes) {
-        persistenceManager.saveState(
-            AppState(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes)
-        )
+        persistenceManager.saveState(currentAppState())
+        if (cloudSync.isSignedIn) {
+            delay(2_000)
+            cloudSync.sync(currentAppState(), ::applyAppState)
+        }
+    }
+
+    // While signed in, pick up changes made on other devices
+    LaunchedEffect(cloudSync.email) {
+        while (cloudSync.isSignedIn) {
+            cloudSync.sync(currentAppState(), ::applyAppState)
+            delay(30_000)
+        }
     }
 
     // Calculator Engine State
@@ -770,6 +808,20 @@ fun App() {
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { scaffoldState.drawerState.open() } }) {
                             Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { currentScreen = Screen.Account }) {
+                            Icon(
+                                imageVector = when {
+                                    !cloudSync.isSignedIn -> Icons.Default.CloudOff
+                                    cloudSync.isBusy -> Icons.Default.CloudSync
+                                    cloudSync.lastError != null -> Icons.Default.CloudOff
+                                    else -> Icons.Default.CloudDone
+                                },
+                                contentDescription = "Account & Sync",
+                                tint = if (cloudSync.isSignedIn && cloudSync.lastError != null) Color(0xFFFFB74D) else Color.White
+                            )
                         }
                     },
                     backgroundColor = BlueTool,
@@ -1178,6 +1230,12 @@ fun App() {
                         Screen.About -> AboutScreen(
                             onBack = { currentScreen = Screen.Calculator }
                         )
+
+                        Screen.Account -> AccountScreen(
+                            cloudSync = cloudSync,
+                            onSyncNow = { scope.launch { cloudSync.sync(currentAppState(), ::applyAppState) } },
+                            onBack = { currentScreen = Screen.Calculator }
+                        )
                     }
                 }
 
@@ -1266,6 +1324,7 @@ fun NavDrawerContent(projectName: String, onToolClick: (Screen?) -> Unit) {
     val projectTools = listOf(
         ToolItem("Job Site Notes", color = BlueTool, icon = Icons.Default.NoteAlt, screen = Screen.JobNotes),
         ToolItem("Project List", color = BlueTool, icon = Icons.Default.List, screen = Screen.ProjectList),
+        ToolItem("Account & Sync", color = BlueTool, icon = Icons.Default.Cloud, screen = Screen.Account),
         ToolItem("Help & Guides", color = BlueTool, icon = Icons.Default.Info, screen = Screen.CalculatorHelp),
         ToolItem("About", color = BlueTool, icon = Icons.Default.Info, screen = Screen.About)
     )
