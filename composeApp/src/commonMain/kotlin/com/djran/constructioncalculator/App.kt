@@ -5586,11 +5586,11 @@ fun MasonryCalculator(
                                 id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
                                 name = sectionName.ifEmpty { "Masonry Section" },
                                 qty = qtyVal.toInt().toString(),
-                                sqFt = "%.2f sq ft".format(areaSqFt),
+                                sqFt = "${areaSqFt.toFixed(2)} sq ft",
                                 type = if (isBlock) "Block" else "Brick",
-                                units = "%.0f".format(totalUnits),
-                                mortar = "%.0f".format(mortarBags),
-                                sand = "%.2f".format(sandYards),
+                                units = totalUnits.toFixed(0),
+                                mortar = mortarBags.toFixed(0),
+                                sand = sandYards.toFixed(2),
                                 length = FractionUtils.formatInches(lenIn),
                                 height = FractionUtils.formatInches(heightIn)
                             )
@@ -5633,9 +5633,9 @@ fun MasonryCalculator(
                 Spacer(modifier = Modifier.height(24.dp))
                 Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth(), backgroundColor = Color(0xFF0A2A66)) {
                     Column(modifier = Modifier.padding(12.dp)) {
-                        Text("Grand Total Units: %.0f".format(grandUnits), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Grand Total Units: ${grandUnits.toFixed(0)}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         Text(
-                            "Area: %.2f sq ft | Mortar: %.0f bags | Sand: %.2f yd".format(grandSqFt, grandMortar, grandSand),
+                            "Area: ${grandSqFt.toFixed(2)} sq ft | Mortar: ${grandMortar.toFixed(0)} bags | Sand: ${grandSand.toFixed(2)} yd",
                             color = Color.White.copy(alpha = 0.85f),
                             fontSize = 12.sp
                         )
