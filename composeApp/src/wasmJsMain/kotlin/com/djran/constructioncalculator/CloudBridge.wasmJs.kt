@@ -6,9 +6,9 @@ import kotlin.js.Promise
 actual val cloudSyncSupported: Boolean = true
 
 @OptIn(kotlin.js.ExperimentalWasmJsInterop::class)
-private fun jsCloudCall(function: String, arg: String): Promise<JsString> = js("""
-    (window.ProCalcCloud && window.ProCalcCloud[function])
-        ? window.ProCalcCloud[function](arg)
+private fun jsCloudCall(name: String, arg: String): Promise<JsString> = js("""
+    (window.ProCalcCloud && window.ProCalcCloud[name])
+        ? window.ProCalcCloud[name](arg)
         : Promise.resolve(JSON.stringify({ error: "Couldn't load cloud sync. Refresh the page and try again." }))
 """)
 

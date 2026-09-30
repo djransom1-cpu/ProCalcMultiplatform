@@ -4,12 +4,12 @@
 // Firestore security rules. Every function returns a Promise of a JSON string for the Kotlin side.
 (function () {
     var FIREBASE_CONFIG = {
-        apiKey: "REPLACE_WITH_WEB_API_KEY",
+        apiKey: "AIzaSyDdT5wY9efnRWgngFKDx-PdimVC3v9_JZs",
         authDomain: "pro-construction-calculator.firebaseapp.com",
         projectId: "pro-construction-calculator",
         storageBucket: "pro-construction-calculator.firebasestorage.app",
         messagingSenderId: "264889716945",
-        appId: "REPLACE_WITH_WEB_APP_ID"
+        appId: "1:264889716945:web:4cf35c5d367ff949b835f0"
     };
 
     var PROJECTS = "projects";
