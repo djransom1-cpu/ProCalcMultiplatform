@@ -68,6 +68,7 @@ enum class Screen {
     JobNotes,
     ProjectList,
     JobSummary,
+    Account,
     About
 }
 
@@ -509,7 +510,8 @@ data class AppState(
     val allTrigEntries: Map<String, List<TrigEntry>> = emptyMap(),
     val allColumnEntries: Map<String, List<ColumnEntry>> = emptyMap(),
     val allFramingEntries: Map<String, List<FramingEntry>> = emptyMap(),
-    val allJobNotes: Map<String, List<SerializablePath>> = emptyMap()
+    val allJobNotes: Map<String, List<SerializablePath>> = emptyMap(),
+    val cloudLinks: Map<String, CloudLink> = emptyMap()
 )
 
 
@@ -563,10 +565,9 @@ val RedBtn = Color(0xFFD32F2F)
 @Composable
 @Preview
 fun App() {
-    val persistenceManager = remember { 
-        val s = try { Settings() } catch (e: Throwable) { null }
-        PersistenceManager(s)
-    }
+    val appSettings = remember { try { Settings() } catch (e: Throwable) { null } }
+    val persistenceManager = remember { PersistenceManager(appSettings) }
+    val cloudSync = remember { CloudSync() }
     val initialData = remember { persistenceManager.loadState() }
 
     var currentScreen by remember { mutableStateOf(Screen.Calculator) }
@@ -594,6 +595,7 @@ fun App() {
     var allColumnEntries by remember { mutableStateOf(initialData?.allColumnEntries ?: mapOf()) }
     var allFramingEntries by remember { mutableStateOf(initialData?.allFramingEntries ?: mapOf()) }
     var allJobNotes by remember { mutableStateOf(initialData?.allJobNotes ?: mapOf()) }
+    var cloudLinks by remember { mutableStateOf(initialData?.cloudLinks ?: mapOf()) }
 
     var isMetricMode by remember { mutableStateOf(false) }
 
@@ -610,12 +612,41 @@ fun App() {
         keyboardVisible = true
     }
 
-    // Auto-save whenever critical state changes
-    LaunchedEffect(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes) {
-        persistenceManager.saveState(
-            AppState(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes)
-        )
+    fun currentAppState() = AppState(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks)
+
+    fun applyAppState(state: AppState) {
+        projectList = state.projectList
+        currentProjectName = state.currentProjectName
+        allStairEntries = state.allStairEntries
+        allRafterEntries = state.allRafterEntries
+        allArcEntries = state.allArcEntries
+        allWallEntries = state.allWallEntries
+        allCrownEntries = state.allCrownEntries
+        allGazeboEntries = state.allGazeboEntries
+        allConcreteEntries = state.allConcreteEntries
+        allRoofEntries = state.allRoofEntries
+        allCoordinatePaths = state.allCoordinatePaths
+        allMasonryEntries = state.allMasonryEntries
+        allDrywallEntries = state.allDrywallEntries
+        allDeckEntries = state.allDeckEntries
+        allFloorEntries = state.allFloorEntries
+        allHandrailEntries = state.allHandrailEntries
+        allPineLineEntries = state.allPineLineEntries
+        allCircularStairEntries = state.allCircularStairEntries
+        allTrigEntries = state.allTrigEntries
+        allColumnEntries = state.allColumnEntries
+        allFramingEntries = state.allFramingEntries
+        allJobNotes = state.allJobNotes
+        cloudLinks = state.cloudLinks
     }
+
+    // Auto-save whenever critical state changes
+    LaunchedEffect(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks) {
+        persistenceManager.saveState(currentAppState())
+    }
+
+    // Firebase keeps the Google sign-in between visits
+    LaunchedEffect(Unit) { cloudSync.restoreSession() }
 
     // Calculator Engine State
     var currentInput by remember { mutableStateOf("") }
@@ -770,6 +801,21 @@ fun App() {
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { scaffoldState.drawerState.open() } }) {
                             Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
+                        }
+                    },
+                    actions = {
+                        if (cloudSyncSupported) {
+                            IconButton(onClick = { currentScreen = Screen.Account }) {
+                                Icon(
+                                    imageVector = when {
+                                        !cloudSync.isSignedIn -> Icons.Default.CloudOff
+                                        cloudSync.isBusy -> Icons.Default.CloudSync
+                                        else -> Icons.Default.CloudDone
+                                    },
+                                    contentDescription = "Account & Sync",
+                                    tint = Color.White
+                                )
+                            }
                         }
                     },
                     backgroundColor = BlueTool,
@@ -1080,8 +1126,24 @@ fun App() {
 
                         Screen.ProjectList -> {
                             val pdfProvider = rememberPdfExportProvider()
+                            // Like the app's project list: pick up new and changed cloud projects on open
+                            LaunchedEffect(cloudSync.user) {
+                                cloudSync.mergeCloudProjects(::currentAppState, ::applyAppState)
+                            }
                             ProjectListScreen(
                                 projects = projectList,
+                                cloudSync = cloudSync,
+                                cloudLinks = cloudLinks,
+                                onCloudSync = { name ->
+                                    if (cloudSync.isSignedIn) {
+                                        scope.launch { cloudSync.syncProject(name, ::currentAppState, ::applyAppState) }
+                                    } else {
+                                        currentScreen = Screen.Account
+                                    }
+                                },
+                                onJoinByCode = { code ->
+                                    scope.launch { cloudSync.joinByCode(code, ::currentAppState, ::applyAppState) }
+                                },
                                 onProjectSelected = { name ->
                                     currentProjectName = name
                                     currentScreen = Screen.Calculator
@@ -1093,6 +1155,7 @@ fun App() {
                                 },
                                 onDeleteProject = { name ->
                                     projectList = projectList.filter { it != name }
+                                    cloudLinks = cloudLinks - name
                                     if (currentProjectName == name) currentProjectName = "Default"
                                 },
                                 onPrintProject = { name ->
@@ -1176,6 +1239,12 @@ fun App() {
                         )
 
                         Screen.About -> AboutScreen(
+                            onBack = { currentScreen = Screen.Calculator }
+                        )
+
+                        Screen.Account -> AccountScreen(
+                            cloudSync = cloudSync,
+                            onOpenProjects = { currentScreen = Screen.ProjectList },
                             onBack = { currentScreen = Screen.Calculator }
                         )
                     }
@@ -1266,6 +1335,7 @@ fun NavDrawerContent(projectName: String, onToolClick: (Screen?) -> Unit) {
     val projectTools = listOf(
         ToolItem("Job Site Notes", color = BlueTool, icon = Icons.Default.NoteAlt, screen = Screen.JobNotes),
         ToolItem("Project List", color = BlueTool, icon = Icons.Default.List, screen = Screen.ProjectList),
+        ToolItem("Account & Sync", color = BlueTool, icon = Icons.Default.Cloud, screen = Screen.Account),
         ToolItem("Help & Guides", color = BlueTool, icon = Icons.Default.Info, screen = Screen.CalculatorHelp),
         ToolItem("About", color = BlueTool, icon = Icons.Default.Info, screen = Screen.About)
     )
@@ -2569,110 +2639,6 @@ fun SummaryTable(title: String, headers: List<String>, content: @Composable Colu
         }
     }
     Spacer(modifier = Modifier.height(16.dp))
-}
-
-@Composable
-fun ProjectListScreen(
-    projects: List<String>,
-    onProjectSelected: (String) -> Unit,
-    onAddProject: (String) -> Unit,
-    onDeleteProject: (String) -> Unit,
-    onPrintProject: (String) -> Unit,
-    onPrintAll: () -> Unit,
-    onBack: () -> Unit
-) {
-    var newProjectName by remember { mutableStateOf("") }
-    var showDialog by remember { mutableStateOf(false) }
-
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE))) {
-        Row(
-            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
-            Text("Project Management", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        }
-
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Button(
-                    onClick = { showDialog = true },
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("NEW JOB", fontWeight = FontWeight.Bold)
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(
-                    onClick = onPrintAll,
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(backgroundColor = BlueTool, contentColor = Color.White)
-                ) {
-                    Icon(Icons.Default.Share, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("PRINT ALL", fontWeight = FontWeight.Bold)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-            Text("SELECT PROJECT", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-            Spacer(modifier = Modifier.height(8.dp))
-
-            LazyColumn {
-                items(projects) { name ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                            .background(Color.White, RoundedCornerShape(8.dp))
-                            .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
-                            .clickable { onProjectSelected(name) }
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(name, modifier = Modifier.weight(1f), fontSize = 18.sp, fontWeight = FontWeight.Medium)
-                        IconButton(onClick = { onPrintProject(name) }) {
-                            Icon(Icons.Default.Share, contentDescription = "Print", tint = BlueTool)
-                        }
-                        IconButton(onClick = { onDeleteProject(name) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = { Text("New Project Name") },
-            text = {
-                OutlinedTextField(
-                    value = newProjectName,
-                    onValueChange = { newProjectName = it },
-                    label = { Text("Enter name") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            confirmButton = {
-                Button(onClick = {
-                    if (newProjectName.isNotBlank()) {
-                        onAddProject(newProjectName)
-                        newProjectName = ""
-                        showDialog = false
-                    }
-                }) { Text("CREATE") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDialog = false }) { Text("CANCEL") }
-            }
-        )
-    }
 }
 
 @Composable

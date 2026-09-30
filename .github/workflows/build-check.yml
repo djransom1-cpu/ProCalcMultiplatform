@@ -1,0 +1,38 @@
+name: Build Check (Android + Wasm)
+
+on:
+  push:
+    branches-ignore: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-check:
+    runs-on: ubuntu-latest
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: ☕ Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        cache: 'gradle'
+
+    - name: 🔧 Grant Executable Permissions to Gradlew
+      run: chmod +x gradlew
+
+    # google-services.json is gitignored; a placeholder is enough to compile.
+    - name: 🔥 Placeholder google-services.json
+      run: |
+        [ -f composeApp/google-services.json ] || cat > composeApp/google-services.json <<'JSON'
+        {"project_info":{"project_number":"000000000000","project_id":"ci-placeholder","storage_bucket":"ci-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000","android_client_info":{"package_name":"com.djran.constructioncalculator.multi"}},"oauth_client":[],"api_key":[{"current_key":"ci-placeholder"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}
+        JSON
+
+    - name: 🌐 Build Wasm WebApp
+      run: ./gradlew :composeApp:wasmJsBrowserDistribution
+
+    - name: 🤖 Compile Android
+      run: ./gradlew :composeApp:compileDebugKotlinAndroid
