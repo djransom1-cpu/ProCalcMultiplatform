@@ -70,7 +70,7 @@ val LightAppColors = AppColors(
     num = Color.White, numInk = Palette.Ink,
     fn = Palette.NavyTint, fnInk = Palette.Navy, acInk = Palette.Red,
     op = Palette.OrangeTint, opInk = Palette.OrangeInk, eq = Palette.Orange, eqInk = Color.White,
-    fav = Palette.Navy, favInk = Color.White, star = Color(0xFFF2A65A),
+    fav = Palette.Navy, favInk = Color.White, star = Palette.Star,
     chip = Color.White, menu = Color.White,
     nav = Color.White, navInk = Palette.Muted, navActive = Palette.NavyTint, navActiveInk = Palette.Navy,
 )

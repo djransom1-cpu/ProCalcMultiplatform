@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -210,28 +211,28 @@ fun CalculatorScreen(
 @Composable
 fun CalcTopBar(projectName: String, onProjectClick: () -> Unit, cloudSync: CloudSync, onCloudClick: () -> Unit) {
     val c = LocalAppColors.current
+    // One line ("Project  Default"), so it never clips, even with a larger phone font size
     Row(
-        Modifier.fillMaxWidth().height(52.dp).padding(start = 6.dp, end = 10.dp),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(start = 6.dp, end = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
-            Modifier.clip(RoundedCornerShape(12.dp))
+            Modifier.weight(1f, fill = false).clip(RoundedCornerShape(12.dp))
                 .clickable(role = Role.Button, onClickLabel = "Switch project", onClick = onProjectClick)
-                .padding(horizontal = 10.dp, vertical = 4.dp),
+                .padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(Icons.Outlined.Folder, contentDescription = null, tint = c.ink, modifier = Modifier.size(22.dp))
             Spacer(Modifier.width(8.dp))
-            Column {
-                Text("PROJECT", color = c.muted, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.6.sp)
-                Text(
-                    projectName, color = c.ink, fontSize = 17.sp, fontWeight = FontWeight.Bold,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp),
-                )
-            }
+            Text("Project", color = c.muted, fontSize = 15.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+            Spacer(Modifier.width(6.dp))
+            Text(
+                projectName, color = c.ink, fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
+            )
             Icon(Icons.Outlined.ExpandMore, contentDescription = null, tint = c.ink, modifier = Modifier.size(20.dp))
         }
-        Spacer(Modifier.weight(1f))
         if (cloudSyncSupported) {
             val (icon, label) = when {
                 !cloudSync.isSignedIn -> Icons.Outlined.CloudOff to "Account and sync: signed out"
@@ -453,8 +454,11 @@ private fun RowScope.TopRow(
         if (tool != null) {
             Key(c.fav, c.favInk, { onOpenTool(tool.screen) }, label = "Favorite: ${tool.name}") {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Filled.Star, contentDescription = null, tint = c.star, modifier = Modifier.size(12.dp))
-                    Text(tool.keyLabel, color = c.favInk, fontSize = 15.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.4.sp, maxLines = 1)
+                    Icon(tool.icon, contentDescription = null, tint = c.favInk, modifier = Modifier.size(18.dp))
+                    Text(
+                        tool.keyLabel, color = c.favInk, fontSize = 15.sp, lineHeight = 17.sp,
+                        fontWeight = FontWeight.Bold, letterSpacing = 0.4.sp, maxLines = 1,
+                    )
                 }
             }
         } else {
@@ -644,7 +648,7 @@ private fun ToolTile(tool: ToolInfo, favorite: Boolean, editing: Boolean, onClic
             Icon(
                 if (favorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                 contentDescription = if (favorite) "Favorite" else null,
-                tint = if (favorite) Palette.Star else c.muted,
+                tint = if (favorite) c.star else c.muted,
                 modifier = Modifier.align(Alignment.TopEnd).size(if (editing) 18.dp else 13.dp),
             )
         }

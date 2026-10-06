@@ -62,18 +62,19 @@ fun BottomNav(current: NavTab, onSelect: (NavTab) -> Unit) {
     Column(Modifier.fillMaxWidth().background(c.nav).windowInsetsPadding(WindowInsets.navigationBars)) {
         Divider(color = c.line, thickness = 1.dp)
         Row(
-            Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 4.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 4.dp),
             horizontalArrangement = Arrangement.Center,
         ) {
             Row(Modifier.widthIn(max = CalcMaxWidth).fillMaxWidth()) {
                 NavTab.entries.forEach { tab ->
                     val active = tab == current
+                    // Sized by its content, so a larger phone font size still gets breathing room
                     Column(
-                        Modifier.weight(1f).height(64.dp)
+                        Modifier.weight(1f)
                             .clickable(role = Role.Tab) { onSelect(tab) }
-                            .semantics { selected = active },
+                            .semantics { selected = active }
+                            .padding(top = 10.dp, bottom = 8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
                     ) {
                         Box(
                             Modifier.width(56.dp).height(30.dp).clip(RoundedCornerShape(15.dp))
@@ -82,7 +83,7 @@ fun BottomNav(current: NavTab, onSelect: (NavTab) -> Unit) {
                         ) {
                             Icon(tab.icon, contentDescription = null, tint = if (active) c.navActiveInk else c.navInk, modifier = Modifier.size(22.dp))
                         }
-                        Spacer(Modifier.height(3.dp))
+                        Spacer(Modifier.height(4.dp))
                         Text(
                             tab.label, color = if (active) c.navActiveInk else c.navInk, fontSize = 12.sp,
                             fontWeight = if (active) FontWeight.Bold else FontWeight.SemiBold, maxLines = 1,
