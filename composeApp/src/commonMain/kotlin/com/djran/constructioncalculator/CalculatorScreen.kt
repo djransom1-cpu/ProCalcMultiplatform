@@ -87,6 +87,14 @@ enum class CalcMode(val label: String, val screen: Screen, val icon: ImageVector
 /** Widest the calculator gets on tablets and desktop browsers. */
 val CalcMaxWidth = 520.dp
 
+/** Spacing around the keypad's six key rows. Short screens (iPhone SE, laptop browsers) get the tight set. */
+private class KeypadSpacing(val handle: Dp, val bottom: Dp, val gap: Dp) {
+    /** Everything in the keypad area that isn't a key: tools handle, padding and the gaps between rows. */
+    val chrome: Dp get() = handle + 4.dp + bottom + gap * 5
+}
+private val RegularSpacing = KeypadSpacing(handle = 48.dp, bottom = 14.dp, gap = 8.dp)
+private val ShortSpacing = KeypadSpacing(handle = 40.dp, bottom = 8.dp, gap = 6.dp)
+
 @Composable
 fun CalculatorScreen(
     projectName: String,
@@ -116,8 +124,12 @@ fun CalculatorScreen(
             CalcTopBar(projectName, onProjectClick, cloudSync, onCloudClick)
 
             BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
-                // Keys shrink on short phones so the display keeps at least ~150dp
-                val keyHeight = ((maxHeight - 150.dp - 48.dp - 18.dp - 40.dp) / 6).coerceIn(44.dp, 60.dp)
+                // Keys shrink on short screens so the whole display, FT-IN/M switch included,
+                // always fits. The display needs about 200dp, or 184dp with the smaller result.
+                val short = maxHeight < 580.dp
+                val spacing = if (short) ShortSpacing else RegularSpacing
+                val displayHeight = if (short) 184.dp else 202.dp
+                val keyHeight = ((maxHeight - displayHeight - spacing.chrome) / 6).coerceIn(36.dp, 60.dp)
                 Column(Modifier.fillMaxSize()) {
                     Column(
                         Modifier.fillMaxWidth()
@@ -152,8 +164,8 @@ fun CalculatorScreen(
                             CalcPanel.Keypad -> {
                                 Spacer(Modifier.weight(1f))
                                 ExpressionLine(expression, 20)
-                                ResultLine(input, compact = false)
-                                Spacer(Modifier.height(10.dp))
+                                ResultLine(input, compact = false, maxSize = if (short) 44 else 56)
+                                Spacer(Modifier.height(if (short) 6.dp else 10.dp))
                                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                     UnitsToggle(isMetric, onToggle = { onAction(CalcAction.Metric) })
                                     Spacer(Modifier.weight(1f))
@@ -165,13 +177,13 @@ fun CalculatorScreen(
 
                     when (panel) {
                         CalcPanel.Keypad -> {
-                            ToolsHandle(expanded = false, onClick = { onPanelChange(CalcPanel.Tools) })
+                            ToolsHandle(expanded = false, height = spacing.handle, onClick = { onPanelChange(CalcPanel.Tools) })
                             if (isMetric) {
-                                MetricKeypad(keyHeight, favorites, onOpenTool, onAddFavorite = {
+                                MetricKeypad(keyHeight, spacing, favorites, onOpenTool, onAddFavorite = {
                                     onEditFavoritesChange(true); onPanelChange(CalcPanel.Tools)
                                 }, onAction = onAction)
                             } else {
-                                ImperialKeypad(keyHeight, favorites, onOpenTool, onAddFavorite = {
+                                ImperialKeypad(keyHeight, spacing, favorites, onOpenTool, onAddFavorite = {
                                     onEditFavoritesChange(true); onPanelChange(CalcPanel.Tools)
                                 }, onAction = onAction)
                             }
@@ -297,7 +309,7 @@ private fun ExpressionLine(expression: String, sizeSp: Int) {
 }
 
 @Composable
-private fun ResultLine(input: String, compact: Boolean) {
+private fun ResultLine(input: String, compact: Boolean, maxSize: Int = 56) {
     val c = LocalAppColors.current
     // Display only: 10'4 reads as 10' 4 (what's typed is unchanged)
     val text = input.ifEmpty { "0" }.replace(Regex("'(?=\\d)"), "' ")
@@ -308,7 +320,7 @@ private fun ResultLine(input: String, compact: Boolean) {
         text.length <= 14 -> 38
         text.length <= 18 -> 30
         else -> 24
-    }
+    }.coerceAtMost(maxSize)
     Text(
         text, color = c.ink, fontSize = size.sp, fontWeight = FontWeight.SemiBold,
         maxLines = 1, softWrap = false, textAlign = TextAlign.End,
@@ -404,10 +416,10 @@ private fun KeyRow(height: Dp, content: @Composable RowScope.() -> Unit) {
 }
 
 @Composable
-private fun KeypadColumn(content: @Composable ColumnScope.() -> Unit) {
+private fun KeypadColumn(spacing: KeypadSpacing, content: @Composable ColumnScope.() -> Unit) {
     Column(
-        Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = spacing.bottom),
+        verticalArrangement = Arrangement.spacedBy(spacing.gap),
         content = content,
     )
 }
@@ -456,13 +468,14 @@ private fun RowScope.TopRow(
 @Composable
 private fun ImperialKeypad(
     keyHeight: Dp,
+    spacing: KeypadSpacing,
     favorites: List<Screen>,
     onOpenTool: (Screen) -> Unit,
     onAddFavorite: () -> Unit,
     onAction: (CalcAction) -> Unit,
 ) {
     val c = LocalAppColors.current
-    KeypadColumn {
+    KeypadColumn(spacing) {
         KeyRow(keyHeight) { TopRow(favorites, onOpenTool, onAddFavorite, onAction) }
         KeyRow(keyHeight) {
             Key(c.fn, c.fnInk, { onAction(CalcAction.Feet) }, label = "Feet") { KeyText("ft '", 22, FontWeight.SemiBold) }
@@ -480,8 +493,11 @@ private fun ImperialKeypad(
             }
             Key(c.fn, c.fnInk, { onAction(CalcAction.Slash) }, label = "Fraction bar") {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("/", color = c.fnInk, fontSize = 26.sp, fontWeight = FontWeight.SemiBold)
-                    Text("frac", color = c.fnInk, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Text("/", color = c.fnInk, fontSize = 26.sp, lineHeight = 26.sp, fontWeight = FontWeight.SemiBold)
+                    // The caption only fits once keys are at least 40dp tall
+                    if (keyHeight >= 40.dp) {
+                        Text("frac", color = c.fnInk, fontSize = 11.sp, lineHeight = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
             Key(c.eq, c.eqInk, { onAction(CalcAction.Equals) }, label = "Equals") { KeyText("=", 34, FontWeight.SemiBold) }
@@ -492,13 +508,14 @@ private fun ImperialKeypad(
 @Composable
 private fun MetricKeypad(
     keyHeight: Dp,
+    spacing: KeypadSpacing,
     favorites: List<Screen>,
     onOpenTool: (Screen) -> Unit,
     onAddFavorite: () -> Unit,
     onAction: (CalcAction) -> Unit,
 ) {
     val c = LocalAppColors.current
-    KeypadColumn {
+    KeypadColumn(spacing) {
         KeyRow(keyHeight) { TopRow(favorites, onOpenTool, onAddFavorite, onAction) }
         KeyRow(keyHeight) {
             Key(c.fn, c.fnInk, { onAction(CalcAction.Feet) }, label = "Meters") { KeyText("m", 22, FontWeight.SemiBold) }
@@ -521,9 +538,9 @@ private fun MetricKeypad(
 // ---------- Construction tools panel ----------
 
 @Composable
-private fun ToolsHandle(expanded: Boolean, onClick: () -> Unit) {
+private fun ToolsHandle(expanded: Boolean, height: Dp = 48.dp, onClick: () -> Unit) {
     val c = LocalAppColors.current
-    Box(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 12.dp, vertical = 4.dp)) {
+    Box(Modifier.fillMaxWidth().height(height).padding(horizontal = 12.dp, vertical = 4.dp)) {
         Row(
             Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp))
                 .background(if (expanded) c.fav else c.surface)
