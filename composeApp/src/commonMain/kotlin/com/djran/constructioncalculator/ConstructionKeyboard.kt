@@ -30,7 +30,7 @@ fun ConstructionKeyboard(
     Surface(
         elevation = 16.dp,
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-        color = Color(0xFFE0E0E0),
+        color = Palette.Bg,
         modifier = Modifier
             .fillMaxWidth()
             .height(380.dp)
@@ -46,9 +46,9 @@ fun ConstructionKeyboard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Numeric Input", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 12.sp)
+                Text("Numeric Input", fontWeight = FontWeight.Bold, color = Palette.Muted, fontSize = 12.sp)
                 IconButton(onClick = onHide) {
-                    Icon(Icons.Default.KeyboardHide, contentDescription = "Hide", tint = Color.Gray)
+                    Icon(Icons.Default.KeyboardHide, contentDescription = "Hide keypad", tint = Palette.Muted)
                 }
             }
 
@@ -79,7 +79,7 @@ fun ConstructionKeyboard(
                 Button(
                     onClick = onDone,
                     modifier = Modifier.fillMaxSize().padding(4.dp),
-                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Palette.Orange, contentColor = Color.White),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text("DONE", fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -96,7 +96,7 @@ fun KeyButton(
     onClick: () -> Unit
 ) {
     val isSpecial = label == "BACK" || label == "SPACE" || label == "/" || label == "-" || label == "+" || label == "'" || label == "\""
-    val bgColor = if (isSpecial) Color(0xFFBDBDBD) else Color.White
+    val bgColor = if (isSpecial) Palette.NavyTint else Color.White
     
     Card(
         elevation = 2.dp,
@@ -109,15 +109,15 @@ fun KeyButton(
     ) {
         Box(contentAlignment = Alignment.Center) {
             if (label == "BACK") {
-                Icon(Icons.AutoMirrored.Filled.Backspace, contentDescription = "Back", tint = Color.DarkGray)
+                Icon(Icons.AutoMirrored.Filled.Backspace, contentDescription = "Backspace", tint = Palette.Navy)
             } else if (label == "SPACE") {
-                Text("SPACE", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
+                Text("SPACE", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Palette.Navy)
             } else {
                 Text(
                     text = label,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isSpecial) Color.DarkGray else Color.Black
+                    color = if (isSpecial) Palette.Navy else Palette.Ink
                 )
             }
         }
@@ -145,8 +145,8 @@ fun ConstructionTextField(
             }
         },
         colors = TextFieldDefaults.outlinedTextFieldColors(
-            focusedBorderColor = Color(0xFF6200EE),
-            unfocusedBorderColor = Color.Gray
+            focusedBorderColor = Palette.Navy,
+            unfocusedBorderColor = Palette.FieldLine
         )
     )
 }

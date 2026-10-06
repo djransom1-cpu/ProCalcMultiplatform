@@ -43,15 +43,15 @@ fun ProjectListScreen(
     var pendingDelete by remember { mutableStateOf<String?>(null) }
     var teamProject by remember { mutableStateOf<String?>(null) }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE))) {
+    Column(modifier = Modifier.fillMaxSize().background(Palette.Bg)) {
         Row(
-            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().background(Palette.Bg).padding(horizontal = 4.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
-            Text("Project Management", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            IconButton(onClick = onBack) { Icon(Icons.Default.ChevronLeft, contentDescription = "Back", tint = Palette.Navy, modifier = Modifier.size(30.dp)) }
+            Text("Project Management", color = Palette.Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             if (cloudSync.isBusy) {
-                CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.padding(end = 8.dp).size(20.dp))
+                CircularProgressIndicator(color = Palette.Navy, strokeWidth = 2.dp, modifier = Modifier.padding(end = 8.dp).size(20.dp))
             }
         }
 
@@ -61,7 +61,7 @@ fun ProjectListScreen(
                     onClick = { showDialog = true },
                     modifier = Modifier.weight(1f).height(56.dp),
                     shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White)
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Palette.Orange, contentColor = Color.White)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
