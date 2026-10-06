@@ -620,6 +620,11 @@ fun App() {
         keyboardVisible = true
     }
 
+    fun hideKeyboard() {
+        keyboardVisible = false
+        focusManager.clearFocus()
+    }
+
     fun currentAppState() = AppState(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks)
 
     fun applyAppState(state: AppState) {
@@ -839,13 +844,14 @@ fun App() {
         updatePrefs(uiPrefs.copy(favorites = favorites))
     }
 
+    // Leaving a screen (back arrow, a tab, the calculator type menu) closes its keypad
     fun goTo(screen: Screen) {
         if (screen in CalcModeScreens) lastCalcScreen = screen
         currentScreen = screen
+        hideKeyboard()
     }
 
     fun selectTab(tab: NavTab) {
-        keyboardVisible = false
         when (tab) {
             NavTab.Calculator -> goTo(lastCalcScreen)
             NavTab.Projects -> goTo(Screen.ProjectList)
@@ -955,10 +961,7 @@ fun App() {
 
     // Back swipe or button: closes the tool keyboard first, then the tool, help or account screen
     BackGesture(enabled = currentScreen in SubScreens, onBack = ::goBack)
-    BackGesture(enabled = keyboardVisible) {
-        keyboardVisible = false
-        focusManager.clearFocus()
-    }
+    BackGesture(enabled = keyboardVisible, onBack = ::hideKeyboard)
 
     ProCalcTheme(dark = darkActive) {
         Column(modifier = Modifier.fillMaxSize().background(LocalAppColors.current.bg)) {
@@ -1345,14 +1348,8 @@ fun App() {
                                 keyboardTarget(it)
                             },
                             currentValue = keyboardValue,
-                            onDone = {
-                                keyboardVisible = false
-                                focusManager.clearFocus()
-                            },
-                            onHide = {
-                                keyboardVisible = false
-                                focusManager.clearFocus()
-                            }
+                            onDone = ::hideKeyboard,
+                            onHide = ::hideKeyboard
                         )
                     }
                 }
