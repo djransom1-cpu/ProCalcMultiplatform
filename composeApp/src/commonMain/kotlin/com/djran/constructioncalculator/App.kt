@@ -688,7 +688,7 @@ fun App() {
     // In metric mode, show lengths, areas and volumes in metric; everything else
     // (and all of imperial mode) is shown exactly as before
     fun formatResult(value: DimensionValue): String =
-        if (isMetricMode && value.unitPower in 1..3) FractionUtils.formatMetric(value.value, value.unitPower)
+        if (isMetricMode && value.unitPower in 1..3) FractionUtils.formatMetric(value.value, value.unitPower, uiPrefs.metricPrecision)
         else value.toString()
 
     fun setOperation(op: String) {
@@ -911,7 +911,7 @@ fun App() {
                 isMetricMode = !isMetricMode
                 val dv = getCurrentDimensionValue()
                 currentInput = if (isMetricMode) {
-                    FractionUtils.formatMetric(dv.value, dv.unitPower)
+                    FractionUtils.formatMetric(dv.value, dv.unitPower, uiPrefs.metricPrecision)
                 } else {
                     dv.toString()
                 }
@@ -921,7 +921,7 @@ fun App() {
                 val dv = getCurrentDimensionValue()
                 // Simple cycle: Decimal -> Fractional -> Metric
                 currentInput = if (currentInput.contains("/")) {
-                    FractionUtils.formatMetric(dv.value, dv.unitPower)
+                    FractionUtils.formatMetric(dv.value, dv.unitPower, uiPrefs.metricPrecision)
                 } else if (currentInput.contains("m") || currentInput.contains("cm")) {
                     dv.value.toString() + "\""
                 } else {

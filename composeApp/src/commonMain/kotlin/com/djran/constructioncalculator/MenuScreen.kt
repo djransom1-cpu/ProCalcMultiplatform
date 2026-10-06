@@ -89,6 +89,17 @@ fun MenuScreen(
                     }
                 }
                 RowDivider()
+                Column(Modifier.padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 12.dp)) {
+                    Text("Round metric answers to", color = c.ink, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Spacer(Modifier.height(10.dp))
+                    Segmented(
+                        options = listOf("1 mm" to 0, "0.1 mm" to 1, "0.01 mm" to 2),
+                        selected = prefs.metricPrecision,
+                        onSelect = { onPrefsChange(prefs.copy(metricPrecision = it)) },
+                        height = 30,
+                    )
+                }
+                RowDivider()
                 MenuRow(
                     "Favorite tools",
                     onClick = onEditFavorites,

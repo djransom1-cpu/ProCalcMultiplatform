@@ -16,6 +16,8 @@ data class UiPrefs(
     val startMetric: Boolean = false,
     val favorites: List<String> = listOf(Screen.StairCalculator.name, Screen.RafterCalculator.name),
     val keepHistory: Boolean = true,
+    /** Decimal places of a millimetre in metric answers: 0 = 1 mm, 1 = 0.1 mm, 2 = 0.01 mm. */
+    val metricPrecision: Int = 1,
 ) {
     val favoriteScreens: List<Screen>
         get() = favorites.mapNotNull { name -> Screen.entries.firstOrNull { it.name == name } }
