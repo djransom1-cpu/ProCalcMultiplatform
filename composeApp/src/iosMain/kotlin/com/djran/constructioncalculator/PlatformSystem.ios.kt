@@ -1,6 +1,8 @@
 package com.djran.constructioncalculator
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.runtime.SideEffect
 import platform.Foundation.NSDate
 import platform.Foundation.NSTimeZone
@@ -30,3 +32,10 @@ actual fun SystemBarsAppearance(darkBackground: Boolean, followSystem: Boolean) 
         UIApplication.sharedApplication.keyWindow?.overrideUserInterfaceStyle = style
     }
 }
+
+// Compose turns the swipe in from the left edge into a back event. BackHandler is deprecated
+// for NavigationEventHandler, which needs the extra navigationevent-compose library.
+@Suppress("DEPRECATION")
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+actual fun BackGesture(enabled: Boolean, onBack: () -> Unit) = BackHandler(enabled, onBack)

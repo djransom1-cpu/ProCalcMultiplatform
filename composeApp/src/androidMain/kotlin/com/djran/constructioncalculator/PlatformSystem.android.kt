@@ -3,6 +3,7 @@ package com.djran.constructioncalculator
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalView
@@ -31,3 +32,6 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     is ContextWrapper -> baseContext.findActivity()
     else -> null
 }
+
+@Composable
+actual fun BackGesture(enabled: Boolean, onBack: () -> Unit) = BackHandler(enabled, onBack)

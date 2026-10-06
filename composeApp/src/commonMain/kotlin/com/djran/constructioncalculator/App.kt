@@ -80,6 +80,9 @@ val CalcModeScreens = setOf(Screen.Calculator, Screen.ScientificCalculator, Scre
 /** Screens that follow the light/dark setting. */
 val ShellScreens = CalcModeScreens + Screen.Menu
 
+/** Screens opened from somewhere else, that back (the arrow or a swipe) returns from. */
+val SubScreens = ToolCatalog.map { it.screen }.toSet() + setOf(Screen.CalculatorHelp, Screen.About, Screen.Account)
+
 @Serializable
 data class StairEntry(
     val id: String = "",
@@ -600,7 +603,7 @@ fun App() {
     var calcPanel by remember { mutableStateOf(CalcPanel.Keypad) }
     var editingFavorites by remember { mutableStateOf(false) }
     var lastCalcScreen by remember { mutableStateOf(Screen.Calculator) }
-    var menuReturn by remember { mutableStateOf(Screen.Menu) }
+    var backTo by remember { mutableStateOf(Screen.Calculator) }
 
     var isMetricMode by remember { mutableStateOf(uiPrefs.startMetric) }
 
@@ -852,10 +855,15 @@ fun App() {
         }
     }
 
-    fun openAccount() {
-        menuReturn = currentScreen
-        goTo(Screen.Account)
+    // Opens a tool, help or account screen; back returns to wherever it was opened from
+    fun open(screen: Screen) {
+        backTo = currentScreen
+        goTo(screen)
     }
+
+    fun goBack() = goTo(backTo)
+
+    fun openAccount() = open(Screen.Account)
 
     fun handleAction(action: CalcAction) {
         when (action) {
@@ -945,6 +953,13 @@ fun App() {
     val lightScreen = currentScreen !in ShellScreens
     SystemBarsAppearance(darkBackground = darkActive, followSystem = uiPrefs.appearance == Appearance.System)
 
+    // Back swipe or button: closes the tool keyboard first, then the tool, help or account screen
+    BackGesture(enabled = currentScreen in SubScreens, onBack = ::goBack)
+    BackGesture(enabled = keyboardVisible) {
+        keyboardVisible = false
+        focusManager.clearFocus()
+    }
+
     ProCalcTheme(dark = darkActive) {
         Column(modifier = Modifier.fillMaxSize().background(LocalAppColors.current.bg)) {
             Spacer(modifier = Modifier.fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars))
@@ -971,7 +986,7 @@ fun App() {
                                 onUseHistory = ::useHistoryEntry,
                                 onClearHistory = ::clearHistory,
                                 onModeSelect = { goTo(it.screen) },
-                                onOpenTool = { goTo(it) },
+                                onOpenTool = ::open,
                                 onAction = ::handleAction,
                             )
 
@@ -982,10 +997,7 @@ fun App() {
                                 cloudSync = cloudSync,
                                 onCloudClick = ::openAccount,
                                 onModeSelect = { goTo(it.screen) },
-                                onHelp = {
-                                    menuReturn = currentScreen
-                                    goTo(Screen.CalculatorHelp)
-                                },
+                                onHelp = { open(Screen.CalculatorHelp) },
                             )
 
                             Screen.UnitConverter -> UnitConverterScreen(
@@ -1006,17 +1018,14 @@ fun App() {
                                     goTo(Screen.Calculator)
                                 },
                                 onClearHistory = ::clearHistory,
-                                onOpen = { screen ->
-                                    menuReturn = Screen.Menu
-                                    goTo(screen)
-                                },
+                                onOpen = ::open,
                             )
                             Screen.ConcreteCalculator -> ConcreteCalculator(
                                 entries = allConcreteEntries[currentProjectName] ?: emptyList(),
                                 onUpdateEntries = { newList ->
                                     allConcreteEntries = allConcreteEntries.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
@@ -1025,7 +1034,7 @@ fun App() {
                                 onUpdateEntries = { newList ->
                                     allRafterEntries = allRafterEntries.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
@@ -1034,7 +1043,7 @@ fun App() {
                                 onUpdateEntries = { newList ->
                                     allArcEntries = allArcEntries.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
@@ -1043,7 +1052,7 @@ fun App() {
                                 onUpdateEntries = { newList ->
                                     allWallEntries = allWallEntries.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
@@ -1052,7 +1061,7 @@ fun App() {
                                 onUpdateEntries = { newList ->
                                     allFramingEntries = allFramingEntries.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
@@ -1061,7 +1070,7 @@ fun App() {
                                 onUpdateEntries = { newList ->
                                     allCrownEntries = allCrownEntries.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
@@ -1070,7 +1079,7 @@ fun App() {
                                 onUpdateEntries = { newList ->
                                     allGazeboEntries = allGazeboEntries.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
@@ -1079,7 +1088,7 @@ fun App() {
                                 onUpdateEntries = { newList ->
                                     allRoofEntries = allRoofEntries.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
@@ -1088,7 +1097,7 @@ fun App() {
                                 onUpdatePaths = { newList ->
                                     allCoordinatePaths = allCoordinatePaths.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
@@ -1097,7 +1106,7 @@ fun App() {
                                 onUpdateEntries = { newList ->
                                     allMasonryEntries = allMasonryEntries.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
@@ -1106,7 +1115,7 @@ fun App() {
                                 onUpdateEntries = { newList ->
                                     allDrywallEntries = allDrywallEntries.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
@@ -1115,7 +1124,7 @@ fun App() {
                                 onUpdateEntries = { newList ->
                                     allDeckEntries = allDeckEntries.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
@@ -1124,7 +1133,7 @@ fun App() {
                                 onUpdateEntries = { newList ->
                                     allFloorEntries = allFloorEntries.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
@@ -1133,7 +1142,7 @@ fun App() {
                                 onUpdateEntries = { newList ->
                                     allHandrailEntries = allHandrailEntries.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
@@ -1142,7 +1151,7 @@ fun App() {
                                 onUpdateEntries = { newList ->
                                     allPineLineEntries = allPineLineEntries.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
@@ -1151,7 +1160,7 @@ fun App() {
                                 onUpdateEntries = { newList ->
                                     allCircularStairEntries = allCircularStairEntries.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
@@ -1160,7 +1169,7 @@ fun App() {
                                 onUpdateEntries = { newList ->
                                     allTrigEntries = allTrigEntries.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
@@ -1169,13 +1178,13 @@ fun App() {
                                 onUpdateEntries = { newList ->
                                     allColumnEntries = allColumnEntries.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
 
                             Screen.CalculatorHelp -> CalculatorHelpScreen(
-                                onBack = { goTo(menuReturn) }
+                                onBack = ::goBack
                             )
 
 
@@ -1192,7 +1201,7 @@ fun App() {
                                 onUpdateEntries = { newList ->
                                     allStairEntries = allStairEntries.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
-                                onBack = { currentScreen = Screen.Calculator },
+                                onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
 
@@ -1311,13 +1320,13 @@ fun App() {
                             )
 
                             Screen.About -> AboutScreen(
-                                onBack = { goTo(menuReturn) }
+                                onBack = ::goBack
                             )
 
                             Screen.Account -> AccountScreen(
                                 cloudSync = cloudSync,
                                 onOpenProjects = { currentScreen = Screen.ProjectList },
-                                onBack = { goTo(menuReturn) }
+                                onBack = ::goBack
                             )
                         }
                     }
