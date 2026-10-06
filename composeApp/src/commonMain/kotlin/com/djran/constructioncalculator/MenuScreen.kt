@@ -120,7 +120,7 @@ fun MenuScreen(
                 }
                 RowDivider()
                 Text(
-                    "Clear history", color = c.acInk, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+                    "Clear history", color = c.danger, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClearHistory)
                         .padding(horizontal = 16.dp, vertical = 15.dp),
                 )

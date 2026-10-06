@@ -113,7 +113,7 @@ fun ScientificScreen(
                 Row(Modifier.fillMaxWidth().height(sciRow)) {
                     SciKey("π", label = "Pi") { add("pi") }; SciKey("e") { add("e") }
                     SciKey("1/x", label = "Reciprocal") { add("1/") }; SciKey("abs", label = "Absolute value") { add("abs(") }
-                    Key(c.fn, c.acInk, { expression = "" }, label = "All clear") {
+                    Key(c.fn, c.danger, { expression = "" }, label = "All clear") {
                         Text("AC", color = LocalContentColor.current, fontSize = 19.sp, fontWeight = FontWeight.Bold)
                     }
                 }

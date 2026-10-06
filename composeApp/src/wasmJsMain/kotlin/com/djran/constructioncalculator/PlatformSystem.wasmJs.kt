@@ -28,6 +28,7 @@ private var listeningForBack = false
 private var entriesToDrop = 0
 private var ownHistoryMove = false
 
+@OptIn(kotlin.js.ExperimentalWasmJsInterop::class)
 @Composable
 actual fun BackGesture(enabled: Boolean, onBack: () -> Unit) {
     val latestOnBack by rememberUpdatedState(onBack)
@@ -52,6 +53,7 @@ actual fun BackGesture(enabled: Boolean, onBack: () -> Unit) {
 }
 
 // Batched, so closing two at once (a tool and its keyboard) is one history move
+@OptIn(kotlin.js.ExperimentalWasmJsInterop::class)
 private fun dropHistoryEntry() {
     entriesToDrop++
     if (entriesToDrop > 1) return

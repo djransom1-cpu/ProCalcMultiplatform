@@ -407,7 +407,7 @@ fun RowScope.Key(
 }
 
 @Composable
-private fun KeyText(text: String, size: Int, weight: FontWeight = FontWeight.Medium) {
+fun KeyText(text: String, size: Int, weight: FontWeight = FontWeight.Medium) {
     Text(text, color = LocalContentColor.current, fontSize = size.sp, fontWeight = weight, maxLines = 1)
 }
 
@@ -445,7 +445,7 @@ private fun RowScope.TopRow(
     onAction: (CalcAction) -> Unit,
 ) {
     val c = LocalAppColors.current
-    Key(c.fn, c.acInk, { onAction(CalcAction.Clear) }, label = "All clear") { KeyText("AC", 22, FontWeight.Bold) }
+    Key(c.fn, c.danger, { onAction(CalcAction.Clear) }, label = "All clear") { KeyText("AC", 22, FontWeight.Bold) }
     Key(c.fn, c.fnInk, { onAction(CalcAction.Backspace) }, label = "Backspace") {
         Icon(Icons.AutoMirrored.Outlined.Backspace, contentDescription = null, modifier = Modifier.size(28.dp))
     }
@@ -711,7 +711,7 @@ private fun HistoryList(
         Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             if (history.isNotEmpty()) {
                 Text(
-                    "Clear history", color = c.acInk, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                    "Clear history", color = c.danger, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClick = onClear)
                         .padding(horizontal = 4.dp, vertical = 12.dp),
                 )
