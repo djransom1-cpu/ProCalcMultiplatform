@@ -1,6 +1,9 @@
 package com.djran.constructioncalculator
 
+import kotlin.math.abs
+import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 object FractionUtils {
     
@@ -165,29 +168,35 @@ object FractionUtils {
         }
     }
 
+    // Metric display to the nearest millimetre: metres to 3 decimals, centimetres to 1.
+    // Areas and volumes in square/cubic metres keep 3 decimals too. The unit is picked
+    // by size, so negative answers get the same unit as positive ones.
     fun formatMetric(value: Double, power: Int = 1): String {
         return when (power) {
             1 -> {
                 val mm = value * 25.4
-                if (mm >= 1000.0) "${(mm / 1000.0).roundToOneDecimal()} m"
-                else if (mm >= 10.0) "${(mm / 10.0).roundToOneDecimal()} cm"
+                if (abs(mm) >= 1000.0) "${(mm / 1000.0).roundTo(3)} m"
+                else if (abs(mm) >= 10.0) "${(mm / 10.0).roundTo(1)} cm"
                 else "${mm.roundToInt()} mm"
             }
             2 -> {
                 val sqM = value / 1550.0031
-                if (sqM >= 1.0) "${sqM.roundToOneDecimal()} sq m"
-                else "${(value / 0.1550).roundToOneDecimal()} sq cm"
+                if (abs(sqM) >= 1.0) "${sqM.roundTo(3)} sq m"
+                else "${(value / 0.1550).roundTo(1)} sq cm"
             }
             3 -> {
                 val cuM = value / 61023.7441
-                if (cuM >= 1.0) "${cuM.roundToOneDecimal()} cu m"
-                else "${(value / 0.0610).roundToOneDecimal()} cu cm"
+                if (abs(cuM) >= 1.0) "${cuM.roundTo(3)} cu m"
+                else "${(value / 0.0610).roundTo(1)} cu cm"
             }
             else -> value.toString()
         }
     }
 
-    private fun Double.roundToOneDecimal(): Double = (this * 10.0).roundToInt() / 10.0
+    private fun Double.roundTo(decimals: Int): Double {
+        val factor = 10.0.pow(decimals)
+        return (this * factor).roundToLong() / factor
+    }
 
     private fun decimalToFraction(decimal: Double): String {
         if (decimal < 0.0001) return ""

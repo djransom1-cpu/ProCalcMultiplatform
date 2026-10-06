@@ -681,6 +681,12 @@ fun App() {
         }
     }
 
+    // In metric mode, show lengths, areas and volumes in metric; everything else
+    // (and all of imperial mode) is shown exactly as before
+    fun formatResult(value: DimensionValue): String =
+        if (isMetricMode && value.unitPower in 1..3) FractionUtils.formatMetric(value.value, value.unitPower)
+        else value.toString()
+
     fun setOperation(op: String) {
         if (pendingOperation.isNotEmpty() && !isNewEntry) {
             val secondValue = getCurrentDimensionValue()
@@ -693,12 +699,13 @@ fun App() {
                     "/", "÷" -> first / secondValue
                     else -> secondValue
                 }
-                currentInput = result.toString()
+                currentInput = formatResult(result)
             }
         }
-        firstValue = getCurrentDimensionValue()
+        val first = getCurrentDimensionValue()
+        firstValue = first
         pendingOperation = op
-        historyText = "${firstValue.toString()} $op"
+        historyText = "${formatResult(first)} $op"
         isNewEntry = true
     }
 
@@ -714,8 +721,8 @@ fun App() {
             else -> secondValue
         }
         
-        historyText = "${first.toString()} $pendingOperation ${secondValue.toString()} ="
-        currentInput = result.toString()
+        historyText = "${formatResult(first)} $pendingOperation ${formatResult(secondValue)} ="
+        currentInput = formatResult(result)
         firstValue = null
         pendingOperation = ""
         isNewEntry = true
@@ -767,6 +774,19 @@ fun App() {
                 else -> currentInput += "\""
             }
         }
+    }
+
+    // mm key on the metric keypad. FractionUtils.parse already reads "mm"; the key
+    // only adds the unit after a typed number
+    fun handleMillimeter() {
+        if (isNewEntry) {
+            if (historyText.contains("=")) historyText = ""
+            currentInput = "0 mm"
+            isNewEntry = false
+            return
+        }
+        val last = currentInput.lastOrNull()
+        if (last != null && (last.isDigit() || last == '.')) currentInput += " mm"
     }
 
     fun clearAll() {
@@ -862,6 +882,7 @@ fun App() {
                                     CalcAction.Equals -> calculateResult()
                                     CalcAction.Feet -> handleFeet()
                                     CalcAction.Inch -> handleInch()
+                                    CalcAction.Millimeter -> handleMillimeter()
                                     CalcAction.Clear -> clearAll()
                                     CalcAction.SquareRoot -> {
                                         val current = FractionUtils.parse(currentInput)
@@ -1285,6 +1306,7 @@ sealed class CalcAction {
     object Equals : CalcAction()
     object Feet : CalcAction()
     object Inch : CalcAction()
+    object Millimeter : CalcAction()
     object Clear : CalcAction()
     object Slash : CalcAction()
     object Space : CalcAction()
