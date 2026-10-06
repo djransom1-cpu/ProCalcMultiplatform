@@ -30,10 +30,13 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.Icon
 import androidx.compose.material.LocalContentColor
+import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Backspace
@@ -455,9 +458,15 @@ private fun RowScope.TopRow(
             Key(c.fav, c.favInk, { onOpenTool(tool.screen) }, label = "Favorite: ${tool.name}") {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(tool.icon, contentDescription = null, tint = c.favInk, modifier = Modifier.size(18.dp))
-                    Text(
-                        tool.keyLabel, color = c.favInk, fontSize = 15.sp, lineHeight = 17.sp,
-                        fontWeight = FontWeight.Bold, letterSpacing = 0.4.sp, maxLines = 1,
+                    // Longer names (HANDRAIL, CONCRETE) shrink to fit the key instead of being cut off
+                    BasicText(
+                        tool.keyLabel,
+                        style = LocalTextStyle.current.merge(
+                            color = c.favInk, fontWeight = FontWeight.Bold, letterSpacing = 0.4.sp, lineHeight = 17.sp,
+                        ),
+                        maxLines = 1,
+                        autoSize = TextAutoSize.StepBased(minFontSize = 8.sp, maxFontSize = 15.sp, stepSize = 0.5.sp),
+                        modifier = Modifier.padding(horizontal = 3.dp),
                     )
                 }
             }
