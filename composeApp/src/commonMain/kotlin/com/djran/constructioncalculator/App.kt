@@ -3008,11 +3008,11 @@ fun FramingCalculator(
             Row(modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
-                        val wh = FractionUtils.parseFeet(wallHeight)
+                        val wh = FractionUtils.parse(wallHeight)
                         val hhb = FractionUtils.parse(headerHeightBottom)
                         val hd = FractionUtils.parse(headerDepth)
-                        val rw = FractionUtils.parseFeet(roWidth)
-                        val rh = if (isDoor) 0.0 else FractionUtils.parseFeet(roHeight)
+                        val rw = FractionUtils.parse(roWidth)
+                        val rh = if (isDoor) 0.0 else FractionUtils.parse(roHeight)
                         val wc = winCount.toIntOrNull() ?: 1
                         val qtyVal = qty.toIntOrNull() ?: 1
                         val sb = FractionUtils.parse(spaceBetween)
