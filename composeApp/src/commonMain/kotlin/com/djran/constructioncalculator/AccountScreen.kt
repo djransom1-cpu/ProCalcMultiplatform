@@ -23,11 +23,11 @@ fun AccountScreen(cloudSync: CloudSync, onOpenProjects: () -> Unit, onBack: () -
 
     Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
         Row(
-            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(12.dp),
+            modifier = Modifier.fillMaxWidth().background(Palette.Bg).padding(horizontal = 4.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null, tint = Color.White) }
-            Text("Account & Sync", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            IconButton(onClick = onBack) { Icon(Icons.Default.ChevronLeft, contentDescription = "Back", tint = Palette.Navy, modifier = Modifier.size(30.dp)) }
+            Text("Account & Sync", color = Palette.Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
         }
 
         Column(

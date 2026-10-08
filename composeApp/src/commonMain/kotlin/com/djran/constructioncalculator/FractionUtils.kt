@@ -1,5 +1,6 @@
 package com.djran.constructioncalculator
 
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 object FractionUtils {
@@ -165,29 +166,37 @@ object FractionUtils {
         }
     }
 
-    fun formatMetric(value: Double, power: Int = 1): String {
+    // Metric display. [mmDecimals] is the Menu's metric precision: 0 rounds lengths to the
+    // nearest millimetre (metres to 3 decimals, centimetres to 1), 1 to a tenth of a
+    // millimetre, 2 to a hundredth. Areas and volumes get the same extra decimals. Trailing
+    // zeros are dropped (67 cm, 1.5 m). The unit is picked by size, so negative answers
+    // get the same unit as positive ones.
+    fun formatMetric(value: Double, power: Int = 1, mmDecimals: Int = 0): String {
         return when (power) {
             1 -> {
                 val mm = value * 25.4
-                if (mm >= 1000.0) "${(mm / 1000.0).roundToOneDecimal()} m"
-                else if (mm >= 10.0) "${(mm / 10.0).roundToOneDecimal()} cm"
-                else "${mm.roundToInt()} mm"
+                if (abs(mm) >= 1000.0) "${(mm / 1000.0).roundTo(3 + mmDecimals)} m"
+                else if (abs(mm) >= 10.0) "${(mm / 10.0).roundTo(1 + mmDecimals)} cm"
+                else "${mm.roundTo(mmDecimals)} mm"
             }
             2 -> {
                 val sqM = value / 1550.0031
-                if (sqM >= 1.0) "${sqM.roundToOneDecimal()} sq m"
-                else "${(value / 0.1550).roundToOneDecimal()} sq cm"
+                if (abs(sqM) >= 1.0) "${sqM.roundTo(3 + mmDecimals)} sq m"
+                else "${(value / 0.1550).roundTo(1 + mmDecimals)} sq cm"
             }
             3 -> {
                 val cuM = value / 61023.7441
-                if (cuM >= 1.0) "${cuM.roundToOneDecimal()} cu m"
-                else "${(value / 0.0610).roundToOneDecimal()} cu cm"
+                if (abs(cuM) >= 1.0) "${cuM.roundTo(3 + mmDecimals)} cu m"
+                else "${(value / 0.0610).roundTo(1 + mmDecimals)} cu cm"
             }
             else -> value.toString()
         }
     }
 
-    private fun Double.roundToOneDecimal(): Double = (this * 10.0).roundToInt() / 10.0
+    private fun Double.roundTo(decimals: Int): String {
+        val fixed = toFixed(decimals)
+        return if (decimals > 0) fixed.trimEnd('0').trimEnd('.') else fixed
+    }
 
     private fun decimalToFraction(decimal: Double): String {
         if (decimal < 0.0001) return ""
