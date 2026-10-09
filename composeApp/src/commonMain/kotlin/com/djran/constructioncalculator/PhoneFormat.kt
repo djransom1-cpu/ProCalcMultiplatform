@@ -286,6 +286,7 @@ object PhoneFormat {
                 f.put("overhang", e.overhang); f.put("totRise", e.commonOARise)
                 f.put("hipRun", e.hipRun); f.put("hipLen", e.hipLen); f.put("hipPitch", e.hipPitch)
                 lumberForDepth(e.depth)?.let { f.put("lumberSize", it) }
+                f.put("isShed", e.isShed)
                 f.default("tailLen", ""); f.default("leftEnd", 0); f.default("rightEnd", 0)
                 f.default("lumberSize", "2x8")
             },
@@ -297,7 +298,8 @@ object PhoneFormat {
                     commonLen = f.s("length"), commonOverall = f.s("overall"), commonRun = f.s("run"),
                     commonRise = f.s("rise"), commonOARise = f.s("totRise"), commonPlumbSeat = "",
                     hipLen = f.s("hipLen"), hipOverall = "", hipRun = f.s("hipRun"), hipRise = "",
-                    hipOARise = "", hipPitch = f.s("hipPitch"), hipPlumbSeat = "", jack16 = "", jack24 = ""
+                    hipOARise = "", hipPitch = f.s("hipPitch"), hipPlumbSeat = "", jack16 = "", jack24 = "",
+                    isShed = f.b("isShed")
                 )
             }
         ),
