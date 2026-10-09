@@ -4039,9 +4039,9 @@ fun RafterCalculator(
             Text("ROOF DIMENSIONS", color = AppTheme.colors.accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Gable: enter the building span. Shed: enter the rafter run (one slope, no ridge or hips).
+            // Gable: enter the building span. Shed: enter the run; the ledger/beam is taken off it.
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                listOf(false to "Gable (span)", true to "Shed (run)").forEach { (shed, label) ->
+                listOf(false to "Gable (span)", true to "Shed (run + ledger)").forEach { (shed, label) ->
                     Row(
                         modifier = Modifier.weight(1f).clickable { isShed = shed; results = null },
                         verticalAlignment = Alignment.CenterVertically
@@ -4094,16 +4094,15 @@ fun RafterCalculator(
             }
             Spacer(modifier = Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth()) {
-                if (!isShed) {
-                    ConstructionTextField(
-                        value = ridgeThick,
-                        onValueChange = { ridgeThick = it },
-                        label = "Ridge (in)",
-                        modifier = Modifier.weight(1f),
-                        onFocus = onFocus
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
+                // Shed: the same box is the ledger/beam at the high end (taken off the run in full)
+                ConstructionTextField(
+                    value = ridgeThick,
+                    onValueChange = { ridgeThick = it },
+                    label = if (isShed) "Ledger / Beam (in)" else "Ridge (in)",
+                    modifier = Modifier.weight(1f),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 ConstructionTextField(
                     value = overhang,
                     onValueChange = { overhang = it },
@@ -4151,7 +4150,7 @@ fun RafterCalculator(
                                 name = sectionName.ifEmpty { "Rafter Section" },
                                 span = span,
                                 pitch = pitch,
-                                ridge = if (isShed) "-" else ridgeThick,
+                                ridge = ridgeThick,
                                 depth = rafterDepth,
                                 heel = FractionUtils.formatInches(res.heel),
                                 overhang = overhang,
@@ -4331,7 +4330,7 @@ fun RafterCalculator(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(entry.name, fontWeight = FontWeight.Bold)
                                     Text(
-                                        (if (entry.isShed) "Shed run: ${entry.span} | " else "") + "Pitch: ${entry.pitch} / 12 | Heel: ${entry.heel}",
+                                        (if (entry.isShed) "Shed run: ${entry.span} | Ledger: ${entry.ridge} | " else "") + "Pitch: ${entry.pitch} / 12 | Heel: ${entry.heel}",
                                         fontSize = 12.sp, color = AppTheme.colors.muted
                                     )
                                 }
@@ -4341,7 +4340,7 @@ fun RafterCalculator(
                                     pitch = entry.pitch
                                     span = entry.span
                                     isShed = entry.isShed
-                                    if (!entry.isShed) ridgeThick = entry.ridge
+                                    ridgeThick = entry.ridge
                                 }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = AppTheme.colors.muted) }
                                 IconButton(onClick = {
                                     val newList = entries.toMutableList()
