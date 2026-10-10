@@ -202,9 +202,12 @@ object RafterEngine {
         pitchVal: Double, 
         ridge: Double = 1.5, 
         heel: Double = 4.0, 
-        overhang: Double = 12.0
+        overhang: Double = 12.0,
+        // Shed roof: [span] is the rafter's full run (one slope), so it isn't halved, and [ridge]
+        // is the ledger/beam at the high end, taken off in full. Gable: run = span / 2 - ridge / 2.
+        isShed: Boolean = false
     ): RafterResult {
-        val run = (span / 2.0) - (ridge / 2.0)
+        val run = if (isShed) span - ridge else (span / 2.0) - (ridge / 2.0)
         val rise = run * (pitchVal / 12.0)
         val diagFactor = sqrt(pitchVal.pow(2) + 144.0)
         val rafterLen = (diagFactor / 12.0) * run

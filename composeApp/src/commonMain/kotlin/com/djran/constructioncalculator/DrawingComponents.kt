@@ -206,11 +206,12 @@ fun RafterDetail(
 
         drawPath(rafterPath, BlueTool, style = Stroke(4f))
 
-        // 3. Dashed Theory Length Line
+        // 3. Dashed measuring line: from the top of the seat notch (corner), parallel to the
+        // top edge (the heel/HAP below it all the way) to the ridge face
         drawLine(
             color = Color.Red,
             start = Offset(wallLineX, cornerY),
-            end = Offset(ridgeFaceX, topPeakY),
+            end = Offset(ridgeFaceX, topPeakY + sHeel),
             strokeWidth = 2f,
             pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
         )

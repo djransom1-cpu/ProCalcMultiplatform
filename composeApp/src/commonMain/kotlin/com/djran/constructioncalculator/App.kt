@@ -124,7 +124,9 @@ data class RafterEntry(
     val hipPitch: String,
     val hipPlumbSeat: String,
     val jack16: String,
-    val jack24: String
+    val jack24: String,
+    /** Shed roof: [span] holds the rafter run. Missing in older saves, which read as gable. */
+    val isShed: Boolean = false
 )
 
 @Serializable
@@ -434,7 +436,7 @@ object SummaryReportGenerator {
             sections.add(SummarySection("CIRCULAR STAIR SCHEDULE", listOf("Name", "Rise", "Inner Rad", "Tread W", "Treads", "Circle", "Out Radius", "Angle/Trd"), circularStairEntries.map { listOf(it.name, it.totalRise, it.radius, it.walkTread, it.numTreads, it.circleSize, it.outsideRadius, it.anglePerTread) }))
         }
         if (rafterEntries.isNotEmpty()) {
-            sections.add(SummarySection("RAFTER SCHEDULE", listOf("Name", "Span", "Pitch", "Heel", "O/H", "Com Len", "Hip Len", "Jack 16"), rafterEntries.map { listOf(it.name, it.span, it.pitch, it.heel, it.overhang, it.commonLen, it.hipLen, it.jack16) }))
+            sections.add(SummarySection("RAFTER SCHEDULE", listOf("Name", "Span", "Pitch", "Heel", "O/H", "Com Len", "Hip Len", "Jack 16"), rafterEntries.map { listOf(it.name, if (it.isShed) "${it.span} (shed run)" else it.span, it.pitch, it.heel, it.overhang, it.commonLen, it.hipLen, it.jack16) }))
         }
         if (gazeboEntries.isNotEmpty()) {
             sections.add(SummarySection("GAZEBO SCHEDULE", listOf("Name", "Sides", "Diam", "Pitch", "Area", "Com Len", "Hip Len"), gazeboEntries.map { listOf(it.name, it.sides, it.diameter, it.pitch, it.area, it.commonRafterLen, it.hipLen) }))
@@ -2457,7 +2459,7 @@ fun JobSummaryScreen(
                 val csvContent = buildString {
                     append("Section,Name,Quantity,Dimensions,Primary Result,Secondary Result\n")
                     stairEntries.forEach { append("Stairs,${it.name},${it.riserCount} risers,Rise: ${it.rise},Act Rise: ${it.actualRise},Stringer: ${it.stringerLen}\n") }
-                    rafterEntries.forEach { append("Rafters,${it.name},1,Span: ${it.span} Pitch: ${it.pitch},Common: ${it.commonLen},Hip: ${it.hipLen}\n") }
+                    rafterEntries.forEach { append("Rafters,${it.name},1,${if (it.isShed) "Shed run" else "Span"}: ${it.span} Pitch: ${it.pitch},Common: ${it.commonLen},Hip: ${it.hipLen}\n") }
                     concreteEntries.forEach { append("Concrete,${it.name},${it.qty},${it.dimensions},Volume: ${it.volume},Rebar: ${it.rebar}\n") }
                     wallEntries.forEach { append("Walls,${it.name},1,${it.length}x${it.height},Studs: ${it.studs},Plates: ${it.plates}\n") }
                     roofEntries.forEach { append("Roof,${it.name},1,${it.dimensions},Area: ${it.area},Squares: ${it.squares}\n") }
@@ -2525,7 +2527,7 @@ fun JobSummaryScreen(
                         rafterEntries.forEach { entry ->
                             Column(modifier = Modifier.padding(vertical = 8.dp)) {
                                 Row {
-                                    TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.span, 80.dp)
+                                    TableCell(entry.name, 120.dp, isBold = true); TableCell(if (entry.isShed) "${entry.span} shed" else entry.span, 80.dp)
                                     TableCell(entry.pitch, 80.dp); TableCell(entry.heel, 80.dp)
                                     TableCell(entry.overhang, 80.dp); TableCell(entry.commonLen, 100.dp)
                                     TableCell(entry.hipLen, 100.dp); TableCell(entry.jack16, 80.dp)
@@ -4021,6 +4023,7 @@ fun RafterCalculator(
 ) {
     var pitch by remember { mutableStateOf("6") }
     var span by remember { mutableStateOf("") }
+    var isShed by remember { mutableStateOf(false) }
     var ridgeThick by remember { mutableStateOf("1.5") }
     var rafterDepth by remember { mutableStateOf("7.25") }
     var heelHeight by remember { mutableStateOf("4.0") }
@@ -4036,6 +4039,24 @@ fun RafterCalculator(
             Text("ROOF DIMENSIONS", color = AppTheme.colors.accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Gable: enter the building span. Shed: enter the run; the ledger/beam is taken off it.
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                listOf(false to "Gable (span)", true to "Shed (run + ledger)").forEach { (shed, label) ->
+                    Row(
+                        modifier = Modifier.weight(1f).clickable { isShed = shed; results = null },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = isShed == shed,
+                            onClick = { isShed = shed; results = null },
+                            colors = RadioButtonDefaults.colors(selectedColor = AppTheme.colors.accent)
+                        )
+                        Text(label, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+
             Row(modifier = Modifier.fillMaxWidth()) {
                 ConstructionTextField(
                     value = pitch,
@@ -4048,7 +4069,7 @@ fun RafterCalculator(
                 ConstructionTextField(
                     value = span,
                     onValueChange = { span = it },
-                    label = "Total Span (ft/in)",
+                    label = if (isShed) "Rafter Run (ft/in)" else "Total Span (ft/in)",
                     modifier = Modifier.weight(1f),
                     onFocus = onFocus
                 )
@@ -4073,10 +4094,11 @@ fun RafterCalculator(
             }
             Spacer(modifier = Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth()) {
+                // Shed: the same box is the ledger/beam at the high end (taken off the run in full)
                 ConstructionTextField(
                     value = ridgeThick,
                     onValueChange = { ridgeThick = it },
-                    label = "Ridge (in)",
+                    label = if (isShed) "Ledger / Beam (in)" else "Ridge (in)",
                     modifier = Modifier.weight(1f),
                     onFocus = onFocus
                 )
@@ -4114,7 +4136,8 @@ fun RafterCalculator(
                                 pitchVal = p,
                                 ridge = r,
                                 heel = heel,
-                                overhang = oh
+                                overhang = oh,
+                                isShed = isShed
                             )
                             results = res
 
@@ -4137,15 +4160,17 @@ fun RafterCalculator(
                                 commonRise = FractionUtils.formatInches(res.rise),
                                 commonOARise = FractionUtils.formatInches(res.totRise),
                                 commonPlumbSeat = "${commonAngle.roundToOneDecimal()}° / ${(90.0 - commonAngle).roundToOneDecimal()}°",
-                                hipLen = FractionUtils.formatInches(res.hipLen),
-                                hipOverall = FractionUtils.formatInches(res.hipOverall),
-                                hipRun = FractionUtils.formatInches(res.hipRun),
-                                hipRise = FractionUtils.formatInches(res.hipRise),
-                                hipOARise = FractionUtils.formatInches(res.hipOARise),
-                                hipPitch = "${res.hipPitch.roundToOneDecimal()} / 12",
-                                hipPlumbSeat = "${hipAngle.roundToOneDecimal()}° / ${(90.0 - hipAngle).roundToOneDecimal()}°",
-                                jack16 = FractionUtils.formatInches(16.0 * factor),
-                                jack24 = FractionUtils.formatInches(24.0 * factor)
+                                // A shed roof has no hips, valleys or jacks
+                                hipLen = if (isShed) "-" else FractionUtils.formatInches(res.hipLen),
+                                hipOverall = if (isShed) "-" else FractionUtils.formatInches(res.hipOverall),
+                                hipRun = if (isShed) "-" else FractionUtils.formatInches(res.hipRun),
+                                hipRise = if (isShed) "-" else FractionUtils.formatInches(res.hipRise),
+                                hipOARise = if (isShed) "-" else FractionUtils.formatInches(res.hipOARise),
+                                hipPitch = if (isShed) "-" else "${res.hipPitch.roundToOneDecimal()} / 12",
+                                hipPlumbSeat = if (isShed) "-" else "${hipAngle.roundToOneDecimal()}° / ${(90.0 - hipAngle).roundToOneDecimal()}°",
+                                jack16 = if (isShed) "-" else FractionUtils.formatInches(16.0 * factor),
+                                jack24 = if (isShed) "-" else FractionUtils.formatInches(24.0 * factor),
+                                isShed = isShed
                             )
 
                             if (editingIndex != -1) {
@@ -4233,6 +4258,8 @@ fun RafterCalculator(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // Hip/valley and jack rafter cards: gable only (a shed roof has neither)
+                if (!isShed) {
                 // Hip Rafter Detailed Card
                 Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -4287,6 +4314,7 @@ fun RafterCalculator(
                         }
                     }
                 }
+                }
             }
             
             if (entries.isNotEmpty()) {
@@ -4301,12 +4329,18 @@ fun RafterCalculator(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(entry.name, fontWeight = FontWeight.Bold)
-                                    Text("Pitch: ${entry.pitch} / 12 | Heel: ${entry.heel}", fontSize = 12.sp, color = AppTheme.colors.muted)
+                                    Text(
+                                        (if (entry.isShed) "Shed run: ${entry.span} | Ledger: ${entry.ridge} | " else "") + "Pitch: ${entry.pitch} / 12 | Heel: ${entry.heel}",
+                                        fontSize = 12.sp, color = AppTheme.colors.muted
+                                    )
                                 }
                                 IconButton(onClick = {
                                     editingIndex = entries.size - 1 - index
                                     sectionName = entry.name
                                     pitch = entry.pitch
+                                    span = entry.span
+                                    isShed = entry.isShed
+                                    ridgeThick = entry.ridge
                                 }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = AppTheme.colors.muted) }
                                 IconButton(onClick = {
                                     val newList = entries.toMutableList()
@@ -4321,10 +4355,12 @@ fun RafterCalculator(
                                     Text("Len: ${entry.commonLen}", fontSize = 12.sp)
                                     Text("O/A: ${entry.commonOverall}", fontSize = 12.sp)
                                 }
-                                Column {
-                                    Text("HIP / VAL", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = AppTheme.colors.accent)
-                                    Text("Len: ${entry.hipLen}", fontSize = 12.sp)
-                                    Text("O/A: ${entry.hipOverall}", fontSize = 12.sp)
+                                if (!entry.isShed) {
+                                    Column {
+                                        Text("HIP / VAL", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = AppTheme.colors.accent)
+                                        Text("Len: ${entry.hipLen}", fontSize = 12.sp)
+                                        Text("O/A: ${entry.hipOverall}", fontSize = 12.sp)
+                                    }
                                 }
                             }
                         }
