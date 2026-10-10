@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import kotlinx.coroutines.launch
@@ -60,6 +61,7 @@ enum class Screen {
     PineLineCalculator,
     CircularStairCalculator,
     TrigCalculator,
+    LayoutMarks,
     ColumnCalculator,
     FramingCalculator,
     ScientificCalculator,
@@ -1168,6 +1170,8 @@ fun App() {
                                 onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
+
+                            Screen.LayoutMarks -> LayoutMarksCalculator(onBack = ::goBack, onFocus = openKeyboard)
 
                             Screen.TrigCalculator -> TrigCalculator(
                                 entries = allTrigEntries[currentProjectName] ?: emptyList(),
@@ -4384,6 +4388,8 @@ fun HandrailCalculator(
     var sectionName by remember { mutableStateOf("") }
     
     var editingIndex by remember { mutableStateOf(-1) }
+    // Which saved rail shows its spindle marks (the newest one opens after calculating)
+    var marksForId by remember { mutableStateOf<String?>(null) }
 
     ToolScreen(Screen.HandrailCalculator, onBack) {
 
@@ -4459,6 +4465,7 @@ fun HandrailCalculator(
                             } else {
                                 onUpdateEntries(entries + entry)
                             }
+                            marksForId = entry.id
                             sectionName = ""
                         }
                     },
@@ -4509,9 +4516,138 @@ fun HandrailCalculator(
                             Text(entry.spindles, fontSize = 14.sp)
                             Text(entry.spacing, fontSize = 14.sp)
                             if (entry.gap.isNotEmpty()) Text("Gap: ${entry.gap}", fontSize = 12.sp, color = AppTheme.colors.muted)
+
+                            // Spindle layout marks: left edge and center of each spindle, measured from the post
+                            val count = entry.spindles.filter { it.isDigit() }.toIntOrNull() ?: 0
+                            val gapIn = FractionUtils.parse(entry.gap)
+                            val widthIn = entry.spindleWidth.toDoubleOrNull() ?: FractionUtils.parse(entry.spindleWidth).takeIf { it > 0 } ?: 1.5
+                            if (count > 0 && entry.gap.isNotEmpty()) {
+                                val open = marksForId == entry.id
+                                Text(
+                                    if (open) "Hide spindle marks" else "Show spindle marks",
+                                    color = AppTheme.colors.accent, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
+                                    modifier = Modifier.padding(top = 6.dp).clickable { marksForId = if (open) null else entry.id }
+                                )
+                                if (open) {
+                                    Text("Hook the tape on the post.", fontSize = 12.sp, color = AppTheme.colors.muted)
+                                    MarksTable(
+                                        headers = listOf("#", "Left edge", "Center"),
+                                        rows = LayoutEngine.spindleMarks(gapIn, widthIn, gapIn + widthIn, count).mapIndexed { i, (edge, center) ->
+                                            listOf("${i + 1}", FractionUtils.formatInches(edge), FractionUtils.formatInches(center))
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/** Striped table of layout marks, shared by Layout Marks and the Handrail spindle marks. */
+@Composable
+fun MarksTable(headers: List<String>, rows: List<List<String>>) {
+    val c = AppTheme.colors
+    Column(Modifier.fillMaxWidth().padding(top = 6.dp).clip(RoundedCornerShape(10.dp)).border(1.dp, c.line, RoundedCornerShape(10.dp))) {
+        @Composable
+        fun line(cells: List<String>, header: Boolean, stripe: Boolean) {
+            Row(
+                Modifier.fillMaxWidth()
+                    .background(if (header) c.fav else if (stripe) c.bg else c.surface)
+                    .padding(horizontal = 12.dp, vertical = if (header) 8.dp else 10.dp)
+            ) {
+                cells.forEachIndexed { i, cell ->
+                    Text(
+                        cell,
+                        color = if (header) c.favInk else c.ink,
+                        fontSize = if (header) 12.sp else 17.sp,
+                        fontWeight = if (header || i > 0) FontWeight.Bold else FontWeight.Normal,
+                        textAlign = if (i == 0) TextAlign.Start else TextAlign.End,
+                        modifier = Modifier.weight(if (i == 0) 0.5f else 1f)
+                    )
+                }
+            }
+        }
+        line(headers, header = true, stripe = false)
+        rows.forEachIndexed { i, r -> line(r, header = false, stripe = i % 2 == 1) }
+    }
+}
+
+/** Layout Marks: first mark, then + spacing, + spacing... as running measurements from one zero. */
+@Composable
+fun LayoutMarksCalculator(
+    onBack: () -> Unit,
+    onFocus: (String, (String) -> Unit) -> Unit
+) {
+    var first by remember { mutableStateOf("") }
+    var spacing by remember { mutableStateOf("16") }
+    var countText by remember { mutableStateOf("") }
+    var length by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("") }
+    var marks by remember { mutableStateOf<List<Double>>(emptyList()) }
+
+    ToolScreen(Screen.LayoutMarks, onBack) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("MARKS IN A SERIES", color = AppTheme.colors.accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text(
+                "Every mark is measured from the same zero, like a tape hooked on the end. Plain numbers are inches; use ' for feet.",
+                color = AppTheme.colors.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
+            )
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(value = first, onValueChange = { first = it }, label = "First mark (blank = 1 spacing)", modifier = Modifier.weight(1f), onFocus = onFocus)
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(value = spacing, onValueChange = { spacing = it }, label = "Spacing (O.C.)", modifier = Modifier.weight(1f), onFocus = onFocus)
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = countText,
+                    onValueChange = { countText = it.filter { ch -> ch.isDigit() } },
+                    label = { Text("Number of marks") },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(value = length, onValueChange = { length = it }, label = "or Total length", modifier = Modifier.weight(1f), onFocus = onFocus)
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = {
+                    val sp = FractionUtils.parse(spacing)
+                    val f = if (first.isBlank()) sp else FractionUtils.parse(first)
+                    val len = FractionUtils.parse(length)
+                    val typed = countText.toIntOrNull()
+                    val count = when {
+                        sp <= 0 -> 0
+                        typed != null && typed > 0 -> typed
+                        len > 0 -> LayoutEngine.countWithin(f, sp, len)
+                        else -> 0
+                    }
+                    marks = if (sp > 0) LayoutEngine.marks(f, sp, count) else emptyList()
+                    message = when {
+                        sp <= 0 -> "Enter a spacing."
+                        typed == null && len <= 0 -> "Enter a number of marks or a total length."
+                        marks.isEmpty() -> "No marks fit in that length."
+                        else -> buildString {
+                            append("${marks.size} marks · first ${FractionUtils.formatInches(f)} · every ${FractionUtils.formatInches(sp)}")
+                            if (len > 0 && len >= marks.last()) append("\nLast mark to end: ${FractionUtils.formatInches(len - marks.last())}")
+                            if (count > LayoutEngine.MAX_MARKS) append("\nShowing the first ${LayoutEngine.MAX_MARKS}.")
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(64.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(backgroundColor = AppTheme.colors.eq, contentColor = AppTheme.colors.eqInk)
+            ) { Text("SHOW MARKS") }
+
+            if (message.isNotEmpty()) {
+                Text(message, color = AppTheme.colors.ink, fontSize = 15.sp, modifier = Modifier.padding(top = 16.dp))
+            }
+            if (marks.isNotEmpty()) {
+                MarksTable(listOf("#", "Mark"), marks.mapIndexed { i, m -> listOf("${i + 1}", FractionUtils.formatInches(m)) })
             }
         }
     }
