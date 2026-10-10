@@ -9,6 +9,7 @@ import androidx.compose.material.icons.outlined.Cottage
 import androidx.compose.material.icons.outlined.CropSquare
 import androidx.compose.material.icons.outlined.Deck
 import androidx.compose.material.icons.outlined.Fence
+import androidx.compose.material.icons.outlined.FormatListNumbered
 import androidx.compose.material.icons.outlined.Foundation
 import androidx.compose.material.icons.outlined.Landscape
 import androidx.compose.material.icons.outlined.Layers
@@ -55,6 +56,7 @@ val ToolCatalog = listOf(
     ToolInfo(Screen.CoordinateCalculator, "Site Coordinates", "SITE", GROUP_SITE, Icons.Outlined.MyLocation),
     ToolInfo(Screen.DrywallCalculator, "Drywall Finish", "DRYWALL", GROUP_SITE, Icons.Outlined.Layers),
     ToolInfo(Screen.TrigCalculator, "Trig Solver", "TRIG", GROUP_SITE, Icons.Outlined.Architecture),
+    ToolInfo(Screen.LayoutMarks, "Layout Marks", "MARKS", GROUP_SITE, Icons.Outlined.FormatListNumbered),
 )
 
 fun toolFor(screen: Screen): ToolInfo? = ToolCatalog.firstOrNull { it.screen == screen }
