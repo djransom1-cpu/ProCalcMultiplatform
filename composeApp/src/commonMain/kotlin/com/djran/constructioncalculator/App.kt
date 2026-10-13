@@ -63,6 +63,7 @@ enum class Screen {
     TrigCalculator,
     LayoutMarks,
     GableCut,
+    GableStuds,
     ColumnCalculator,
     FramingCalculator,
     ScientificCalculator,
@@ -1175,6 +1176,8 @@ fun App() {
                             Screen.LayoutMarks -> LayoutMarksCalculator(onBack = ::goBack, onFocus = openKeyboard)
 
                             Screen.GableCut -> GableCutCalculator(onBack = ::goBack, onFocus = openKeyboard)
+
+                            Screen.GableStuds -> GableStudCalculator(onBack = ::goBack, onFocus = openKeyboard)
 
                             Screen.TrigCalculator -> TrigCalculator(
                                 entries = allTrigEntries[currentProjectName] ?: emptyList(),
