@@ -93,17 +93,9 @@ fun GableCutCalculator(
         alongSlope
     )
 
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFEEEEEE)).verticalScroll(rememberScrollState())) {
-        Row(
-            modifier = Modifier.fillMaxWidth().background(BlueTool).padding(horizontal = 8.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
-            Text("Gable Panel Cut", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        }
-
+    ToolScreen(Screen.GableCut, onBack) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("GABLE UNDER AN UPPER ROOF", color = Color(0xFF6200EE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text("GABLE UNDER AN UPPER ROOF", color = AppTheme.colors.accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(8.dp))
 
             ConstructionTextField(
@@ -142,7 +134,7 @@ fun GableCutCalculator(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (result == null) {
-                Text("Enter a distance and both pitches above zero.", color = Color.Gray, fontSize = 14.sp)
+                Text("Enter a distance and both pitches above zero.", color = AppTheme.colors.muted, fontSize = 14.sp)
             } else {
                 Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
                     GableCutDiagram(result, pitchToDouble(topPitch, 0.0), pitchToDouble(bottomPitch, 0.0))
@@ -150,15 +142,15 @@ fun GableCutCalculator(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     if (result.fitsOn4x8) "Fits on one 4x8 sheet." else "Won't fit on one 4x8 sheet. Plan a seam or use a larger panel.",
-                    color = if (result.fitsOn4x8) Color(0xFF2E7D32) else GableTopColor,
+                    color = if (result.fitsOn4x8) AppTheme.colors.success else GableTopColor,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), backgroundColor = AppTheme.colors.surface, modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("CUT LIST", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+                        Text("CUT LIST", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent, fontSize = 12.sp)
                         Spacer(modifier = Modifier.height(4.dp))
                         ResultRow("Horizontal run", FractionUtils.formatInches(result.run))
                         ResultRow("Outer end height", FractionUtils.formatInches(result.outerEndHeight), isBold = true)
@@ -180,7 +172,7 @@ fun GableCutCalculator(
                 Text(
                     "Heights = run x pitch/12. Cut lengths = run x √(1 + (pitch/12)²).",
                     fontSize = 12.sp,
-                    color = Color.Gray
+                    color = AppTheme.colors.muted
                 )
             }
         }
@@ -194,15 +186,15 @@ private fun ModeButton(label: String, selected: Boolean, modifier: Modifier, onC
             onClick = onClick,
             modifier = modifier.height(48.dp),
             shape = RoundedCornerShape(24.dp),
-            colors = ButtonDefaults.buttonColors(backgroundColor = BlueTool, contentColor = Color.White)
+            colors = ButtonDefaults.buttonColors(backgroundColor = AppTheme.colors.eq, contentColor = AppTheme.colors.eqInk)
         ) { Text(label, fontSize = 13.sp, textAlign = TextAlign.Center) }
     } else {
         OutlinedButton(
             onClick = onClick,
             modifier = modifier.height(48.dp),
             shape = RoundedCornerShape(24.dp),
-            border = BorderStroke(1.dp, Color.Gray),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = BlueTool)
+            border = BorderStroke(1.dp, AppTheme.colors.line),
+            colors = ButtonDefaults.outlinedButtonColors(backgroundColor = Color.Transparent, contentColor = AppTheme.colors.ink)
         ) { Text(label, fontSize = 13.sp, textAlign = TextAlign.Center) }
     }
 }

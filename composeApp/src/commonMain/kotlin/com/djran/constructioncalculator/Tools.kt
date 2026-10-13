@@ -40,6 +40,7 @@ val ToolCatalog = listOf(
     ToolInfo(Screen.StairCalculator, "Stair Layout", "STAIR", GROUP_CARPENTRY, Icons.Outlined.Stairs),
     ToolInfo(Screen.RafterCalculator, "Rafter Cuts", "RAFTER", GROUP_CARPENTRY, Icons.Outlined.ChangeHistory),
     ToolInfo(Screen.RoofCalculator, "Roof Takeoff", "ROOF", GROUP_CARPENTRY, Icons.Outlined.Roofing),
+    ToolInfo(Screen.GableCut, "Gable Panel Cut", "GABLE", GROUP_CARPENTRY, Icons.Outlined.Cottage),
     ToolInfo(Screen.FloorCalculator, "Floor / Joists", "FLOOR", GROUP_CARPENTRY, Icons.Outlined.ViewWeek),
     ToolInfo(Screen.FramingCalculator, "Wall Framing", "FRAMING", GROUP_CARPENTRY, Icons.Outlined.ViewColumn),
     ToolInfo(Screen.WallCalculator, "Wall Materials", "WALL", GROUP_CARPENTRY, Icons.Outlined.CropSquare),
