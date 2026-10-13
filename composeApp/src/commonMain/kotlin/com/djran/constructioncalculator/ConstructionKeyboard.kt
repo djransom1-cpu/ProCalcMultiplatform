@@ -1,22 +1,26 @@
 package com.djran.constructioncalculator
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Backspace
-import androidx.compose.material.icons.filled.KeyboardHide
+import androidx.compose.material.icons.automirrored.outlined.Backspace
+import androidx.compose.material.icons.outlined.KeyboardHide
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/**
+ * The keypad for the tools' measurement fields, laid out and coloured like the calculator's:
+ * units on top, digits in the middle, signs down the right and a tall Done key. The number
+ * being typed shows above the keys, since the keypad can cover the field.
+ */
 @Composable
 fun ConstructionKeyboard(
     isVisible: Boolean,
@@ -26,63 +30,64 @@ fun ConstructionKeyboard(
     onHide: () -> Unit
 ) {
     if (!isVisible) return
+    val c = LocalAppColors.current
+    val press: (String) -> Unit = { key -> handleKeyPress(key, currentValue, onValueChange) }
+    val keyHeight = 52.dp
+    val gap = 8.dp
 
     Surface(
         elevation = 16.dp,
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-        color = Color(0xFFE0E0E0),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(380.dp)
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        color = c.bg,
+        contentColor = c.ink,
+        // A hairline edge, since the shadow doesn't show on a dark page
+        border = BorderStroke(1.dp, c.line),
+        modifier = Modifier.widthIn(max = CalcMaxWidth).fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier
-                .padding(8.dp)
-                .fillMaxSize()
+            Modifier.padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(gap),
         ) {
-            // Header for the keyboard
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Numeric Input", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 12.sp)
+            Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onHide) {
-                    Icon(Icons.Default.KeyboardHide, contentDescription = "Hide", tint = Color.Gray)
+                    Icon(Icons.Outlined.KeyboardHide, contentDescription = "Hide keypad", tint = c.muted)
+                }
+                Text(
+                    currentValue, color = c.ink, fontSize = 30.sp, fontWeight = FontWeight.SemiBold,
+                    maxLines = 1, textAlign = TextAlign.End, modifier = Modifier.weight(1f),
+                )
+            }
+            Row(Modifier.fillMaxWidth().height(keyHeight)) {
+                Key(c.fn, c.fnInk, { press("'") }, label = "Feet") { KeyText("ft '", 22, FontWeight.SemiBold) }
+                Key(c.fn, c.fnInk, { press("\"") }, label = "Inches") { KeyText("in \"", 22, FontWeight.SemiBold) }
+                Key(c.num, c.numInk, { press(".") }, label = "Decimal point") { KeyText(".", 32, FontWeight.SemiBold) }
+                Key(c.fn, c.fnInk, { press("BACK") }, label = "Backspace") {
+                    Icon(Icons.AutoMirrored.Outlined.Backspace, contentDescription = null, modifier = Modifier.size(28.dp))
                 }
             }
-
-            val keys = listOf(
-                listOf("7", "8", "9", "BACK"),
-                listOf("4", "5", "6", "/"),
-                listOf("1", "2", "3", "'"),
-                listOf(".", "0", "\"", "SPACE"),
-                listOf("+", "-")
-            )
-
-            keys.forEach { row ->
-                Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                    row.forEach { key ->
-                        KeyButton(
-                            label = key,
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                handleKeyPress(key, currentValue, onValueChange)
-                            }
-                        )
+            Row(Modifier.fillMaxWidth().height(keyHeight)) {
+                KeyboardDigit("7", press); KeyboardDigit("8", press); KeyboardDigit("9", press)
+                Key(c.op, c.opInk, { press("-") }, label = "Minus") { KeyText("−", 32) }
+            }
+            Row(Modifier.fillMaxWidth().height(keyHeight)) {
+                KeyboardDigit("4", press); KeyboardDigit("5", press); KeyboardDigit("6", press)
+                Key(c.op, c.opInk, { press("+") }, label = "Plus") { KeyText("+", 32) }
+            }
+            Row(Modifier.fillMaxWidth().height(keyHeight * 2 + gap)) {
+                Column(Modifier.weight(3f), verticalArrangement = Arrangement.spacedBy(gap)) {
+                    Row(Modifier.fillMaxWidth().height(keyHeight)) {
+                        KeyboardDigit("1", press); KeyboardDigit("2", press); KeyboardDigit("3", press)
+                    }
+                    Row(Modifier.fillMaxWidth().height(keyHeight)) {
+                        KeyboardDigit("0", press)
+                        Key(c.fn, c.fnInk, { press("SPACE") }, label = "Space, between whole inches and a fraction") {
+                            Text("space", color = c.fnInk, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp)
+                        }
+                        Key(c.fn, c.fnInk, { press("/") }, label = "Fraction bar") { KeyText("/", 26, FontWeight.SemiBold) }
                     }
                 }
-            }
-
-            // Bottom row for Done
-            Row(modifier = Modifier.height(60.dp).fillMaxWidth()) {
-                Button(
-                    onClick = onDone,
-                    modifier = Modifier.fillMaxSize().padding(4.dp),
-                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF6200EE), contentColor = Color.White),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("DONE", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Row(Modifier.weight(1f).fillMaxHeight()) {
+                    Key(c.eq, c.eqInk, onDone) { KeyText("Done", 20, FontWeight.Bold) }
                 }
             }
         }
@@ -90,38 +95,9 @@ fun ConstructionKeyboard(
 }
 
 @Composable
-fun KeyButton(
-    label: String,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    val isSpecial = label == "BACK" || label == "SPACE" || label == "/" || label == "-" || label == "+" || label == "'" || label == "\""
-    val bgColor = if (isSpecial) Color(0xFFBDBDBD) else Color.White
-    
-    Card(
-        elevation = 2.dp,
-        shape = RoundedCornerShape(8.dp),
-        backgroundColor = bgColor,
-        modifier = modifier
-            .padding(4.dp)
-            .fillMaxHeight()
-            .clickable { onClick() }
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            if (label == "BACK") {
-                Icon(Icons.AutoMirrored.Filled.Backspace, contentDescription = "Back", tint = Color.DarkGray)
-            } else if (label == "SPACE") {
-                Text("SPACE", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
-            } else {
-                Text(
-                    text = label,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isSpecial) Color.DarkGray else Color.Black
-                )
-            }
-        }
-    }
+private fun RowScope.KeyboardDigit(digit: String, press: (String) -> Unit) {
+    val c = LocalAppColors.current
+    Key(c.num, c.numInk, { press(digit) }) { KeyText(digit, 28) }
 }
 
 @Composable
@@ -133,6 +109,7 @@ fun ConstructionTextField(
     modifier: Modifier = Modifier,
     onFocus: (String, (String) -> Unit) -> Unit
 ) {
+    // Theme colours, like the tools' other text fields
     OutlinedTextField(
         value = value,
         onValueChange = { /* Suppressed */ },
@@ -143,11 +120,7 @@ fun ConstructionTextField(
             if (focusState.isFocused) {
                 onFocus(value, onValueChange)
             }
-        },
-        colors = TextFieldDefaults.outlinedTextFieldColors(
-            focusedBorderColor = Color(0xFF6200EE),
-            unfocusedBorderColor = Color.Gray
-        )
+        }
     )
 }
 

@@ -4,6 +4,11 @@
 /.idea/
 .DS_Store
 /build
+build/
+.kotlin/
+xcuserdata/
+*.xcuserstate
+DerivedData/
 /capture
 .externalNativeBuild
 .cxx
