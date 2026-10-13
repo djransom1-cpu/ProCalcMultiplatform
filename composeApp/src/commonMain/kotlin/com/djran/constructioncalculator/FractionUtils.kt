@@ -3,7 +3,11 @@ package com.djran.constructioncalculator
 import kotlin.math.roundToInt
 
 object FractionUtils {
-    
+    // Fraction rounding precision (denominator), user-configurable via the Settings screen.
+    // Master's SettingsActivity default is index 2 in [4, 8, 16, 32, 64] = 1/16".
+    var precisionDenominator: Int = 16
+
+
     /**
      * Unified Parser: Handles 16', 11", 5/8", 16' 11", 16' 11 5/8", etc.
      * Returns total inches as Double.
@@ -191,12 +195,13 @@ object FractionUtils {
 
     private fun decimalToFraction(decimal: Double): String {
         if (decimal < 0.0001) return ""
-        val sixteenths = (decimal * 16).roundToInt()
-        if (sixteenths == 0) return ""
-        if (sixteenths == 16) return "1"
-        
-        var num = sixteenths
-        var den = 16
+        val denom = precisionDenominator
+        val units = (decimal * denom).roundToInt()
+        if (units == 0) return ""
+        if (units == denom) return "1"
+
+        var num = units
+        var den = denom
         val common = gcd(num, den)
         num /= common
         den /= common

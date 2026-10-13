@@ -242,18 +242,6 @@ object RafterEngine {
     }
 }
 
-object ConcreteEngine {
-    fun calculateVolume(l: Double, w: Double, tInches: Double): Double {
-        return (l * w * (tInches / 12.0)) / 27.0 // Returns Cubic Yards
-    }
-
-    fun calculateRebarGrid(l: Double, w: Double, ocInches: Double, mats: Int = 1): Double {
-        val linesW = floor(w * 12.0 / ocInches) + 1
-        val linesL = floor(l * 12.0 / ocInches) + 1
-        return (linesW * l + linesL * w) * mats // Returns Linear Feet
-    }
-}
-
 object WallEngine {
     // Matches master's WallCalcActivity exactly: at 16" O.C. master silently recalculates
     // using 12" O.C. instead ("extra studs for bucks/corners/openings" - not a general 1.25x
@@ -284,14 +272,12 @@ object WallEngine {
 }
 
 object CrownEngine {
+    // Matches master's CrownActivity exactly: wallAngle is the actual wall corner
+    // angle (e.g. 90 for a square corner), halved directly - no turn-angle inference.
     fun calculateSettings(spring: Double, wallAngle: Double): Pair<Double, Double> {
         val s = spring * (PI / 180.0)
-        
-        // Smart Angle Logic: If user inputs Turn Angle (e.g. 45), use it.
-        // If user inputs Wall Angle (e.g. 135), convert to Turn (45).
-        val turnAngle = if (wallAngle < 90.0) wallAngle else abs(180.0 - wallAngle)
-        val t2 = (turnAngle / 2.0) * (PI / 180.0)
-        
+        val t2 = (wallAngle / 2.0) * (PI / 180.0)
+
         val miter = atan(tan(t2) * sin(s)) * (180.0 / PI)
         val bevel = asin(sin(t2) * cos(s)) * (180.0 / PI)
         return miter to bevel
@@ -299,20 +285,30 @@ object CrownEngine {
 }
 
 object PineLineEngine {
+    data class Result(val pineLineHt: Double, val rafterLenToFascia: Double)
+
+    // Matches master's PineLineActivity.calculateResults() exactly: wall thickness
+    // extends the rafter's total length but does NOT factor into the vertical drop
+    // from heel to fascia top (that's purely a function of the run beyond the wall's
+    // exterior face - brick + frieze + overhang - times pitch).
     fun calculate(
-        pitch: Double, 
-        heel: Double, 
-        wall: Double, 
-        brick: Double, 
-        friezeThick: Double, 
-        overhang: Double, 
-        fascia: Double, 
+        pitch: Double,
+        heel: Double,
+        wall: Double,
+        brick: Double,
+        friezeThick: Double,
+        overhang: Double,
+        fascia: Double,
         reveal: Double
-    ): Double {
-        val totalRun = wall + brick + friezeThick + overhang
-        val drop = totalRun * (pitch / 12.0)
-        val pineLineHt = (heel - drop) - (fascia - reveal)
-        return pineLineHt // Vertical height from wall plate
+    ): Result {
+        val effectiveOverhangFromWall = brick + friezeThick + overhang
+        val dropToFasciaTop = effectiveOverhangFromWall * (pitch / 12.0)
+        val pineLineHt = (heel - dropToFasciaTop) - (fascia - reveal)
+
+        val diagFactor = sqrt(pitch.pow(2) + 144.0)
+        val rafterLenToFascia = (diagFactor / 12.0) * (effectiveOverhangFromWall + wall)
+
+        return Result(pineLineHt, rafterLenToFascia)
     }
 }
 
@@ -364,6 +360,69 @@ object CoordinateEngine {
         val theta = 2.0 * asin(chord / (2.0 * r))
         return 0.5 * r * r * (theta - sin(theta))
     }
+
+    // The walk-line length of a curved segment (chord + bulge height), vs the straight chord.
+    fun calculateArcLength(chord: Double, height: Double): Double {
+        if (height == 0.0) return chord
+        if (chord == 0.0) return 0.0
+        val r = (height / 2.0) + (chord * chord) / (8.0 * height)
+        val theta = 2.0 * asin(chord / (2.0 * r))
+        return r * theta
+    }
+
+    // Interior angle in degrees at `vertex`, between rays to p1 and p2.
+    fun calculateAngle(p1: Point, vertex: Point, p2: Point): Double {
+        val v1e = p1.e - vertex.e; val v1n = p1.n - vertex.n
+        val v2e = p2.e - vertex.e; val v2n = p2.n - vertex.n
+        val angle1 = atan2(v1n, v1e)
+        val angle2 = atan2(v2n, v2e)
+        var diff = abs((angle1 - angle2) * (180.0 / PI))
+        if (diff > 180.0) diff = 360.0 - diff
+        return diff
+    }
+
+    // Shortest distance between segments (p1,p2) and (p3,p4).
+    fun minDistanceBetweenSegments(p1: Point, p2: Point, p3: Point, p4: Point): Double {
+        fun distSq(a: Point, b: Point) = (a.e - b.e).pow(2) + (a.n - b.n).pow(2)
+        fun distPointToSegment(p: Point, s1: Point, s2: Point): Double {
+            val l2 = distSq(s1, s2)
+            if (l2 == 0.0) return sqrt(distSq(p, s1))
+            var t = ((p.e - s1.e) * (s2.e - s1.e) + (p.n - s1.n) * (s2.n - s1.n)) / l2
+            t = t.coerceIn(0.0, 1.0)
+            return sqrt(distSq(p, Point(s1.n + t * (s2.n - s1.n), s1.e + t * (s2.e - s1.e))))
+        }
+        return minOf(
+            distPointToSegment(p1, p3, p4), distPointToSegment(p2, p3, p4),
+            distPointToSegment(p3, p1, p2), distPointToSegment(p4, p1, p2)
+        )
+    }
+
+    fun dmsToDecimal(d: Double, m: Double, s: Double): Double {
+        val sign = if (d < 0) -1.0 else 1.0
+        return d + (sign * m / 60.0) + (sign * s / 3600.0)
+    }
+
+    // New coordinate given a start point, bearing (0=North, 90=East), and distance.
+    fun calculateCoordinate(start: Point, angleDeg: Double, distance: Double): Point {
+        val rad = (90.0 - angleDeg) * (PI / 180.0)
+        val newE = start.e + distance * cos(rad)
+        val newN = start.n + distance * sin(rad)
+        return Point(newN, newE, start.elev)
+    }
+
+    fun isPointInPolygon(p: Point, poly: List<Point>): Boolean {
+        var isInside = false
+        var j = poly.size - 1
+        for (i in poly.indices) {
+            if ((poly[i].n > p.n) != (poly[j].n > p.n) &&
+                p.e < (poly[j].e - poly[i].e) * (p.n - poly[i].n) / (poly[j].n - poly[i].n) + poly[i].e
+            ) {
+                isInside = !isInside
+            }
+            j = i
+        }
+        return isInside
+    }
 }
 
 object TakeoffEngine {
@@ -394,8 +453,30 @@ object ColumnEngine {
         val csArea = PI * radius.pow(2)
         val surfArea = (circ * height) + (2 * csArea)
         val vol = csArea * height
-        
+
         return ColumnResult(circ, surfArea, vol, csArea)
+    }
+
+    // Matches master's ColumnsActivity exactly. rebarType 0 = Standard (vertical
+    // bars + ties), 1 = Linear (top/bottom bars across the diameter).
+    fun calculateRebar(
+        rebarType: Int,
+        diameter: Double,
+        height: Double,
+        circumference: Double,
+        vertCount: Double,
+        tieOC: Double,
+        topBars: Double,
+        bottomBars: Double
+    ): Double {
+        return if (rebarType == 0) {
+            if (tieOC > 0) {
+                val numTies = (height / tieOC) + 1.0
+                (vertCount * (height / 12.0)) + (numTies * (circumference / 12.0))
+            } else 0.0
+        } else {
+            (topBars + bottomBars) * (diameter / 12.0)
+        }
     }
 }
 
@@ -636,6 +717,10 @@ object TrigEngine {
             val rad = angA * (PI / 180.0)
             ra = rc * sin(rad)
             rb = rc * cos(rad)
+        } else if (rb > 0 && angA > 0) {
+            val rad = angA * (PI / 180.0)
+            ra = rb * tan(rad)
+            rc = rb / cos(rad)
         }
 
         angB = 90.0 - angA
