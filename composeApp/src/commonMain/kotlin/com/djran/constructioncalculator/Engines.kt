@@ -202,9 +202,12 @@ object RafterEngine {
         pitchVal: Double, 
         ridge: Double = 1.5, 
         heel: Double = 4.0, 
-        overhang: Double = 12.0
+        overhang: Double = 12.0,
+        // Shed roof: [span] is the rafter's full run (one slope), so it isn't halved, and [ridge]
+        // is the ledger/beam at the high end, taken off in full. Gable: run = span / 2 - ridge / 2.
+        isShed: Boolean = false
     ): RafterResult {
-        val run = (span / 2.0) - (ridge / 2.0)
+        val run = if (isShed) span - ridge else (span / 2.0) - (ridge / 2.0)
         val rise = run * (pitchVal / 12.0)
         val diagFactor = sqrt(pitchVal.pow(2) + 144.0)
         val rafterLen = (diagFactor / 12.0) * run
@@ -749,4 +752,31 @@ object MathEngine {
         }
         private fun isNumber(s: String) = s.isNotEmpty() && (s[0].isDigit() || (s.length > 1 && s[0] == '-' && s[1].isDigit()))
     }
+}
+
+/**
+ * Layout marks in a series: the first mark, then the spacing added again and again,
+ * so every mark is a running measurement from the same zero (a tape hooked on one end).
+ */
+object LayoutEngine {
+    /** Most marks one layout will list (keeps a typo like 0.01 spacing from freezing the screen). */
+    const val MAX_MARKS = 500
+
+    /** Marks [first], [first] + [spacing], ... ([count] of them), all in inches. */
+    fun marks(first: Double, spacing: Double, count: Int): List<Double> =
+        List(count.coerceIn(0, MAX_MARKS)) { i -> first + i * spacing }
+
+    /** How many marks fit from [first] up to and including [length], at [spacing]. */
+    fun countWithin(first: Double, spacing: Double, length: Double): Int {
+        if (spacing <= 0 || length < first) return 0
+        // Small tolerance so a mark landing exactly on the end still counts
+        return (floor((length - first) / spacing + 1e-6).toInt() + 1).coerceAtMost(MAX_MARKS)
+    }
+
+    /**
+     * Handrail spindles laid out gap-to-gap: spindle 1's left edge sits one [gap] from the post,
+     * and each spindle after that is one [onCenter] further along. Returns (leftEdge, center) pairs.
+     */
+    fun spindleMarks(gap: Double, spindleWidth: Double, onCenter: Double, count: Int): List<Pair<Double, Double>> =
+        marks(gap, onCenter, count).map { edge -> edge to edge + spindleWidth / 2.0 }
 }
