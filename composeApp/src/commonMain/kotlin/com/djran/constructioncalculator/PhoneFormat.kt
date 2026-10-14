@@ -419,13 +419,14 @@ object PhoneFormat {
             "concrete", ConcreteEntry.serializer(), { it.allConcreteEntries }, { s, m -> s.copy(allConcreteEntries = m) },
             toPhone = { e, f ->
                 f.put("name", e.name); f.put("qty", e.qty); f.put("dims", e.dimensions); f.put("cuYd", e.volume)
-                f.put("rebarFt", e.rebar); f.put("rebarOC", e.spacing)
+                f.put("rebarFt", e.rebar); f.put("rebarOC", e.spacing); f.put("sqFt", e.sqFt)
                 f.default("cuFt", ""); f.default("rebarMode", 0); f.default("barsTop", "0"); f.default("barsBottom", "2")
             },
             fromPhone = { f, i ->
                 ConcreteEntry(
                     id = entryId(i), name = f.s("name"), qty = f.s("qty", "1"), volume = f.s("cuYd"),
-                    rebar = f.s("rebarFt", "0"), spacing = f.s("rebarOC", "12"), dimensions = f.s("dims")
+                    rebar = f.s("rebarFt", "0"), spacing = f.s("rebarOC", "12"), dimensions = f.s("dims"),
+                    sqFt = f.s("sqFt", "")
                 )
             }
         ),
