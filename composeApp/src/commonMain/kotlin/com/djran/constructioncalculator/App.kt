@@ -202,7 +202,8 @@ data class ConcreteEntry(
     val volume: String,
     val rebar: String,
     val spacing: String,
-    val dimensions: String
+    val dimensions: String,
+    val sqFt: String = ""
 )
 
 @Serializable
@@ -456,7 +457,7 @@ object SummaryReportGenerator {
             sections.add(SummarySection("CROWN MOLDING SCHEDULE", listOf("Name", "Spring", "Corner", "Miter", "Bevel"), crownEntries.map { listOf(it.name, it.spring, it.wallAngle, it.miter, it.bevel) }))
         }
         if (concreteEntries.isNotEmpty()) {
-            sections.add(SummarySection("CONCRETE SCHEDULE", listOf("Name", "Qty", "Dimens", "Volume", "Rebar"), concreteEntries.map { listOf(it.name, it.qty, it.dimensions, it.volume, it.rebar) }))
+            sections.add(SummarySection("CONCRETE SCHEDULE", listOf("Name", "Qty", "Dimens", "Area", "Volume", "Rebar"), concreteEntries.map { listOf(it.name, it.qty, it.dimensions, it.sqFt, it.volume, it.rebar) }))
         }
         if (masonryEntries.isNotEmpty()) {
             sections.add(SummarySection("MASONRY SCHEDULE", listOf("Name", "SqFt", "Type", "Units", "Mortar", "Sand"), masonryEntries.map { listOf(it.name, it.sqFt, it.type, it.units, it.mortar, it.sand) }))
@@ -2367,6 +2368,14 @@ fun StairCalculator(
 }
 
 fun Double.roundToOneDecimal(): Double = (this * 10).roundToInt() / 10.0
+
+/** Dollars with cents and thousands commas, e.g. 12,345.60 (works on every platform, no String.format). */
+fun money(v: Double): String {
+    val cents = (v * 100).roundToLong()
+    val whole = (cents / 100).toString().reversed().chunked(3).joinToString(",").reversed()
+    val c = (kotlin.math.abs(cents) % 100).toString().padStart(2, '0')
+    return "$whole.$c"
+}
 fun pitchToDouble(input: String, default: Double): Double = input.toDoubleOrNull() ?: FractionUtils.parse(input).takeIf { it > 0 } ?: default
 
 @Composable
@@ -2473,7 +2482,7 @@ fun JobSummaryScreen(
                     append("Section,Name,Quantity,Dimensions,Primary Result,Secondary Result\n")
                     stairEntries.forEach { append("Stairs,${it.name},${it.riserCount} risers,Rise: ${it.rise},Act Rise: ${it.actualRise},Stringer: ${it.stringerLen}\n") }
                     rafterEntries.forEach { append("Rafters,${it.name},1,${if (it.isShed) "Shed run" else "Span"}: ${it.span} Pitch: ${it.pitch},Common: ${it.commonLen},Hip: ${it.hipLen}\n") }
-                    concreteEntries.forEach { append("Concrete,${it.name},${it.qty},${it.dimensions},Volume: ${it.volume},Rebar: ${it.rebar}\n") }
+                    concreteEntries.forEach { append("Concrete,${it.name},${it.qty},${it.dimensions},Area: ${it.sqFt},Volume: ${it.volume},Rebar: ${it.rebar}\n") }
                     wallEntries.forEach { append("Walls,${it.name},1,${it.length}x${it.height},Studs: ${it.studs},Plates: ${it.plates}\n") }
                     roofEntries.forEach { append("Roof,${it.name},1,${it.dimensions},Area: ${it.area},Squares: ${it.squares}\n") }
                     floorEntries.forEach { append("Flooring,${it.name},1,${it.length}x${it.width},Joists: ${it.joists},Sheets: ${it.sheets}\n") }
@@ -2626,13 +2635,13 @@ fun JobSummaryScreen(
                 }
 
                 if (concreteEntries.isNotEmpty()) {
-                    SummaryTable("CONCRETE SCHEDULE", listOf("Name", "Qty", "Dimens", "Volume", "Rebar")) {
+                    SummaryTable("CONCRETE SCHEDULE", listOf("Name", "Qty", "Dimens", "Area", "Volume", "Rebar")) {
                         concreteEntries.forEach { entry ->
                             Column(modifier = Modifier.padding(vertical = 8.dp)) {
                                 Row {
                                     TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.qty, 80.dp)
-                                    TableCell(entry.dimensions, 150.dp); TableCell(entry.volume, 100.dp)
-                                    TableCell(entry.rebar, 100.dp)
+                                    TableCell(entry.dimensions, 150.dp); TableCell(entry.sqFt, 100.dp)
+                                    TableCell(entry.volume, 100.dp); TableCell(entry.rebar, 100.dp)
                                 }
                                 FootingCrossSection(
                                     width = 24.0,
@@ -5665,6 +5674,7 @@ fun ConcreteCalculator(
     
     var results by remember { mutableStateOf<ConcreteResult?>(null) }
     var editingIndex by remember { mutableStateOf(-1) }
+    var pricePerSqFt by remember { mutableStateOf("") }
 
     ToolScreen(Screen.ConcreteCalculator, onBack) {
 
@@ -5783,6 +5793,15 @@ fun ConcreteCalculator(
                 label = { Text("Section Name / Location") },
                 modifier = Modifier.fillMaxWidth()
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = pricePerSqFt,
+                onValueChange = { v -> pricePerSqFt = v.filter { it.isDigit() || it == '.' } },
+                label = { Text("Price per sq ft (\$, optional)") },
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
             
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -5798,6 +5817,7 @@ fun ConcreteCalculator(
                             val singleCuFt = (lIn / 12.0) * (wIn / 12.0) * (tIn / 12.0)
                             val totalCuFt = singleCuFt * q
                             val totalCuYd = totalCuFt / 27.0
+                            val totalSqFt = (lIn / 12.0) * (wIn / 12.0) * q
 
                             val ocIn = rebarSpacing.toDoubleOrNull() ?: 12.0
                             val mats = rebarMats.toDoubleOrNull() ?: 1.0
@@ -5821,6 +5841,7 @@ fun ConcreteCalculator(
                                 qty = q.toInt(),
                                 totalCuFt = totalCuFt,
                                 totalCuYd = totalCuYd,
+                                totalSqFt = totalSqFt,
                                 totalRebarFt = totalRebarFt,
                                 rebarMode = rebarMode,
                                 rebarOC = ocIn,
@@ -5836,7 +5857,8 @@ fun ConcreteCalculator(
                                 volume = "${totalCuYd.roundToOneDecimal()} cu yd (${totalCuFt.roundToOneDecimal()} cu ft)",
                                 rebar = "${totalRebarFt.roundToOneDecimal()} lin ft",
                                 spacing = if (rebarMode == 0) "${ocIn.toInt()}\" OC Grid" else "$bTop Top / $bBot Bot Bars",
-                                dimensions = "${length} x ${width} x ${thick}\""
+                                dimensions = "${length} x ${width} x ${thick}\"",
+                                sqFt = "${totalSqFt.roundToOneDecimal()} sq ft"
                             )
 
                             if (editingIndex != -1) {
@@ -5890,6 +5912,16 @@ fun ConcreteCalculator(
                             Text("${res.totalCuYd.roundToOneDecimal()} cu yd (${res.totalCuFt.roundToOneDecimal()} cu ft)", fontWeight = FontWeight.Bold, color = AppTheme.colors.success)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Area:", fontWeight = FontWeight.SemiBold)
+                            Text("${res.totalSqFt.roundToOneDecimal()} sq ft", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent)
+                        }
+                        pricePerSqFt.toDoubleOrNull()?.takeIf { it > 0 }?.let { p ->
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Price at \$${money(p)}/sq ft:", fontWeight = FontWeight.SemiBold)
+                                Text("\$${money(res.totalSqFt * p)}", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent)
+                            }
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Rebar Total Footage:", fontWeight = FontWeight.SemiBold)
                             Text("${res.totalRebarFt.roundToOneDecimal()} lin ft", fontWeight = FontWeight.Bold, color = AppTheme.colors.danger)
                         }
@@ -5902,6 +5934,27 @@ fun ConcreteCalculator(
                 Divider()
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("SAVED CONCRETE SECTIONS", color = AppTheme.colors.muted, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                // Totals across every saved section
+                val totalSq = entries.sumOf { it.sqFt.substringBefore(" ").toDoubleOrNull() ?: 0.0 }
+                val totalYd = entries.sumOf { it.volume.substringBefore(" ").toDoubleOrNull() ?: 0.0 }
+                Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), backgroundColor = AppTheme.colors.surface, border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Total area", fontWeight = FontWeight.SemiBold)
+                            Text("${totalSq.roundToOneDecimal()} sq ft", fontWeight = FontWeight.Bold)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Total concrete", fontWeight = FontWeight.SemiBold)
+                            Text("${totalYd.roundToOneDecimal()} cu yd", fontWeight = FontWeight.Bold)
+                        }
+                        pricePerSqFt.toDoubleOrNull()?.takeIf { it > 0 && totalSq > 0 }?.let { p ->
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Total at \$${money(p)}/sq ft", fontWeight = FontWeight.SemiBold)
+                                Text("\$${money(totalSq * p)}", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent)
+                            }
+                        }
+                    }
+                }
                 
                 entries.reversed().forEachIndexed { index, entry ->
                     Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.padding(vertical = 4.dp)) {
@@ -5929,6 +5982,7 @@ fun ConcreteCalculator(
                             }
                             Divider(modifier = Modifier.padding(vertical = 4.dp))
                             Text("Volume: ${entry.volume}", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent)
+                            if (entry.sqFt.isNotBlank()) Text("Area: ${entry.sqFt}", fontWeight = FontWeight.SemiBold)
                             Text("Rebar: ${entry.rebar}", fontSize = 13.sp)
                         }
                     }
@@ -5945,6 +5999,7 @@ private data class ConcreteResult(
     val qty: Int,
     val totalCuFt: Double,
     val totalCuYd: Double,
+    val totalSqFt: Double,
     val totalRebarFt: Double,
     val rebarMode: Int,
     val rebarOC: Double,
