@@ -135,14 +135,15 @@ object FractionUtils {
         return input.toDoubleOrNull() ?: 0.0
     }
 
-    fun formatInches(totalInches: Double): String {
+    /** Feet-inches display; [denominator] is the fraction precision (16 = nearest 1/16", 8 = 1/8"). */
+    fun formatInches(totalInches: Double, denominator: Int = 16): String {
         val total = totalInches
         val feet = (total / 12).toInt()
         val remainingInches = total % 12
         val wholeInches = remainingInches.toInt()
         val fractionalPart = remainingInches - wholeInches
         
-        val fraction = decimalToFraction(fractionalPart)
+        val fraction = decimalToFraction(fractionalPart, denominator)
         
         var finalWholeInches = wholeInches
         var finalFeet = feet
@@ -198,14 +199,14 @@ object FractionUtils {
         return if (decimals > 0) fixed.trimEnd('0').trimEnd('.') else fixed
     }
 
-    private fun decimalToFraction(decimal: Double): String {
+    private fun decimalToFraction(decimal: Double, denominator: Int = 16): String {
         if (decimal < 0.0001) return ""
-        val sixteenths = (decimal * 16).roundToInt()
-        if (sixteenths == 0) return ""
-        if (sixteenths == 16) return "1"
+        val parts = (decimal * denominator).roundToInt()
+        if (parts == 0) return ""
+        if (parts == denominator) return "1"
         
-        var num = sixteenths
-        var den = 16
+        var num = parts
+        var den = denominator
         val common = gcd(num, den)
         num /= common
         den /= common

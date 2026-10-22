@@ -3872,31 +3872,93 @@ fun ArcCalculator(
     onBack: () -> Unit,
     onFocus: (String, (String) -> Unit) -> Unit
 ) {
+    var radiusKnown by remember { mutableStateOf(false) }
+    var radius by remember { mutableStateOf("") }
     var chord by remember { mutableStateOf("") }
     var height by remember { mutableStateOf("") }
+    var stationCount by remember { mutableStateOf(ArcMath.DEFAULT_STATIONS.toString()) }
     var sectionName by remember { mutableStateOf("") }
+    // Radius known: whichever of chord / spring was typed last is the input, the other is computed
+    var lastEdited by remember { mutableStateOf("chord") }
 
-    var results by remember { mutableStateOf<ArcResults?>(null) }
     var editingIndex by remember { mutableStateOf(-1) }
+
+    val r = FractionUtils.parseFeet(radius)
+    val c = FractionUtils.parseFeet(chord)
+    val h = FractionUtils.parse(height)
+    val springGiven = radiusKnown && lastEdited == "spring"
+
+    val outcome: ArcMath.Outcome? = when {
+        !radiusKnown -> if (chord.isBlank() || height.isBlank()) null else ArcMath.solveChordSpring(c, h)
+        radius.isBlank() -> null
+        springGiven -> if (height.isBlank()) null else ArcMath.solveRadiusSpring(r, h)
+        else -> if (chord.isBlank()) null else ArcMath.solveRadiusChord(r, c)
+    }
+    val interior = stationCount.trim().toIntOrNull()
+    val stationError = if (interior == null || interior < 1 || interior > ArcMath.MAX_STATIONS) "Stations: whole number from 1 to ${ArcMath.MAX_STATIONS}." else null
+    val sol = outcome?.solution
+    val stations = if (sol != null && stationError == null) ArcMath.offsetTable(sol, interior!!) else emptyList()
+
+    // Radius known: write the computed value into the other field
+    LaunchedEffect(sol, radiusKnown, springGiven) {
+        if (radiusKnown && sol != null) {
+            if (springGiven) chord = FractionUtils.formatInches(sol.chord)
+            else height = FractionUtils.formatInches(sol.spring)
+        }
+    }
+    val chordComputed = springGiven && height.isNotBlank()
+    val springComputed = radiusKnown && !springGiven && chord.isNotBlank()
 
     ToolScreen(Screen.ArcCalculator, onBack) {
 
         Column(modifier = Modifier.padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ArcModeButton("RADIUS UNKNOWN", !radiusKnown, Modifier.weight(1f)) { radiusKnown = false }
+                ArcModeButton("RADIUS KNOWN", radiusKnown, Modifier.weight(1f)) { radiusKnown = true }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
             Text("ARC DIMENSIONS", color = AppTheme.colors.accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(8.dp))
 
+            if (radiusKnown) {
+                ConstructionTextField(
+                    value = radius,
+                    onValueChange = { radius = it },
+                    label = "Radius (ft/in)",
+                    modifier = Modifier.fillMaxWidth(),
+                    onFocus = onFocus
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
             ConstructionTextField(
                 value = chord,
-                onValueChange = { chord = it },
-                label = "Chord Length (Width - ft/in)",
+                onValueChange = { chord = it; lastEdited = "chord" },
+                label = if (chordComputed) "Chord Length (computed)" else "Chord Length (Width - ft/in)",
                 modifier = Modifier.fillMaxWidth(),
-                onFocus = onFocus
+                // A computed value is replaced, not appended to, when the user types into it
+                onFocus = { v, set -> onFocus(if (chordComputed) "" else v, set) }
             )
             Spacer(modifier = Modifier.height(8.dp))
             ConstructionTextField(
                 value = height,
-                onValueChange = { height = it },
-                label = "Arc Height (Rise - in)",
+                onValueChange = { height = it; lastEdited = "spring" },
+                label = if (springComputed) "Spring / Rise (computed)" else "Spring / Arc Height (Rise - in)",
+                modifier = Modifier.fillMaxWidth(),
+                onFocus = { v, set -> onFocus(if (springComputed) "" else v, set) }
+            )
+            if (radiusKnown) {
+                Text(
+                    "Enter chord or spring; the other is calculated. The one you typed last wins.",
+                    fontSize = 12.sp,
+                    color = AppTheme.colors.muted,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            ConstructionTextField(
+                value = stationCount,
+                onValueChange = { stationCount = it },
+                label = "Layout Stations (between chord ends)",
                 modifier = Modifier.fillMaxWidth(),
                 onFocus = onFocus
             )
@@ -3908,37 +3970,25 @@ fun ArcCalculator(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            val error = outcome?.error ?: if (sol != null) stationError else null
+            if (error != null) {
+                Text(error, color = AppTheme.colors.danger, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
-                        val c = FractionUtils.parseFeet(chord)
-                        val h = FractionUtils.parse(height)
-                        
-                        if (c > 0 && h > 0) {
-                            val r = ArcEngine.solveFromChordAndHeight(c, h)
-                            val thetaRad = 2.0 * asin(c / (2.0 * r))
-                            val angleDeg = thetaRad * (180.0 / PI)
-                            val arcLen = ArcEngine.arcLength(r, angleDeg)
-
-                            val res = ArcResults(
-                                radius = FractionUtils.formatInches(r),
-                                arcLength = FractionUtils.formatInches(arcLen),
-                                arcAngle = "${angleDeg.roundToOneDecimal()}°",
-                                chord = chord,
-                                height = height
-                            )
-                            results = res
-
+                        if (sol != null) {
                             val entry = ArcEntry(
                                 id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
                                 name = sectionName.ifEmpty { "Arc Section" },
-                                chord = chord,
-                                height = height,
-                                radius = res.radius,
-                                arcLength = res.arcLength,
-                                arcAngle = res.arcAngle
+                                chord = if (chordComputed) FractionUtils.formatInches(sol.chord) else chord,
+                                height = if (springComputed) FractionUtils.formatInches(sol.spring) else height,
+                                radius = FractionUtils.formatInches(sol.radius),
+                                arcLength = FractionUtils.formatInches(sol.arcLength),
+                                arcAngle = "${sol.angleDeg.roundToOneDecimal()}°"
                             )
 
                             if (editingIndex != -1) {
@@ -3956,11 +4006,11 @@ fun ArcCalculator(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(backgroundColor = AppTheme.colors.eq, contentColor = AppTheme.colors.eqInk)
                 ) {
-                    Text(if (editingIndex != -1) "UPDATE & SAVE" else "CALCULATE & SAVE", textAlign = TextAlign.Center)
+                    Text(if (editingIndex != -1) "UPDATE & SAVE" else "SAVE ARC", textAlign = TextAlign.Center)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 OutlinedButton(
-                    onClick = { onUpdateEntries(emptyList()); results = null },
+                    onClick = { onUpdateEntries(emptyList()) },
                     modifier = Modifier.weight(1f).height(64.dp),
                     shape = RoundedCornerShape(12.dp),
                     border = BorderStroke(1.dp, AppTheme.colors.danger),
@@ -3970,21 +4020,66 @@ fun ArcCalculator(
                 }
             }
 
-            results?.let { res ->
+            sol?.let { res ->
                 Spacer(modifier = Modifier.height(24.dp))
                 Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("RADIUS", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent, fontSize = 12.sp)
-                        Text(res.radius, fontSize = 32.sp, fontWeight = FontWeight.Bold, color = AppTheme.colors.accent)
+                        Text(FractionUtils.formatInches(res.radius), fontSize = 32.sp, fontWeight = FontWeight.Bold, color = AppTheme.colors.accent)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("CHORD", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent, fontSize = 12.sp)
+                                Text(FractionUtils.formatInches(res.chord), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = AppTheme.colors.ink)
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("SPRING", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent, fontSize = 12.sp)
+                                Text(FractionUtils.formatInches(res.spring, 8), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = AppTheme.colors.ink)
+                            }
+                        }
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("ARC LENGTH", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent, fontSize = 12.sp)
-                                Text(res.arcLength, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = AppTheme.colors.ink)
+                                Text(FractionUtils.formatInches(res.arcLength), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = AppTheme.colors.ink)
+                                Text("${(res.arcLength / 12.0).toFixed(2)} ft", fontSize = 13.sp, color = AppTheme.colors.muted)
                             }
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("ARC ANGLE", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent, fontSize = 12.sp)
-                                Text(res.arcAngle, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = AppTheme.colors.ink)
+                                Text("${res.angleDeg.roundToOneDecimal()}°", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = AppTheme.colors.ink)
+                            }
+                        }
+                    }
+                }
+
+                if (stations.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.fillMaxWidth()) {
+                        ArcDiagram(res, stations)
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("LAYOUT OFFSETS FROM CHORD", color = AppTheme.colors.accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text(
+                        "Pull a string on the chord. At each station, measured from the left end, measure up to the arc.",
+                        fontSize = 12.sp,
+                        color = AppTheme.colors.muted,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                    Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                Text("STATION", Modifier.weight(0.8f), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AppTheme.colors.muted)
+                                Text("ALONG CHORD", Modifier.weight(1.2f), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AppTheme.colors.muted)
+                                Text("OFFSET TO ARC", Modifier.weight(1.2f), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AppTheme.colors.muted)
+                            }
+                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            stations.forEach { st ->
+                                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                                    Text("${st.index}", Modifier.weight(0.8f), fontSize = 14.sp)
+                                    Text(FractionUtils.formatInches(st.along, 8), Modifier.weight(1.2f), fontSize = 14.sp)
+                                    Text(FractionUtils.formatInches(st.offset, 8), Modifier.weight(1.2f), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
@@ -4008,6 +4103,7 @@ fun ArcCalculator(
                                 IconButton(onClick = {
                                     editingIndex = entries.size - 1 - index
                                     sectionName = entry.name
+                                    radiusKnown = false
                                     chord = entry.chord
                                     height = entry.height
                                 }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = AppTheme.colors.muted) }
@@ -4028,13 +4124,25 @@ fun ArcCalculator(
     }
 }
 
-data class ArcResults(
-    val radius: String,
-    val arcLength: String,
-    val arcAngle: String,
-    val chord: String,
-    val height: String
-)
+@Composable
+private fun ArcModeButton(label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    if (selected) {
+        Button(
+            onClick = onClick,
+            modifier = modifier.height(48.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = ButtonDefaults.buttonColors(backgroundColor = AppTheme.colors.eq, contentColor = AppTheme.colors.eqInk)
+        ) { Text(label, fontSize = 13.sp, textAlign = TextAlign.Center) }
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = modifier.height(48.dp),
+            shape = RoundedCornerShape(24.dp),
+            border = BorderStroke(1.dp, AppTheme.colors.line),
+            colors = ButtonDefaults.outlinedButtonColors(backgroundColor = Color.Transparent, contentColor = AppTheme.colors.ink)
+        ) { Text(label, fontSize = 13.sp, textAlign = TextAlign.Center) }
+    }
+}
 
 @Composable
 fun RafterCalculator(
