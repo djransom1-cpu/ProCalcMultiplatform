@@ -191,7 +191,9 @@ data class GazeboEntry(
     val hipOverall: String,
     val commonPlumbSeat: String,
     val hipPlumbSeat: String,
-    val ridgeOffset: String
+    val ridgeOffset: String,
+    // Kept so the Data Sheet can redraw the gazebo; older saves fall back to 16" OC
+    val joistOC: String = "16"
 )
 
 @Serializable
@@ -281,7 +283,10 @@ data class FloorEntry(
     val sheets: String,
     // Master persists rim joist perimeter as its own column; this was computed for the
     // live results card but never actually saved into the entry.
-    val rimJoist: String = ""
+    val rimJoist: String = "",
+    // Kept so the Data Sheet can redraw the plan; older saves fall back to no beams, span length
+    val beams: String = "0",
+    val direction: String = "Span Length"
 )
 
 @Serializable
@@ -2571,10 +2576,27 @@ fun JobSummaryScreen(
                 if (gazeboEntries.isNotEmpty()) {
                     SummaryTable("GAZEBO SCHEDULE", listOf("Name", "Sides", "Diam", "Pitch", "Area", "Com Len", "Hip Len")) {
                         gazeboEntries.forEach { entry ->
-                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
-                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.sides, 80.dp)
-                                TableCell(entry.diameter, 80.dp); TableCell(entry.pitch, 80.dp)
-                                TableCell(entry.area, 100.dp); TableCell(entry.commonRafterLen, 100.dp); TableCell(entry.hipLen, 100.dp)
+                            Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                                Row {
+                                    TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.sides, 80.dp)
+                                    TableCell(entry.diameter, 80.dp); TableCell(entry.pitch, 80.dp)
+                                    TableCell(entry.area, 100.dp); TableCell(entry.commonRafterLen, 100.dp); TableCell(entry.hipLen, 100.dp)
+                                }
+                                val params = GazeboEngine.Params(
+                                    FractionUtils.parseFeet(entry.diameter),
+                                    FractionUtils.parse(entry.ridgeSpan),
+                                    entry.sides.toIntOrNull() ?: 8,
+                                    entry.pitch.toDoubleOrNull() ?: 0.0,
+                                    FractionUtils.parse(entry.overhang),
+                                    FractionUtils.parse(entry.heel),
+                                    FractionUtils.parse(entry.joistOC).takeIf { it > 0 } ?: 16.0
+                                )
+                                if (params.span > 0 && params.numSides >= 3) {
+                                    val res = GazeboEngine.calculate(params)
+                                    GazeboDiagram(GazeboMode.LAYOUT, params, res)
+                                    GazeboDiagram(GazeboMode.RAFTER, params, res)
+                                    GazeboDiagram(GazeboMode.FLOOR, params, res)
+                                }
                             }
                             Divider()
                         }
@@ -2584,10 +2606,15 @@ fun JobSummaryScreen(
                 if (arcEntries.isNotEmpty()) {
                     SummaryTable("ARC SCHEDULE", listOf("Name", "Chord", "Height", "Radius", "Arc Len", "Angle")) {
                         arcEntries.forEach { entry ->
-                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
-                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.chord, 100.dp)
-                                TableCell(entry.height, 100.dp); TableCell(entry.radius, 100.dp)
-                                TableCell(entry.arcLength, 100.dp); TableCell(entry.arcAngle, 80.dp)
+                            Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                                Row {
+                                    TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.chord, 100.dp)
+                                    TableCell(entry.height, 100.dp); TableCell(entry.radius, 100.dp)
+                                    TableCell(entry.arcLength, 100.dp); TableCell(entry.arcAngle, 80.dp)
+                                }
+                                ArcMath.solveChordSpring(FractionUtils.parseFeet(entry.chord), FractionUtils.parse(entry.height)).solution?.let { sol ->
+                                    ArcDiagram(sol, ArcMath.offsetTable(sol, ArcMath.DEFAULT_STATIONS))
+                                }
                             }
                             Divider()
                         }
@@ -2722,74 +2749,19 @@ fun JobSummaryScreen(
                 if (floorEntries.isNotEmpty()) {
                     SummaryTable("FLOORING SCHEDULE", listOf("Name", "Length", "Width", "OC", "Joists", "Sheets")) {
                         floorEntries.forEach { entry ->
-                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
-                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.length, 100.dp)
-                                TableCell(entry.width, 100.dp); TableCell(entry.spacing, 80.dp)
-                                TableCell(entry.joists, 100.dp); TableCell(entry.sheets, 100.dp)
-                            }
-                            Divider()
-                        }
-                    }
-                }
-
-                if (deckEntries.isNotEmpty()) {
-                    SummaryTable("DECKING SCHEDULE", listOf("Name", "Length", "Width", "Gap", "Boards", "Fasteners")) {
-                        deckEntries.forEach { entry ->
-                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
-                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.length, 100.dp)
-                                TableCell(entry.width, 100.dp); TableCell(entry.gap, 80.dp)
-                                TableCell(entry.boards, 100.dp); TableCell(entry.fasteners, 100.dp)
-                            }
-                            Divider()
-                        }
-                    }
-                }
-
-                if (handrailEntries.isNotEmpty()) {
-                    SummaryTable("HANDRAIL SCHEDULE", listOf("Name", "Length", "Count", "Spacing")) {
-                        handrailEntries.forEach { entry ->
-                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
-                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.length, 100.dp)
-                                TableCell(entry.spindles, 100.dp); TableCell(entry.spacing, 100.dp)
-                            }
-                            Divider()
-                        }
-                    }
-                }
-
-                if (pineLineEntries.isNotEmpty()) {
-                    SummaryTable("PINE LINE SCHEDULE", listOf("Name", "Pitch", "Heel", "Wall", "O/H", "Drop")) {
-                        pineLineEntries.forEach { entry ->
-                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
-                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.pitch, 80.dp)
-                                TableCell(entry.heel, 80.dp); TableCell(entry.wall, 80.dp)
-                                TableCell(entry.overhang, 80.dp); TableCell(entry.drop, 100.dp)
-                            }
-                            Divider()
-                        }
-                    }
-                }
-
-                if (roofEntries.isNotEmpty()) {
-                    SummaryTable("ROOF SCHEDULE", listOf("Name", "Area", "Squares", "Bundles", "Sheets", "Pitch")) {
-                        roofEntries.forEach { entry ->
-                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
-                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.area, 100.dp)
-                                TableCell(entry.squares, 80.dp); TableCell(entry.bundles, 80.dp)
-                                TableCell(entry.sheets, 80.dp); TableCell(entry.dimensions, 120.dp)
-                            }
-                            Divider()
-                        }
-                    }
-                }
-
-                if (floorEntries.isNotEmpty()) {
-                    SummaryTable("FLOORING SCHEDULE", listOf("Name", "Length", "Width", "OC", "Joists", "Sheets")) {
-                        floorEntries.forEach { entry ->
-                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
-                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.length, 100.dp)
-                                TableCell(entry.width, 100.dp); TableCell(entry.spacing, 80.dp)
-                                TableCell(entry.joists, 100.dp); TableCell(entry.sheets, 100.dp)
+                            Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                                Row {
+                                    TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.length, 100.dp)
+                                    TableCell(entry.width, 100.dp); TableCell(entry.spacing, 80.dp)
+                                    TableCell(entry.joists, 100.dp); TableCell(entry.sheets, 100.dp)
+                                }
+                                FloorDiagram(
+                                    floorLength = FractionUtils.parseFeet(entry.length),
+                                    floorWidth = FractionUtils.parseFeet(entry.width),
+                                    joistOC = FractionUtils.parse(entry.spacing.replace("OC", "")).takeIf { it > 0 } ?: 16.0,
+                                    numBeams = entry.beams.toIntOrNull() ?: 0,
+                                    spanDirection = entry.direction
+                                )
                             }
                             Divider()
                         }
@@ -3674,7 +3646,8 @@ fun GazeboCalculator(
                                 hipOverall = FractionUtils.formatInches(res.overallHipLen),
                                 commonPlumbSeat = "${atan(p/12.0)*(180.0/PI).roundToOneDecimal()}° / ${(90.0-atan(p/12.0)*(180.0/PI)).roundToOneDecimal()}°",
                                 hipPlumbSeat = "${atan(res.hipPitch/12.0)*(180.0/PI).roundToOneDecimal()}° / ${(90.0-atan(res.hipPitch/12.0)*(180.0/PI)).roundToOneDecimal()}°",
-                                ridgeOffset = "N/A"
+                                ridgeOffset = "N/A",
+                                joistOC = joistOC
                             )
 
                             if (editingIndex != -1) {
@@ -5296,7 +5269,9 @@ fun FloorCalculator(
                                 spacing = "${s.toInt()}\" OC",
                                 joists = "$totalJoists Joists ($joistSize @ ${FractionUtils.formatInches(individualJoistLenIn)})",
                                 sheets = "$sheetsNeeded Sheets ($plyThick)",
-                                rimJoist = FractionUtils.formatInches(perimeterIn)
+                                rimJoist = FractionUtils.formatInches(perimeterIn),
+                                beams = beams.toString(),
+                                direction = direction
                             )
 
                             if (editingIndex != -1) {
