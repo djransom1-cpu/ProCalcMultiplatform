@@ -24,17 +24,17 @@ expect fun ImageBitmap.encodePng(): ByteArray?
 object ReportDrawings {
 
     // Drawings are rendered at 2x so they stay sharp in print
-    private val density = Density(2f, 1f)
+    private val reportDensity = Density(2f, 1f)
     private const val WIDTH_DP = 500
 
     fun render(caption: String, heightDp: Int, insetDp: Int = 16, draw: DrawScope.() -> Unit): ReportImage? {
-        val w = (WIDTH_DP * density.density).toInt()
-        val h = (heightDp * density.density).toInt()
+        val w = (WIDTH_DP * reportDensity.density).toInt()
+        val h = (heightDp * reportDensity.density).toInt()
         return try {
             val bitmap = ImageBitmap(w, h)
-            CanvasDrawScope().draw(density, LayoutDirection.Ltr, Canvas(bitmap), Size(w.toFloat(), h.toFloat())) {
+            CanvasDrawScope().draw(reportDensity, LayoutDirection.Ltr, Canvas(bitmap), Size(w.toFloat(), h.toFloat())) {
                 drawRect(Color.White)
-                val pad = insetDp * density.density
+                val pad = insetDp * reportDensity.density
                 inset(pad) { draw() }
             }
             bitmap.encodePng()?.let { ReportImage(caption, it, w, h) }
