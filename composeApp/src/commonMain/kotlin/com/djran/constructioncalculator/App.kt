@@ -142,7 +142,9 @@ data class ArcEntry(
     val height: String,
     val radius: String,
     val arcLength: String,
-    val arcAngle: String
+    val arcAngle: String,
+    // Layout stations between the chord ends, so the offset table can be rebuilt
+    val stations: String = ArcMath.DEFAULT_STATIONS.toString()
 )
 
 @Serializable
@@ -414,7 +416,13 @@ data class FramingEntry(
     val upperCrippleLength: String = ""
 )
 
-data class SummarySection(val title: String, val headers: List<String>, val rows: List<List<String>>)
+data class SummarySection(
+    val title: String,
+    val headers: List<String>,
+    val rows: List<List<String>>,
+    // Drawings printed under the table in the PDF report
+    val images: List<ReportImage> = emptyList()
+)
 
 object SummaryReportGenerator {
     fun generateSections(
@@ -454,6 +462,16 @@ object SummaryReportGenerator {
         }
         if (arcEntries.isNotEmpty()) {
             sections.add(SummarySection("ARC SCHEDULE", listOf("Name", "Chord", "Height", "Radius", "Arc Len", "Angle"), arcEntries.map { listOf(it.name, it.chord, it.height, it.radius, it.arcLength, it.arcAngle) }))
+            arcEntries.forEach { entry ->
+                val sol = entry.solution() ?: return@forEach
+                sections.add(SummarySection(
+                    "ARC LAYOUT OFFSETS: ${entry.name}",
+                    listOf("Station", "Along Chord", "Offset to Arc"),
+                    ArcMath.offsetTable(sol, entry.stationCount()).map {
+                        listOf(it.index.toString(), FractionUtils.formatInches(it.along, 8), FractionUtils.formatInches(it.offset, 8))
+                    }
+                ))
+            }
         }
         if (wallEntries.isNotEmpty()) {
             sections.add(SummarySection("WALL FRAMING SCHEDULE", listOf("Name", "Length", "Height", "Studs", "Plates", "Sheets"), wallEntries.map { listOf(it.name, it.length, it.height, it.studs, it.plates, it.sheets) }))
@@ -1231,6 +1249,16 @@ fun App() {
 
                             Screen.ProjectList -> {
                                 val pdfProvider = rememberPdfExportProvider()
+                                val reportMeasurer = androidx.compose.ui.text.rememberTextMeasurer()
+                                fun withDrawings(name: String, sections: List<SummarySection>) = ReportDrawings.attach(
+                                    sections,
+                                    allStairEntries[name] ?: emptyList(),
+                                    allRafterEntries[name] ?: emptyList(),
+                                    allGazeboEntries[name] ?: emptyList(),
+                                    allArcEntries[name] ?: emptyList(),
+                                    allFloorEntries[name] ?: emptyList(),
+                                    reportMeasurer
+                                )
                                 // Like the app's project list: pick up new and changed cloud projects on open
                                 LaunchedEffect(cloudSync.user) {
                                     cloudSync.mergeCloudProjects(::currentAppState, ::applyAppState)
@@ -1285,13 +1313,13 @@ fun App() {
                                             pineLineEntries = allPineLineEntries[name] ?: emptyList(),
                                             coordinatePaths = allCoordinatePaths[name] ?: emptyList()
                                         )
-                                        pdfProvider.share(name, sections)
+                                        pdfProvider.share(name, withDrawings(name, sections))
                                     },
                                     onPrintAll = {
                                         val allSections = mutableListOf<SummarySection>()
                                         projectList.forEach { name ->
                                             allSections.add(SummarySection("--- PROJECT: ${name.uppercase()} ---", emptyList(), emptyList()))
-                                            allSections.addAll(SummaryReportGenerator.generateSections(
+                                            allSections.addAll(withDrawings(name, SummaryReportGenerator.generateSections(
                                                 stairEntries = allStairEntries[name] ?: emptyList(),
                                                 circularStairEntries = allCircularStairEntries[name] ?: emptyList(),
                                                 rafterEntries = allRafterEntries[name] ?: emptyList(),
@@ -1311,7 +1339,7 @@ fun App() {
                                                 framingEntries = allFramingEntries[name] ?: emptyList(),
                                                 pineLineEntries = allPineLineEntries[name] ?: emptyList(),
                                                 coordinatePaths = allCoordinatePaths[name] ?: emptyList()
-                                            ))
+                                            )))
                                         }
                                         pdfProvider.share("Master_Report", allSections)
                                     },
@@ -2395,6 +2423,15 @@ fun TableCell(text: String, width: androidx.compose.ui.unit.Dp, isHeader: Boolea
     )
 }
 
+/**
+ * Fixed-width box for drawings on the Data Sheet. The schedule tables scroll sideways,
+ * which leaves fillMaxWidth() with no width to fill, so drawings would collapse to nothing.
+ */
+@Composable
+fun SheetDrawing(content: @Composable () -> Unit) {
+    Box(modifier = Modifier.width(560.dp)) { content() }
+}
+
 @Composable
 fun SummaryTable(title: String, headers: List<String>, content: @Composable ColumnScope.() -> Unit) {
     Text(title, color = Palette.Navy, fontWeight = FontWeight.Bold, fontSize = 12.sp)
@@ -2444,6 +2481,7 @@ fun JobSummaryScreen(
     onBack: () -> Unit
 ) {
     val pdfExportProvider = rememberPdfExportProvider()
+    val reportMeasurer = androidx.compose.ui.text.rememberTextMeasurer()
 
     Column(modifier = Modifier.fillMaxSize().background(Palette.Bg).verticalScroll(rememberScrollState())) {
         Row(
@@ -2463,7 +2501,10 @@ fun JobSummaryScreen(
                     roofEntries, floorEntries, deckEntries, handrailEntries,
                     framingEntries, pineLineEntries, coordinatePaths
                 )
-                pdfExportProvider.share(projectName, sections)
+                val withDrawings = ReportDrawings.attach(
+                    sections, stairEntries, rafterEntries, gazeboEntries, arcEntries, floorEntries, reportMeasurer
+                )
+                pdfExportProvider.share(projectName, withDrawings)
             }) {
                 Icon(Icons.Default.Share, contentDescription = "Export PDF", tint = Palette.Navy)
             }
@@ -2520,7 +2561,7 @@ fun JobSummaryScreen(
                                     TableCell(entry.treadCount, 80.dp); TableCell(entry.totalRun, 80.dp)
                                     TableCell(entry.stringerLen, 100.dp); TableCell(entry.angleDeg, 80.dp)
                                 }
-                                StairDiagram(
+                                SheetDrawing { StairDiagram(
                                     totalRise = FractionUtils.parse(entry.rise),
                                     totalRun = FractionUtils.parse(entry.totalRun),
                                     riserCount = entry.riserCount.toIntOrNull() ?: 1,
@@ -2528,7 +2569,7 @@ fun JobSummaryScreen(
                                     nosing = 1.0,
                                     treadsOut = 0.0,
                                     distOut = FractionUtils.parse(entry.distOut)
-                                )
+                                ) }
                             }
                             Divider()
                         }
@@ -2559,14 +2600,14 @@ fun JobSummaryScreen(
                                     TableCell(entry.overhang, 80.dp); TableCell(entry.commonLen, 100.dp)
                                     TableCell(entry.hipLen, 100.dp); TableCell(entry.jack16, 80.dp)
                                 }
-                                RafterDetail(
+                                SheetDrawing { RafterDetail(
                                     run = FractionUtils.parse(entry.commonRun),
                                     rise = FractionUtils.parse(entry.commonRise),
                                     pitch = FractionUtils.parse(entry.pitch),
                                     heel = FractionUtils.parse(entry.heel),
                                     lumberDepth = 7.25,
                                     overhang = FractionUtils.parse(entry.overhang).takeIf { it > 0 } ?: 12.0
-                                )
+                                ) }
                             }
                             Divider()
                         }
@@ -2593,9 +2634,9 @@ fun JobSummaryScreen(
                                 )
                                 if (params.span > 0 && params.numSides >= 3) {
                                     val res = GazeboEngine.calculate(params)
-                                    GazeboDiagram(GazeboMode.LAYOUT, params, res)
-                                    GazeboDiagram(GazeboMode.RAFTER, params, res)
-                                    GazeboDiagram(GazeboMode.FLOOR, params, res)
+                                    SheetDrawing { GazeboDiagram(GazeboMode.LAYOUT, params, res) }
+                                    SheetDrawing { GazeboDiagram(GazeboMode.RAFTER, params, res) }
+                                    SheetDrawing { GazeboDiagram(GazeboMode.FLOOR, params, res) }
                                 }
                             }
                             Divider()
@@ -2612,8 +2653,14 @@ fun JobSummaryScreen(
                                     TableCell(entry.height, 100.dp); TableCell(entry.radius, 100.dp)
                                     TableCell(entry.arcLength, 100.dp); TableCell(entry.arcAngle, 80.dp)
                                 }
-                                ArcMath.solveChordSpring(FractionUtils.parseFeet(entry.chord), FractionUtils.parse(entry.height)).solution?.let { sol ->
-                                    ArcDiagram(sol, ArcMath.offsetTable(sol, ArcMath.DEFAULT_STATIONS))
+                                entry.solution()?.let { sol ->
+                                    val stations = ArcMath.offsetTable(sol, entry.stationCount())
+                                    SheetDrawing {
+                                        Column {
+                                            ArcDiagram(sol, stations)
+                                            ArcOffsetRows(stations)
+                                        }
+                                    }
                                 }
                             }
                             Divider()
@@ -2755,13 +2802,13 @@ fun JobSummaryScreen(
                                     TableCell(entry.width, 100.dp); TableCell(entry.spacing, 80.dp)
                                     TableCell(entry.joists, 100.dp); TableCell(entry.sheets, 100.dp)
                                 }
-                                FloorDiagram(
+                                SheetDrawing { FloorDiagram(
                                     floorLength = FractionUtils.parseFeet(entry.length),
                                     floorWidth = FractionUtils.parseFeet(entry.width),
                                     joistOC = FractionUtils.parse(entry.spacing.replace("OC", "")).takeIf { it > 0 } ?: 16.0,
                                     numBeams = entry.beams.toIntOrNull() ?: 0,
                                     spanDirection = entry.direction
-                                )
+                                ) }
                             }
                             Divider()
                         }
@@ -3961,7 +4008,8 @@ fun ArcCalculator(
                                 height = if (springComputed) FractionUtils.formatInches(sol.spring) else height,
                                 radius = FractionUtils.formatInches(sol.radius),
                                 arcLength = FractionUtils.formatInches(sol.arcLength),
-                                arcAngle = "${sol.angleDeg.roundToOneDecimal()}°"
+                                arcAngle = "${sol.angleDeg.roundToOneDecimal()}°",
+                                stations = (interior ?: ArcMath.DEFAULT_STATIONS).toString()
                             )
 
                             if (editingIndex != -1) {
@@ -4041,19 +4089,7 @@ fun ArcCalculator(
                     )
                     Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            Row(modifier = Modifier.fillMaxWidth()) {
-                                Text("STATION", Modifier.weight(0.8f), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AppTheme.colors.muted)
-                                Text("ALONG CHORD", Modifier.weight(1.2f), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AppTheme.colors.muted)
-                                Text("OFFSET TO ARC", Modifier.weight(1.2f), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AppTheme.colors.muted)
-                            }
-                            Divider(modifier = Modifier.padding(vertical = 4.dp))
-                            stations.forEach { st ->
-                                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
-                                    Text("${st.index}", Modifier.weight(0.8f), fontSize = 14.sp)
-                                    Text(FractionUtils.formatInches(st.along, 8), Modifier.weight(1.2f), fontSize = 14.sp)
-                                    Text(FractionUtils.formatInches(st.offset, 8), Modifier.weight(1.2f), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
+                            ArcOffsetRows(stations)
                         }
                     }
                 }
@@ -4079,6 +4115,7 @@ fun ArcCalculator(
                                     radiusKnown = false
                                     chord = entry.chord
                                     height = entry.height
+                                    stationCount = entry.stationCount().toString()
                                 }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = AppTheme.colors.muted) }
                                 IconButton(onClick = {
                                     val newList = entries.toMutableList()
@@ -4089,9 +4126,34 @@ fun ArcCalculator(
                             Divider(modifier = Modifier.padding(vertical = 4.dp))
                             Text("Radius: ${entry.radius}", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent)
                             Text("Arc: ${entry.arcLength} @ ${entry.arcAngle}", fontSize = 13.sp)
+                            entry.solution()?.let { sol ->
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text("LAYOUT OFFSETS FROM CHORD", color = AppTheme.colors.muted, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                ArcOffsetRows(ArcMath.offsetTable(sol, entry.stationCount()))
+                            }
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/** Station / along chord / offset table, used on the Arc page, saved arcs and the Data Sheet. */
+@Composable
+fun ArcOffsetRows(stations: List<ArcMath.Station>) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Text("STATION", Modifier.weight(0.8f), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AppTheme.colors.muted)
+            Text("ALONG CHORD", Modifier.weight(1.2f), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AppTheme.colors.muted)
+            Text("OFFSET TO ARC", Modifier.weight(1.2f), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AppTheme.colors.muted)
+        }
+        Divider(modifier = Modifier.padding(vertical = 4.dp))
+        stations.forEach { st ->
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                Text("${st.index}", Modifier.weight(0.8f), fontSize = 14.sp)
+                Text(FractionUtils.formatInches(st.along, 8), Modifier.weight(1.2f), fontSize = 14.sp)
+                Text(FractionUtils.formatInches(st.offset, 8), Modifier.weight(1.2f), fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

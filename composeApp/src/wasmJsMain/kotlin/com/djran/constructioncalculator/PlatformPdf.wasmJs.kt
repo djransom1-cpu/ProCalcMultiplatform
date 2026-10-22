@@ -1,5 +1,8 @@
 package com.djran.constructioncalculator
 
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
+
 import androidx.compose.runtime.Composable
 
 @Composable
@@ -9,6 +12,7 @@ actual fun rememberPdfExportProvider(): PdfExportProvider = WasmPdfExportProvide
  * Opens the report as a printable page; the browser's print dialog offers "Save as PDF",
  * matching the PDF the Android app shares.
  */
+@OptIn(ExperimentalEncodingApi::class)
 class WasmPdfExportProvider : PdfExportProvider {
     override fun share(projectName: String, sections: List<SummarySection>) {
         try {
@@ -27,6 +31,8 @@ class WasmPdfExportProvider : PdfExportProvider {
         append("table{width:100%;border-collapse:collapse;font-size:12px;page-break-inside:auto}")
         append("th{text-align:left;border-bottom:1px solid #000;padding:4px 6px}")
         append("td{padding:3px 6px}tr{page-break-inside:avoid}")
+        append("figure{margin:10px 0 14px;page-break-inside:avoid}figure img{width:100%;max-width:640px;border:1px solid #ccc}")
+        append("figcaption{font-size:11px;color:#555;margin-top:2px}")
         append("</style></head><body>")
         append("<h1>Project Summary: ").append(escape(projectName)).append("</h1>")
         sections.forEach { section ->
@@ -44,6 +50,12 @@ class WasmPdfExportProvider : PdfExportProvider {
                     append("</tr>")
                 }
                 append("</table>")
+            }
+            section.images.forEach { img ->
+                append("<figure>")
+                append("<img alt=\"").append(escape(img.caption)).append("\" src=\"data:image/png;base64,")
+                append(Base64.encode(img.png)).append("\">")
+                append("<figcaption>").append(escape(img.caption)).append("</figcaption></figure>")
             }
         }
         append("</body></html>")
