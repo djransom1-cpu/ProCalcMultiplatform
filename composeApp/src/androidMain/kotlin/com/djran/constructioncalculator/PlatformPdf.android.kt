@@ -2,7 +2,9 @@ package com.djran.constructioncalculator
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.graphics.RectF
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
@@ -85,6 +87,27 @@ class AndroidPdfExportProvider(private val context: Context) : PdfExportProvider
                     x += columnWidth
                 }
                 y += 15f
+            }
+
+            // Drawings under the table, scaled to the page width
+            section.images.forEach { img ->
+                val bmp = BitmapFactory.decodeByteArray(img.png, 0, img.png.size) ?: return@forEach
+                val drawW = 515f
+                val drawH = drawW * bmp.height / bmp.width
+                if (y + drawH + 20f > 800f) {
+                    pdfDocument.finishPage(page)
+                    pageNumber++
+                    pageInfo = PdfDocument.PageInfo.Builder(595, 842, pageNumber).create()
+                    page = pdfDocument.startPage(pageInfo)
+                    canvas = page.canvas
+                    y = 40f
+                }
+                y += 5f
+                canvas.drawBitmap(bmp, null, RectF(40f, y, 40f + drawW, y + drawH), paint)
+                y += drawH + 4f
+                canvas.drawText(img.caption, 40f, y + 10f, textPaint)
+                y += 20f
+                bmp.recycle()
             }
             y += 20f
         }
