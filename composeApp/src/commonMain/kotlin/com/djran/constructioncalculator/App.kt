@@ -4572,6 +4572,16 @@ fun RafterCalculator(
                 Card(elevation = 2.dp, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("HIP / VALLEY RAFTER", fontWeight = FontWeight.Bold, color = Color(0xFF6200EE), fontSize = 12.sp)
+
+                        RafterDetail(
+                            run = res.hipRun,
+                            rise = res.hipRise,
+                            pitch = res.hipPitch,
+                            heel = res.heel,
+                            lumberDepth = FractionUtils.parse(rafterDepth),
+                            overhang = FractionUtils.parse(overhang) / cos(45.0 * (PI / 180.0))
+                        )
+
                         Text(FractionUtils.formatInches(res.hipLen), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = BlueTool)
                         Text("Overall (inc Tail): ${FractionUtils.formatInches(res.hipOverall)}", fontSize = 14.sp, fontWeight = FontWeight.Medium)
                         
