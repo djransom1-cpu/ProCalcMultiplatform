@@ -9,7 +9,9 @@ import androidx.compose.material.icons.outlined.Cottage
 import androidx.compose.material.icons.outlined.CropSquare
 import androidx.compose.material.icons.outlined.Deck
 import androidx.compose.material.icons.outlined.Fence
+import androidx.compose.material.icons.outlined.Height
 import androidx.compose.material.icons.outlined.FormatListNumbered
+import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Foundation
 import androidx.compose.material.icons.outlined.Landscape
 import androidx.compose.material.icons.outlined.Layers
@@ -52,11 +54,13 @@ val ToolCatalog = listOf(
     ToolInfo(Screen.CrownCalculator, "Crown Molding", "CROWN", GROUP_CARPENTRY, Icons.Outlined.Waves),
     ToolInfo(Screen.ArcCalculator, "Arc / Radius", "ARC", GROUP_CARPENTRY, Icons.Outlined.RoundedCorner),
     ToolInfo(Screen.SquareCalculator, "Squaring / Diagonal", "SQUARE", GROUP_CARPENTRY, Icons.Outlined.CropSquare),
+    ToolInfo(Screen.StoryPole, "Story Pole", "STORY", GROUP_CARPENTRY, Icons.Outlined.Height),
     ToolInfo(Screen.PineLineCalculator, "Pine Line / Eave", "EAVE", GROUP_CARPENTRY, Icons.Outlined.Landscape),
     ToolInfo(Screen.ConcreteCalculator, "Concrete / Rebar", "CONCRETE", GROUP_CONCRETE, Icons.Outlined.Foundation),
     ToolInfo(Screen.MasonryCalculator, "Masonry Supply", "MASONRY", GROUP_CONCRETE, Icons.AutoMirrored.Outlined.ViewQuilt),
     ToolInfo(Screen.ColumnCalculator, "Round Column", "COLUMN", GROUP_CONCRETE, Icons.Outlined.RadioButtonUnchecked),
     ToolInfo(Screen.CoordinateCalculator, "Site Coordinates", "SITE", GROUP_SITE, Icons.Outlined.MyLocation),
+    ToolInfo(Screen.SurveyCalc, "Survey Calc", "S-CALC", GROUP_SITE, Icons.Outlined.Explore),
     ToolInfo(Screen.DrywallCalculator, "Drywall Finish", "DRYWALL", GROUP_SITE, Icons.Outlined.Layers),
     ToolInfo(Screen.TrigCalculator, "Trig Solver", "TRIG", GROUP_SITE, Icons.Outlined.Architecture),
     ToolInfo(Screen.LayoutMarks, "Layout Marks", "MARKS", GROUP_SITE, Icons.Outlined.FormatListNumbered),
