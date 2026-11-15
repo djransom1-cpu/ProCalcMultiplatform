@@ -1,4 +1,4 @@
-name: Build Check (Android + Wasm)
+name: Build Check (Android + Wasm + Desktop)
 
 on:
   push:
@@ -36,3 +36,6 @@ jobs:
 
     - name: 🤖 Compile Android
       run: ./gradlew :composeApp:compileDebugKotlinAndroid
+
+    - name: 🖥️ Compile Desktop
+      run: ./gradlew :composeApp:compileKotlinDesktop
