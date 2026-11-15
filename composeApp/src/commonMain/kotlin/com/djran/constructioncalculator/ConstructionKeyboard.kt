@@ -109,6 +109,18 @@ fun ConstructionTextField(
     modifier: Modifier = Modifier,
     onFocus: (String, (String) -> Unit) -> Unit
 ) {
+    // Desktop: type straight into the field with the real keyboard
+    if (typeOnKeyboard) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(label) },
+            placeholder = { Text(placeholder) },
+            singleLine = true,
+            modifier = modifier
+        )
+        return
+    }
     // Theme colours, like the tools' other text fields
     OutlinedTextField(
         value = value,

@@ -591,6 +591,10 @@ class PersistenceManager(private val settings: Settings? = null) {
 }
 
 val BlueTool = Color(0xFF0A2A66)
+
+/** Desktop split view: window width where it starts, and the home page's width. */
+val SplitMinWidth = 1000.dp
+val SplitHomeWidth = 440.dp
 val LabelRed = Color(0xFFD32F2F)
 val GrayBtn = Color(0xFF7A7A7A)
 
@@ -637,6 +641,8 @@ fun App() {
     var editingFavorites by remember { mutableStateOf(false) }
     var lastCalcScreen by remember { mutableStateOf(Screen.Calculator) }
     var backTo by remember { mutableStateOf(Screen.Calculator) }
+    // Desktop split view: what the right side shows while the calculator is the current page
+    var splitRightScreen by remember { mutableStateOf(Screen.JobSummary) }
 
     var isMetricMode by remember { mutableStateOf(uiPrefs.startMetric) }
 
@@ -900,7 +906,11 @@ fun App() {
         goTo(screen)
     }
 
-    fun goBack() = goTo(backTo)
+    fun goBack() {
+        // Desktop split view: closing a tool puts the Data Sheet back on the right
+        if (currentScreen !in CalcModeScreens && backTo in CalcModeScreens) splitRightScreen = Screen.JobSummary
+        goTo(backTo)
+    }
 
     fun openAccount() = open(Screen.Account)
 
@@ -992,17 +1002,39 @@ fun App() {
     val lightScreen = currentScreen !in ShellScreens && toolFor(currentScreen) == null
     SystemBarsAppearance(darkBackground = darkActive, followSystem = uiPrefs.appearance == Appearance.System)
 
+    LaunchedEffect(currentScreen) {
+        if (currentScreen !in CalcModeScreens) splitRightScreen = currentScreen
+    }
+
+    // Desktop: typing goes to the calculator when no field has focus
+    DisposableEffect(Unit) {
+        HardwareCalcInput.handler = { key ->
+            val action = when (key) {
+                "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "." -> CalcAction.Digit(key)
+                "+", "-" -> CalcAction.Op(key)
+                "*", "x", "X" -> CalcAction.Op("X")
+                "÷" -> CalcAction.Op("/")
+                "/" -> CalcAction.Slash
+                "'" -> CalcAction.Feet
+                "\"" -> CalcAction.Inch
+                " " -> CalcAction.Space
+                "=", "ENTER" -> CalcAction.Equals
+                "BACK" -> CalcAction.Backspace
+                "DELETE", "c", "C" -> CalcAction.Clear
+                else -> null
+            }
+            if (action != null && (currentScreen in CalcModeScreens || wideSplitLayout)) { handleAction(action); true } else false
+        }
+        onDispose { HardwareCalcInput.handler = null }
+    }
+
     // Back swipe or button: closes the tool keyboard first, then the tool, help or account screen
     BackGesture(enabled = currentScreen in SubScreens, onBack = ::goBack)
     BackGesture(enabled = keyboardVisible, onBack = ::hideKeyboard)
 
-    ProCalcTheme(dark = darkActive) {
-        Column(modifier = Modifier.fillMaxSize().background(LocalAppColors.current.bg)) {
-            Spacer(modifier = Modifier.fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars))
-            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                ProCalcTheme(dark = darkActive && !lightScreen) {
-                    Box(modifier = Modifier.fillMaxSize().background(LocalAppColors.current.bg)) {
-                        when (currentScreen) {
+    // Every page of the app, by screen; the phone shows one, a wide desktop window shows two
+    val screenContent: @Composable (Screen) -> Unit = { screen ->
+when (screen) {
                             Screen.Calculator -> CalculatorScreen(
                                 projectName = currentProjectName,
                                 onProjectClick = { goTo(Screen.ProjectList) },
@@ -1027,7 +1059,7 @@ fun App() {
                             )
 
                             Screen.ScientificCalculator, Screen.GraphingCalculator -> ScientificScreen(
-                                graphing = currentScreen == Screen.GraphingCalculator,
+                                graphing = screen == Screen.GraphingCalculator,
                                 projectName = currentProjectName,
                                 onProjectClick = { goTo(Screen.ProjectList) },
                                 cloudSync = cloudSync,
@@ -1387,9 +1419,13 @@ fun App() {
                                 onBack = ::goBack
                             )
                         }
-                    }
-                }
+    }
 
+    ProCalcTheme(dark = darkActive) {
+        Column(modifier = Modifier.fillMaxSize().background(LocalAppColors.current.bg)) {
+            Spacer(modifier = Modifier.fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars))
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                val keyboardOverlay: @Composable () -> Unit = {
                 // Custom Keyboard Overlay
                 if (keyboardVisible) {
                     Box(
@@ -1407,6 +1443,34 @@ fun App() {
                             onHide = ::hideKeyboard
                         )
                     }
+                }
+                }
+                if (wideSplitLayout && maxWidth >= SplitMinWidth) {
+                    // Desktop: home page on the left, the page you're on to the right
+                    val leftScreen = if (currentScreen in CalcModeScreens) currentScreen else lastCalcScreen
+                    val rightScreen = if (currentScreen in CalcModeScreens) splitRightScreen else currentScreen
+                    val lightRight = rightScreen !in ShellScreens && toolFor(rightScreen) == null
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        Box(modifier = Modifier.width(SplitHomeWidth).fillMaxHeight().background(LocalAppColors.current.bg)) {
+                            screenContent(leftScreen)
+                        }
+                        Box(modifier = Modifier.width(1.dp).fillMaxHeight().background(LocalAppColors.current.line))
+                        Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                            ProCalcTheme(dark = darkActive && !lightRight) {
+                                Box(modifier = Modifier.fillMaxSize().background(LocalAppColors.current.bg)) {
+                                    screenContent(rightScreen)
+                                }
+                            }
+                            keyboardOverlay()
+                        }
+                    }
+                } else {
+                    ProCalcTheme(dark = darkActive && !lightScreen) {
+                        Box(modifier = Modifier.fillMaxSize().background(LocalAppColors.current.bg)) {
+                            screenContent(currentScreen)
+                        }
+                    }
+                    keyboardOverlay()
                 }
             }
             BottomNav(current = tabFor(currentScreen), onSelect = ::selectTab)

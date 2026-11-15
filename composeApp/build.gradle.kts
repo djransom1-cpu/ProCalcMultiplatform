@@ -30,6 +30,9 @@ kotlin {
         }
     }
     
+    // Desktop (Windows, Mac, Linux): same app in a window, with the split home/page layout
+    jvm("desktop")
+
     @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
     wasmJs {
         outputModuleName.set("composeApp")
@@ -52,6 +55,12 @@ kotlin {
             implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
             implementation(libs.kotlinx.serialization.json)
             implementation("com.russhwolf:multiplatform-settings-no-arg:1.1.1")
+        }
+        val desktopMain by getting {
+            dependencies {
+                implementation(compose.desktop.currentOs)
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.10.2")
+            }
         }
         androidMain.dependencies {
             implementation(libs.androidx.appcompat)
@@ -99,4 +108,24 @@ android {
 firebaseAppDistribution {
     appId = "1:622603052731:android:c036b1e87656e0b784eb9e"
     groups = "testers"
+}
+
+compose.desktop {
+    application {
+        mainClass = "com.djran.constructioncalculator.MainKt"
+        nativeDistributions {
+            targetFormats(TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Dmg)
+            packageName = "ProCalc"
+            packageVersion = "1.0.0"
+            description = "ProCalc construction calculator"
+            vendor = "Construction App Builders LLC"
+            windows {
+                menuGroup = "ProCalc"
+                shortcut = true
+                dirChooser = true
+                perUserInstall = true
+                upgradeUuid = "6f1d2c1e-6a43-4f0e-9b7a-2f5d8a8e4c31"
+            }
+        }
+    }
 }
