@@ -22,6 +22,7 @@ jobs:
         export DISPLAY=:99
         java -jar composeApp/build/compose/jars/*.jar > app.log 2>&1 &
         sleep 25
+        xdotool type --delay 120 "12'6+3'2="; sleep 2
         import -window root shot1.png
         WID=$(xdotool search --name ProCalc | head -1); echo "win $WID"
         xdotool mousemove 426 487 click 1; sleep 4

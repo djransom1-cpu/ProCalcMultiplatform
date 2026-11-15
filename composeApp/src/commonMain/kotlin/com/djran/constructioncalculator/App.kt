@@ -1006,6 +1006,28 @@ fun App() {
         if (currentScreen !in CalcModeScreens) splitRightScreen = currentScreen
     }
 
+    // Desktop: typing goes to the calculator when no field has focus
+    DisposableEffect(Unit) {
+        HardwareCalcInput.handler = { key ->
+            val action = when (key) {
+                "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "." -> CalcAction.Digit(key)
+                "+", "-" -> CalcAction.Op(key)
+                "*", "x", "X" -> CalcAction.Op("X")
+                "÷" -> CalcAction.Op("/")
+                "/" -> CalcAction.Slash
+                "'" -> CalcAction.Feet
+                "\"" -> CalcAction.Inch
+                " " -> CalcAction.Space
+                "=", "ENTER" -> CalcAction.Equals
+                "BACK" -> CalcAction.Backspace
+                "DELETE", "c", "C" -> CalcAction.Clear
+                else -> null
+            }
+            if (action != null && (currentScreen in CalcModeScreens || wideSplitLayout)) { handleAction(action); true } else false
+        }
+        onDispose { HardwareCalcInput.handler = null }
+    }
+
     // Back swipe or button: closes the tool keyboard first, then the tool, help or account screen
     BackGesture(enabled = currentScreen in SubScreens, onBack = ::goBack)
     BackGesture(enabled = keyboardVisible, onBack = ::hideKeyboard)

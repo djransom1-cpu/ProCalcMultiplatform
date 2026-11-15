@@ -4,6 +4,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.utf16CodePoint
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -21,6 +22,19 @@ fun main() = application {
         // Esc works like the phone's back gesture: closes the keypad, then the open tool
         onPreviewKeyEvent = { e ->
             if (e.type == KeyEventType.KeyDown && e.key == Key.Escape) DesktopBack.back() else false
+        },
+        // Keys no text field took go to the calculator
+        onKeyEvent = { e ->
+            if (e.type != KeyEventType.KeyDown) false else {
+                val key = when (e.key) {
+                    Key.Enter, Key.NumPadEnter -> "ENTER"
+                    Key.Backspace -> "BACK"
+                    Key.Delete -> "DELETE"
+                    Key.NumPadDivide -> "÷"
+                    else -> e.utf16CodePoint.takeIf { it > 31 }?.toChar()?.toString()
+                }
+                key != null && HardwareCalcInput.handler?.invoke(key) == true
+            }
         },
     ) {
         App()
