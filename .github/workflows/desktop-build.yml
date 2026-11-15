@@ -2,7 +2,7 @@ name: Desktop App (Windows installer)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "feature/desktop" ]
     paths: [ "composeApp/**", "gradle/**", "*.gradle.kts", ".github/workflows/desktop-build.yml" ]
   workflow_dispatch:
 
