@@ -24,12 +24,15 @@ jobs:
         sleep 25
         import -window root shot1.png
         WID=$(xdotool search --name ProCalc | head -1); echo "win $WID"
-        xdotool mousemove 1100 500 click 1; sleep 3
+        xdotool mousemove 426 487 click 1; sleep 4
         import -window root shot2.png
+        xdotool mousemove 760 215 click 1; sleep 1
+        xdotool type --delay 80 "24' 6"; sleep 2
+        import -window root shot3.png
         tail -20 app.log || true
     - name: Push screenshots
       run: |
-        mkdir -p /tmp/s && cp shot*.png app.log /tmp/s/
+        mkdir -p /tmp/s && cp shot*.png app.log /tmp/s/ || true
         git config user.name ci; git config user.email ci@example.com
         git checkout --orphan ci-shots && git rm -rfq . && cp /tmp/s/* . && git add shot*.png app.log
         git commit -qm "screenshots $GITHUB_SHA" && git push -f origin ci-shots
