@@ -1,0 +1,17 @@
+name: Desktop jar (test)
+on:
+  push:
+    branches: [ "feature/desktop" ]
+jobs:
+  jar:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
+      with: { distribution: 'temurin', java-version: '17', cache: 'gradle' }
+    - run: chmod +x gradlew
+    - run: |
+        [ -f composeApp/google-services.json ] || echo '{"project_info":{"project_number":"000000000000","project_id":"ci-placeholder","storage_bucket":"ci-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000","android_client_info":{"package_name":"com.djran.constructioncalculator.multi"}},"oauth_client":[],"api_key":[{"current_key":"ci-placeholder"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}' > composeApp/google-services.json
+    - run: ./gradlew :composeApp:packageUberJarForCurrentOS
+    - uses: actions/upload-artifact@v4
+      with: { name: procalc-linux-jar, path: composeApp/build/compose/jars/*.jar }
