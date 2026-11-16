@@ -363,7 +363,12 @@ data class CircularStairEntry(
     val outerArcTread: String = "",
     val innerArcTread: String = "",
     val outsideRadius: String = "",
-    val anglePerTread: String = ""
+    val anglePerTread: String = "",
+    /** Walk-line tread depth (12" from the narrow side); blank on older saves, which use circleSize. */
+    val walkLineTread: String = "",
+    val spaceLength: String = "",
+    val spaceWidth: String = "",
+    val stepRise: String = ""
 )
 
 @Serializable
@@ -460,6 +465,8 @@ object SummaryReportGenerator {
         }
         if (circularStairEntries.isNotEmpty()) {
             sections.add(SummarySection("CIRCULAR STAIR SCHEDULE", listOf("Name", "Rise", "Inner Rad", "Tread W", "Treads", "Circle", "Out Radius", "Angle/Trd"), circularStairEntries.map { listOf(it.name, it.totalRise, it.radius, it.walkTread, it.numTreads, it.circleSize, it.outsideRadius, it.anglePerTread) }))
+            // Code check, layout and material list for each stair, with its drawing (like Android)
+            circularStairEntries.forEach { e -> CircStairMath.fromEntry(e)?.let { r -> sections.add(SummarySection("CIRCULAR STAIR: ${e.name}", listOf("Detail"), CircStairMath.reportLines(r).map { listOf(it) })) } }
         }
         if (rafterEntries.isNotEmpty()) {
             sections.add(SummarySection("RAFTER SCHEDULE", listOf("Name", "Span", "Pitch", "Heel", "O/H", "Com Len", "Hip Len", "Jack 16"), rafterEntries.map { listOf(it.name, if (it.isShed) "${it.span} (shed run)" else it.span, it.pitch, it.heel, it.overhang, it.commonLen, it.hipLen, it.jack16) }))
@@ -1323,7 +1330,8 @@ when (screen) {
                                     allArcEntries[name] ?: emptyList(),
                                     allFloorEntries[name] ?: emptyList(),
                                     reportMeasurer,
-                                    allStoryPoles[name] ?: emptyList()
+                                    allStoryPoles[name] ?: emptyList(),
+                                    allCircularStairEntries[name] ?: emptyList()
                                 )
                                 // Like the app's project list: pick up new and changed cloud projects on open
                                 LaunchedEffect(cloudSync.user) {
@@ -2618,7 +2626,7 @@ fun JobSummaryScreen(
                     framingEntries, pineLineEntries, coordinatePaths
                 ) + DataSheetExtras.sections(storyPoles, surveyRecords)
                 val withDrawings = ReportDrawings.attach(
-                    sections, stairEntries, rafterEntries, gazeboEntries, arcEntries, floorEntries, reportMeasurer, storyPoles
+                    sections, stairEntries, rafterEntries, gazeboEntries, arcEntries, floorEntries, reportMeasurer, storyPoles, circularStairEntries
                 )
                 pdfExportProvider.share(projectName, withDrawings)
             }) {
@@ -2703,6 +2711,13 @@ fun JobSummaryScreen(
                                 TableCell(entry.radius, 90.dp); TableCell(entry.walkTread, 80.dp)
                                 TableCell(entry.numTreads, 60.dp); TableCell(entry.circleSize, 70.dp)
                                 TableCell(entry.outsideRadius, 90.dp); TableCell(entry.anglePerTread, 80.dp)
+                            }
+                            CircStairMath.fromEntry(entry)?.let { r ->
+                                Column(Modifier.padding(bottom = 8.dp)) {
+                                    CircStairMath.reportLines(r).forEach { Text(it, fontSize = 12.sp, color = Color.DarkGray) }
+                                    Spacer(Modifier.height(6.dp))
+                                    CircStairDrawing(r)
+                                }
                             }
                             Divider()
                         }
@@ -6446,192 +6461,6 @@ fun ColumnCalculator(
 }
 
 
-
-@Composable
-fun CircularStairCalculator(
-    entries: List<CircularStairEntry>,
-    onUpdateEntries: (List<CircularStairEntry>) -> Unit,
-    onBack: () -> Unit,
-    onFocus: (String, (String) -> Unit) -> Unit
-) {
-    var totalRise by remember { mutableStateOf("") }
-    var innerRadius by remember { mutableStateOf("18") }
-    var treadWidth by remember { mutableStateOf("45") }
-    var numTreads by remember { mutableStateOf("8") }
-    var straightTreads by remember { mutableStateOf("0") }
-    var straightRun by remember { mutableStateOf("10") }
-    var nosing by remember { mutableStateOf("1") }
-    var circleSize by remember { mutableStateOf("2/4") }
-    var sectionName by remember { mutableStateOf("") }
-
-    var results by remember { mutableStateOf<CircularStairEngine.CircStairResult?>(null) }
-    var editingIndex by remember { mutableStateOf(-1) }
-
-    ToolScreen(Screen.CircularStairCalculator, onBack) {
-
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("STAIR DIMENSIONS", color = AppTheme.colors.accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ConstructionTextField(value = totalRise, onValueChange = { totalRise = it }, label = "Total Rise (ft/in)", modifier = Modifier.weight(1f), onFocus = onFocus)
-                Spacer(modifier = Modifier.width(8.dp))
-                ConstructionTextField(value = innerRadius, onValueChange = { innerRadius = it }, label = "Inner Radius (in)", modifier = Modifier.weight(1f), onFocus = onFocus)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ConstructionTextField(value = treadWidth, onValueChange = { treadWidth = it }, label = "Tread Width (in)", modifier = Modifier.weight(1f), onFocus = onFocus)
-                Spacer(modifier = Modifier.width(8.dp))
-                ConstructionTextField(value = numTreads, onValueChange = { numTreads = it }, label = "Num Treads", modifier = Modifier.weight(1f), onFocus = onFocus)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ConstructionTextField(value = straightTreads, onValueChange = { straightTreads = it }, label = "Straight Treads", modifier = Modifier.weight(1f), onFocus = onFocus)
-                Spacer(modifier = Modifier.width(8.dp))
-                ConstructionTextField(value = straightRun, onValueChange = { straightRun = it }, label = "Straight Run (in)", modifier = Modifier.weight(1f), onFocus = onFocus)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ConstructionTextField(value = nosing, onValueChange = { nosing = it }, label = "Nosing (in)", modifier = Modifier.weight(1f), onFocus = onFocus)
-                Spacer(modifier = Modifier.width(8.dp))
-                ConstructionTextField(value = circleSize, onValueChange = { circleSize = it }, label = "Circle Size (e.g. 2/4)", modifier = Modifier.weight(1f), onFocus = onFocus)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(value = sectionName, onValueChange = { sectionName = it }, label = { Text("Section Name") }, modifier = Modifier.fillMaxWidth())
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Button(
-                    onClick = {
-                        val tr = FractionUtils.parse(totalRise)
-                        val ir = FractionUtils.parse(innerRadius)
-                        val tw = FractionUtils.parse(treadWidth)
-                        val nt = numTreads.toDoubleOrNull() ?: 1.0
-                        val st = straightTreads.toDoubleOrNull() ?: 0.0
-                        var circleFactor = 0.5
-                        if (circleSize.contains("/")) {
-                            val parts = circleSize.split("/")
-                            if (parts.size == 2) {
-                                val n = parts[0].toDoubleOrNull() ?: 2.0
-                                val d = parts[1].toDoubleOrNull() ?: 4.0
-                                circleFactor = if (d != 0.0) n / d else 0.5
-                            }
-                        }
-                        if (tr > 0 && ir > 0) {
-                            val res = CircularStairEngine.calculate(tr, ir, tw, nt, st, circleFactor)
-                            results = res
-                            val entry = CircularStairEntry(
-                                id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
-                                name = sectionName.ifEmpty { "Spiral Section" },
-                                totalRise = totalRise,
-                                radius = innerRadius,
-                                walkTread = treadWidth,
-                                numTreads = numTreads,
-                                straightTreads = straightTreads,
-                                straightRun = straightRun,
-                                nosing = nosing,
-                                circleSize = circleSize,
-                                outerArcTread = FractionUtils.formatInches(res.outerArcTread),
-                                innerArcTread = FractionUtils.formatInches(res.innerArcTread),
-                                outsideRadius = FractionUtils.formatInches(res.outsideRadius),
-                                anglePerTread = "${res.anglePerTread.roundToOneDecimal()}°"
-                            )
-                            if (editingIndex != -1) {
-                                val newList = entries.toMutableList(); newList[editingIndex] = entry
-                                onUpdateEntries(newList); editingIndex = -1
-                            } else { onUpdateEntries(entries + entry) }
-                            sectionName = ""
-                        }
-                    },
-                    modifier = Modifier.weight(2f).height(64.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(backgroundColor = AppTheme.colors.eq, contentColor = AppTheme.colors.eqInk)
-                ) { Text("CALCULATE & SAVE") }
-            }
-
-            results?.let { res ->
-                Spacer(modifier = Modifier.height(24.dp))
-                Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("SPIRAL LAYOUT", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent, fontSize = 12.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Outside Radius: ${FractionUtils.formatInches(res.outsideRadius)}", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                        Text("Angle per Tread: ${res.anglePerTread.roundToOneDecimal()}°", fontSize = 14.sp)
-                        Text("Actual Rise: ${FractionUtils.formatInches(res.actualRise)}", fontSize = 14.sp)
-                        Divider(modifier = Modifier.padding(vertical = 8.dp))
-                        Text("Arc per Tread (Outer / Inner):", fontSize = 12.sp, color = AppTheme.colors.muted)
-                        Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Outer Arc", fontSize = 11.sp, color = AppTheme.colors.muted)
-                                Text(FractionUtils.formatInches(res.outerArcTread), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = AppTheme.colors.accent)
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Inner Arc", fontSize = 11.sp, color = AppTheme.colors.muted)
-                                Text(FractionUtils.formatInches(res.innerArcTread), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = AppTheme.colors.accent)
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Circle Portion (Outer / Inner):", fontSize = 12.sp, color = AppTheme.colors.muted)
-                        Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(FractionUtils.formatInches(res.outerCircPortion), fontWeight = FontWeight.Bold)
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(FractionUtils.formatInches(res.innerCircPortion), fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (entries.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(24.dp))
-                Divider()
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("SAVED SPIRAL STAIRS", color = AppTheme.colors.muted, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-
-                entries.reversed().forEachIndexed { index, entry ->
-                    Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.padding(vertical = 4.dp)) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(entry.name, fontWeight = FontWeight.Bold)
-                                    Text("Rise: ${entry.totalRise} | ${entry.numTreads} Treads | Circle: ${entry.circleSize}", fontSize = 12.sp, color = AppTheme.colors.muted)
-                                }
-                                IconButton(onClick = {
-                                    editingIndex = entries.size - 1 - index
-                                    sectionName = entry.name
-                                    totalRise = entry.totalRise
-                                    innerRadius = entry.radius
-                                    treadWidth = entry.walkTread
-                                    numTreads = entry.numTreads
-                                    straightTreads = entry.straightTreads
-                                    straightRun = entry.straightRun
-                                    nosing = entry.nosing
-                                    circleSize = entry.circleSize
-                                }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = AppTheme.colors.muted) }
-                                IconButton(onClick = {
-                                    val newList = entries.toMutableList()
-                                    newList.removeAt(entries.size - 1 - index)
-                                    onUpdateEntries(newList)
-                                }) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = AppTheme.colors.muted) }
-                            }
-                            Divider(modifier = Modifier.padding(vertical = 4.dp))
-                            Text(
-                                "Outside Radius: ${entry.outsideRadius} | Angle/Tread: ${entry.anglePerTread}",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = AppTheme.colors.accent
-                            )
-                            Text("Outer Arc: ${entry.outerArcTread} | Inner Arc: ${entry.innerArcTread}", fontSize = 12.sp, color = AppTheme.colors.muted)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun CalculatorHelpScreen(onBack: () -> Unit) {
