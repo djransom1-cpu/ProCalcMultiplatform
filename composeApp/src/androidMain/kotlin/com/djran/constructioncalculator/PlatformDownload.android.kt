@@ -15,10 +15,12 @@ actual fun rememberFileDownloader(): FileDownloader {
 }
 
 class AndroidFileDownloader(private val context: Context) : FileDownloader {
-    override fun downloadFile(fileName: String, content: String, mimeType: String) {
+    override fun downloadFile(fileName: String, content: String, mimeType: String) = downloadBytes(fileName, content.toByteArray(), mimeType)
+
+    override fun downloadBytes(fileName: String, bytes: ByteArray, mimeType: String) {
         try {
             val file = File(context.cacheDir, fileName)
-            FileOutputStream(file).use { it.write(content.toByteArray()) }
+            FileOutputStream(file).use { it.write(bytes) }
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = mimeType

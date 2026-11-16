@@ -600,8 +600,7 @@ data class AppState(
     val allLandSurvey: Map<String, List<LandSurveyEntry>> = emptyMap(),
     val allTextNotes: Map<String, String> = emptyMap(),
     val allNoteShapes: Map<String, List<NoteShape>> = emptyMap(),
-    val allCoordLines: Map<String, List<CoordLine>> = emptyMap(),
-    val allCoordClosed: Map<String, Boolean> = emptyMap()
+    val allCoordLines: Map<String, List<CoordLine>> = emptyMap()
 )
 
 
@@ -638,8 +637,7 @@ fun AppState.renamed(old: String, new: String): AppState {
         allLandSurvey = allLandSurvey.rk(old, new),
         allTextNotes = allTextNotes.rk(old, new),
         allNoteShapes = allNoteShapes.rk(old, new),
-        allCoordLines = allCoordLines.rk(old, new),
-        allCoordClosed = allCoordClosed.rk(old, new)
+        allCoordLines = allCoordLines.rk(old, new)
     )
 }
 
@@ -726,7 +724,6 @@ fun App() {
     var allTextNotes by remember { mutableStateOf(initialData?.allTextNotes ?: mapOf()) }
     var allNoteShapes by remember { mutableStateOf(initialData?.allNoteShapes ?: mapOf()) }
     var allCoordLines by remember { mutableStateOf(initialData?.allCoordLines ?: mapOf()) }
-    var allCoordClosed by remember { mutableStateOf(initialData?.allCoordClosed ?: mapOf()) }
 
     // Menu settings, calculation history and calculator panels
     val uiStore = remember { UiStore(appSettings) }
@@ -761,7 +758,7 @@ fun App() {
         focusManager.clearFocus()
     }
 
-    fun currentAppState() = AppState(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks, allStoryPoles, allSurveyRecords, allGradeEntries, allLandSurvey, allTextNotes, allNoteShapes, allCoordLines, allCoordClosed)
+    fun currentAppState() = AppState(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks, allStoryPoles, allSurveyRecords, allGradeEntries, allLandSurvey, allTextNotes, allNoteShapes, allCoordLines)
 
     fun applyAppState(state: AppState) {
         projectList = state.projectList
@@ -794,11 +791,10 @@ fun App() {
         allTextNotes = state.allTextNotes
         allNoteShapes = state.allNoteShapes
         allCoordLines = state.allCoordLines
-        allCoordClosed = state.allCoordClosed
     }
 
     // Auto-save whenever critical state changes
-    LaunchedEffect(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks, allStoryPoles, allSurveyRecords, allGradeEntries, allLandSurvey, allTextNotes, allNoteShapes, allCoordLines, allCoordClosed) {
+    LaunchedEffect(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks, allStoryPoles, allSurveyRecords, allGradeEntries, allLandSurvey, allTextNotes, allNoteShapes, allCoordLines) {
         persistenceManager.saveState(currentAppState())
     }
 
@@ -1272,8 +1268,6 @@ when (screen) {
                                 },
                                 lines = allCoordLines[currentProjectName] ?: emptyList(),
                                 onLines = { l -> allCoordLines = allCoordLines + (currentProjectName to l) },
-                                closed = allCoordClosed[currentProjectName] ?: false,
-                                onClosed = { c -> allCoordClosed = allCoordClosed + (currentProjectName to c) },
                                 onSend = { scr -> open(scr) },
                                 onBack = ::goBack,
                                 onFocus = openKeyboard
@@ -1439,6 +1433,12 @@ when (screen) {
                                     allCircularStairEntries[name] ?: emptyList(),
                                     allRoofEntries[name] ?: emptyList()
                                 )
+                                val ccpSaver = rememberFileDownloader()
+                                var importMessage by remember { mutableStateOf<String?>(null) }
+                                val pickCcp = rememberFilePicker { bytes ->
+                                    val r = ProjectPackage.import(currentAppState(), bytes)
+                                    importMessage = if (r == null) "That file isn't a ProCalc project (.ccp)." else { applyAppState(r.first); "Imported \"${r.second}\"" }
+                                }
                                 // Like the app's project list: pick up new and changed cloud projects on open
                                 LaunchedEffect(cloudSync.user) {
                                     cloudSync.mergeCloudProjects(::currentAppState, ::applyAppState)
@@ -1524,6 +1524,9 @@ when (screen) {
                                         }
                                         pdfProvider.share("Master_Report", allSections)
                                     },
+                                    onExportProject = { name -> ccpSaver.downloadBytes("Project_${name.replace(" ", "_")}.ccp", ProjectPackage.export(currentAppState(), name)) },
+                                    onImportProject = pickCcp,
+                                    importMessage = importMessage,
                                     onBack = { currentScreen = Screen.Calculator }
                                 )
                             }
@@ -1661,8 +1664,6 @@ fun CoordinateCalculator(
     onUpdatePaths: (List<PlottedPath>) -> Unit,
     lines: List<CoordLine> = emptyList(),
     onLines: (List<CoordLine>) -> Unit = {},
-    closed: Boolean = false,
-    onClosed: (Boolean) -> Unit = {},
     onSend: (Screen) -> Unit = {},
     onBack: () -> Unit,
     onFocus: (String, (String) -> Unit) -> Unit
@@ -1688,6 +1689,9 @@ fun CoordinateCalculator(
     var editingPathIdx by remember { mutableStateOf(-1) }
     var editingPtIdx by remember { mutableStateOf(-1) }
 
+    // Close the loop is one setting for the project, kept on each path (the phone's closed_<project> flag)
+    val closed = paths.any { it.isClosed }
+    val onClosed: (Boolean) -> Unit = { c -> onUpdatePaths(paths.map { it.copy(isClosed = c) }) }
     var showTakeoffDialog by remember { mutableStateOf(false) }
     var showLines by remember { mutableStateOf(false) }
     var mapTool by remember { mutableStateOf<String?>(null) }
