@@ -52,9 +52,15 @@ object ReportDrawings {
         gazeboEntries: List<GazeboEntry>,
         arcEntries: List<ArcEntry>,
         floorEntries: List<FloorEntry>,
-        measurer: TextMeasurer
+        measurer: TextMeasurer,
+        storyPoles: List<SavedStoryPole> = emptyList()
     ): List<SummarySection> = sections.map { section ->
-        val images: List<ReportImage> = if (section.title.startsWith("JACK RAFTERS: ")) {
+        val images: List<ReportImage> = if (section.title.startsWith("STORY POLE: ")) {
+            val name = section.title.removePrefix("STORY POLE: ")
+            storyPoles.firstOrNull { it.name == name }?.toPole()?.let { p ->
+                listOfNotNull(render("$name – story pole", 110 + 52 * p.layers.size, insetDp = 4) { drawStoryPole(p, measurer) })
+            } ?: emptyList()
+        } else if (section.title.startsWith("JACK RAFTERS: ")) {
             // Jack rafter plan for that saved rafter entry
             val name = section.title.removePrefix("JACK RAFTERS: ")
             rafterEntries.firstOrNull { it.name == name }?.let { JackResults.fromEntry(it) }?.let { jc ->

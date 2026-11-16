@@ -562,7 +562,9 @@ data class AppState(
     val allColumnEntries: Map<String, List<ColumnEntry>> = emptyMap(),
     val allFramingEntries: Map<String, List<FramingEntry>> = emptyMap(),
     val allJobNotes: Map<String, List<SerializablePath>> = emptyMap(),
-    val cloudLinks: Map<String, CloudLink> = emptyMap()
+    val cloudLinks: Map<String, CloudLink> = emptyMap(),
+    val allStoryPoles: Map<String, List<SavedStoryPole>> = emptyMap(),
+    val allSurveyRecords: Map<String, List<SurveyRecordEntry>> = emptyMap()
 )
 
 
@@ -639,6 +641,8 @@ fun App() {
     var allFramingEntries by remember { mutableStateOf(initialData?.allFramingEntries ?: mapOf()) }
     var allJobNotes by remember { mutableStateOf(initialData?.allJobNotes ?: mapOf()) }
     var cloudLinks by remember { mutableStateOf(initialData?.cloudLinks ?: mapOf()) }
+    var allStoryPoles by remember { mutableStateOf(initialData?.allStoryPoles ?: mapOf()) }
+    var allSurveyRecords by remember { mutableStateOf(initialData?.allSurveyRecords ?: mapOf()) }
 
     // Menu settings, calculation history and calculator panels
     val uiStore = remember { UiStore(appSettings) }
@@ -673,7 +677,7 @@ fun App() {
         focusManager.clearFocus()
     }
 
-    fun currentAppState() = AppState(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks)
+    fun currentAppState() = AppState(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks, allStoryPoles, allSurveyRecords)
 
     fun applyAppState(state: AppState) {
         projectList = state.projectList
@@ -699,10 +703,12 @@ fun App() {
         allFramingEntries = state.allFramingEntries
         allJobNotes = state.allJobNotes
         cloudLinks = state.cloudLinks
+        allStoryPoles = state.allStoryPoles
+        allSurveyRecords = state.allSurveyRecords
     }
 
     // Auto-save whenever critical state changes
-    LaunchedEffect(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks) {
+    LaunchedEffect(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks, allStoryPoles, allSurveyRecords) {
         persistenceManager.saveState(currentAppState())
     }
 
@@ -1249,9 +1255,21 @@ when (screen) {
 
                             Screen.SquareCalculator -> SquareCalculator(onBack = ::goBack, onFocus = openKeyboard)
 
-                            Screen.StoryPole -> StoryPoleCalculator(onBack = ::goBack, onFocus = openKeyboard)
+                            Screen.StoryPole -> StoryPoleCalculator(
+                                onBack = ::goBack, onFocus = openKeyboard, projectName = currentProjectName,
+                                onSaveToDataSheet = { pole ->
+                                    val saved = SavedStoryPole.of(pole)
+                                    val list = (allStoryPoles[currentProjectName] ?: emptyList()).filter { it.name != saved.name } + saved
+                                    allStoryPoles = allStoryPoles.toMutableMap().apply { put(currentProjectName, list) }
+                                }
+                            )
 
-                            Screen.SurveyCalc -> SurveyCalculator(onBack = ::goBack)
+                            Screen.SurveyCalc -> SurveyCalculator(
+                                onBack = ::goBack, projectName = currentProjectName,
+                                onSaveRecord = { rec ->
+                                    allSurveyRecords = allSurveyRecords.toMutableMap().apply { put(currentProjectName, (get(currentProjectName) ?: emptyList()) + rec) }
+                                }
+                            )
 
                             Screen.TrigCalculator -> TrigCalculator(
                                 entries = allTrigEntries[currentProjectName] ?: emptyList(),
@@ -1298,13 +1316,14 @@ when (screen) {
                                 val pdfProvider = rememberPdfExportProvider()
                                 val reportMeasurer = androidx.compose.ui.text.rememberTextMeasurer()
                                 fun withDrawings(name: String, sections: List<SummarySection>) = ReportDrawings.attach(
-                                    sections,
+                                    sections + DataSheetExtras.sections(allStoryPoles[name] ?: emptyList(), allSurveyRecords[name] ?: emptyList()),
                                     allStairEntries[name] ?: emptyList(),
                                     allRafterEntries[name] ?: emptyList(),
                                     allGazeboEntries[name] ?: emptyList(),
                                     allArcEntries[name] ?: emptyList(),
                                     allFloorEntries[name] ?: emptyList(),
-                                    reportMeasurer
+                                    reportMeasurer,
+                                    allStoryPoles[name] ?: emptyList()
                                 )
                                 // Like the app's project list: pick up new and changed cloud projects on open
                                 LaunchedEffect(cloudSync.user) {
@@ -1415,6 +1434,10 @@ when (screen) {
                                 circularStairEntries = allCircularStairEntries[currentProjectName] ?: emptyList(),
                                 trigEntries = allTrigEntries[currentProjectName] ?: emptyList(),
                                 columnEntries = allColumnEntries[currentProjectName] ?: emptyList(),
+                                storyPoles = allStoryPoles[currentProjectName] ?: emptyList(),
+                                surveyRecords = allSurveyRecords[currentProjectName] ?: emptyList(),
+                                onRemovePole = { i -> allStoryPoles = allStoryPoles.toMutableMap().apply { put(currentProjectName, (get(currentProjectName) ?: emptyList()).filterIndexed { k, _ -> k != i }) } },
+                                onRemoveRecord = { i -> allSurveyRecords = allSurveyRecords.toMutableMap().apply { put(currentProjectName, (get(currentProjectName) ?: emptyList()).filterIndexed { k, _ -> k != i }) } },
                                 onBack = { currentScreen = Screen.Calculator }
                             )
 
@@ -2567,6 +2590,10 @@ fun JobSummaryScreen(
     circularStairEntries: List<CircularStairEntry> = emptyList(),
     trigEntries: List<TrigEntry> = emptyList(),
     columnEntries: List<ColumnEntry> = emptyList(),
+    storyPoles: List<SavedStoryPole> = emptyList(),
+    surveyRecords: List<SurveyRecordEntry> = emptyList(),
+    onRemovePole: (Int) -> Unit = {},
+    onRemoveRecord: (Int) -> Unit = {},
     onBack: () -> Unit
 ) {
     val pdfExportProvider = rememberPdfExportProvider()
@@ -2589,9 +2616,9 @@ fun JobSummaryScreen(
                     masonryEntries, drywallEntries, trigEntries, columnEntries,
                     roofEntries, floorEntries, deckEntries, handrailEntries,
                     framingEntries, pineLineEntries, coordinatePaths
-                )
+                ) + DataSheetExtras.sections(storyPoles, surveyRecords)
                 val withDrawings = ReportDrawings.attach(
-                    sections, stairEntries, rafterEntries, gazeboEntries, arcEntries, floorEntries, reportMeasurer
+                    sections, stairEntries, rafterEntries, gazeboEntries, arcEntries, floorEntries, reportMeasurer, storyPoles
                 )
                 pdfExportProvider.share(projectName, withDrawings)
             }) {
@@ -2621,6 +2648,8 @@ fun JobSummaryScreen(
                     wallEntries.forEach { append("Walls,${it.name},1,${it.length}x${it.height},Studs: ${it.studs},Plates: ${it.plates}\n") }
                     roofEntries.forEach { append("Roof,${it.name},1,${it.dimensions},Area: ${it.area},Squares: ${it.squares}\n") }
                     floorEntries.forEach { append("Flooring,${it.name},1,${it.length}x${it.width},Joists: ${it.joists},Sheets: ${it.sheets}\n") }
+                    storyPoles.forEach { sp -> append("Story Pole,${sp.name},1,${sp.layers.size} layers,${DataSheetExtras.poleLines(sp.toPole()).last().replace(",", " ")},\n") }
+                    surveyRecords.forEach { r -> append("Survey,${r.name},1,${r.type},${if (r.ok == true) "PASS" else if (r.ok == false) "FAIL" else ""},${r.lines.firstOrNull()?.replace(",", " ") ?: ""}\n") }
                 }
                 downloader.downloadFile("${projectName.replace(" ", "_")}_Takeoff.csv", csvContent, "text/csv")
             }) {
@@ -2633,7 +2662,8 @@ fun JobSummaryScreen(
                     crownEntries.isEmpty() && gazeboEntries.isEmpty() && concreteEntries.isEmpty() && roofEntries.isEmpty() &&
                     coordinatePaths.isEmpty() && masonryEntries.isEmpty() && drywallEntries.isEmpty() &&
                     deckEntries.isEmpty() && floorEntries.isEmpty() && handrailEntries.isEmpty() && pineLineEntries.isEmpty() &&
-                    circularStairEntries.isEmpty() && trigEntries.isEmpty() && columnEntries.isEmpty() && framingEntries.isEmpty()
+                    circularStairEntries.isEmpty() && trigEntries.isEmpty() && columnEntries.isEmpty() && framingEntries.isEmpty() &&
+                    storyPoles.isEmpty() && surveyRecords.isEmpty()
 
             if (isEmpty) {
                 Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
@@ -2703,6 +2733,8 @@ fun JobSummaryScreen(
                         }
                     }
                 }
+
+                DataSheetExtrasSections(storyPoles, surveyRecords, onRemovePole, onRemoveRecord)
 
                 if (gazeboEntries.isNotEmpty()) {
                     SummaryTable("GAZEBO SCHEDULE", listOf("Name", "Sides", "Diam", "Pitch", "Area", "Com Len", "Hip Len")) {

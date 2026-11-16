@@ -76,7 +76,9 @@ private fun examplePoles(): List<Pole> {
 @Composable
 fun StoryPoleCalculator(
     onBack: () -> Unit,
-    onFocus: (String, (String) -> Unit) -> Unit
+    onFocus: (String, (String) -> Unit) -> Unit,
+    projectName: String = "",
+    onSaveToDataSheet: ((Pole) -> Unit)? = null
 ) {
     val c = AppTheme.colors
     val settings = remember { try { Settings() } catch (e: Throwable) { null } }
@@ -308,6 +310,14 @@ fun StoryPoleCalculator(
 
             // ---- actions ----
             SpCard {
+                if (onSaveToDataSheet != null && projectName.isNotBlank()) {
+                    var savedMsg by remember { mutableStateOf("") }
+                    Button(onClick = { onSaveToDataSheet(p.deepCopy()); savedMsg = "Saved \"${p.name}\" to the $projectName Data Sheet." },
+                        modifier = Modifier.fillMaxWidth(), enabled = StoryPoleMath.compute(p).ok,
+                        colors = ButtonDefaults.buttonColors(backgroundColor = c.eq, contentColor = c.eqInk)) { Text("Save to Data Sheet ($projectName)") }
+                    if (savedMsg.isNotEmpty()) SpHint(savedMsg)
+                    Spacer(Modifier.height(8.dp))
+                }
                 Row {
                     OutlinedButton(onClick = { poles.add(p.deepCopy().apply { name = "${p.name.ifBlank { "Pole" }} (copy)" }); active = poles.size - 1; touch() }, modifier = Modifier.weight(1f)) { Text("⧉ Duplicate") }
                     Spacer(Modifier.width(8.dp))
@@ -329,9 +339,14 @@ fun StoryPoleCalculator(
 @Composable
 fun StoryPoleDiagram(p: Pole, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
+    Canvas(modifier.background(Color.White)) { drawStoryPole(p, measurer) }
+}
+
+/** The story pole drawing, for the screen, the Data Sheet and the PDF report. */
+fun androidx.compose.ui.graphics.drawscope.DrawScope.drawStoryPole(p: Pole, measurer: androidx.compose.ui.text.TextMeasurer) {
     val r = StoryPoleMath.compute(p)
-    Canvas(modifier.background(Color.White)) {
-        if (!r.ok || p.layers.isEmpty()) return@Canvas
+    run {
+        if (!r.ok || p.layers.isEmpty()) return
         val w = size.width; val h = size.height
         val s = w / 400f
         val deltas = r.rows.map { it.delta ?: 0.0 }
