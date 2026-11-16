@@ -596,6 +596,38 @@ data class AppState(
 )
 
 
+/** Same project under a new name: every tool's entries, notes and cloud link move with it. */
+fun AppState.renamed(old: String, new: String): AppState {
+    fun <T> Map<String, T>.rk(o: String, n: String): Map<String, T> = if (o in this) (this - o) + (n to getValue(o)) else this
+    return copy(
+        projectList = projectList.map { if (it == old) new else it },
+        currentProjectName = if (currentProjectName == old) new else currentProjectName,
+        allStairEntries = allStairEntries.rk(old, new),
+        allRafterEntries = allRafterEntries.rk(old, new),
+        allArcEntries = allArcEntries.rk(old, new),
+        allWallEntries = allWallEntries.rk(old, new),
+        allCrownEntries = allCrownEntries.rk(old, new),
+        allGazeboEntries = allGazeboEntries.rk(old, new),
+        allConcreteEntries = allConcreteEntries.rk(old, new),
+        allRoofEntries = allRoofEntries.rk(old, new),
+        allCoordinatePaths = allCoordinatePaths.rk(old, new),
+        allMasonryEntries = allMasonryEntries.rk(old, new),
+        allDrywallEntries = allDrywallEntries.rk(old, new),
+        allDeckEntries = allDeckEntries.rk(old, new),
+        allFloorEntries = allFloorEntries.rk(old, new),
+        allHandrailEntries = allHandrailEntries.rk(old, new),
+        allPineLineEntries = allPineLineEntries.rk(old, new),
+        allCircularStairEntries = allCircularStairEntries.rk(old, new),
+        allTrigEntries = allTrigEntries.rk(old, new),
+        allColumnEntries = allColumnEntries.rk(old, new),
+        allFramingEntries = allFramingEntries.rk(old, new),
+        allJobNotes = allJobNotes.rk(old, new),
+        cloudLinks = cloudLinks.rk(old, new),
+        allStoryPoles = allStoryPoles.rk(old, new),
+        allSurveyRecords = allSurveyRecords.rk(old, new)
+    )
+}
+
 class PersistenceManager(private val settings: Settings? = null) {
     private val json = Json { 
         ignoreUnknownKeys = true 
@@ -1389,6 +1421,7 @@ when (screen) {
                                         cloudLinks = cloudLinks - name
                                         if (currentProjectName == name) currentProjectName = "Default"
                                     },
+                                    onRenameProject = { old, new -> applyAppState(currentAppState().renamed(old, new)) },
                                     onPrintProject = { name ->
                                         val sections = SummaryReportGenerator.generateSections(
                                             stairEntries = allStairEntries[name] ?: emptyList(),
