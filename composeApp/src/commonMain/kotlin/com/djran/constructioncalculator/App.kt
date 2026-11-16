@@ -357,7 +357,8 @@ data class PlottedPath(
     val points: List<CoordinatePoint> = emptyList(),
     val isTakeoff: Boolean = true,
     val isClosed: Boolean = false,
-    val arcHeights: List<Double> = emptyList()
+    val arcHeights: List<Double> = emptyList(),
+    val isHole: Boolean = false
 )
 
 @Serializable
@@ -598,7 +599,9 @@ data class AppState(
     val allGradeEntries: Map<String, List<GradeEntry>> = emptyMap(),
     val allLandSurvey: Map<String, List<LandSurveyEntry>> = emptyMap(),
     val allTextNotes: Map<String, String> = emptyMap(),
-    val allNoteShapes: Map<String, List<NoteShape>> = emptyMap()
+    val allNoteShapes: Map<String, List<NoteShape>> = emptyMap(),
+    val allCoordLines: Map<String, List<CoordLine>> = emptyMap(),
+    val allCoordClosed: Map<String, Boolean> = emptyMap()
 )
 
 
@@ -634,7 +637,9 @@ fun AppState.renamed(old: String, new: String): AppState {
         allGradeEntries = allGradeEntries.rk(old, new),
         allLandSurvey = allLandSurvey.rk(old, new),
         allTextNotes = allTextNotes.rk(old, new),
-        allNoteShapes = allNoteShapes.rk(old, new)
+        allNoteShapes = allNoteShapes.rk(old, new),
+        allCoordLines = allCoordLines.rk(old, new),
+        allCoordClosed = allCoordClosed.rk(old, new)
     )
 }
 
@@ -720,6 +725,8 @@ fun App() {
     var allLandSurvey by remember { mutableStateOf(initialData?.allLandSurvey ?: mapOf()) }
     var allTextNotes by remember { mutableStateOf(initialData?.allTextNotes ?: mapOf()) }
     var allNoteShapes by remember { mutableStateOf(initialData?.allNoteShapes ?: mapOf()) }
+    var allCoordLines by remember { mutableStateOf(initialData?.allCoordLines ?: mapOf()) }
+    var allCoordClosed by remember { mutableStateOf(initialData?.allCoordClosed ?: mapOf()) }
 
     // Menu settings, calculation history and calculator panels
     val uiStore = remember { UiStore(appSettings) }
@@ -754,7 +761,7 @@ fun App() {
         focusManager.clearFocus()
     }
 
-    fun currentAppState() = AppState(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks, allStoryPoles, allSurveyRecords, allGradeEntries, allLandSurvey, allTextNotes, allNoteShapes)
+    fun currentAppState() = AppState(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks, allStoryPoles, allSurveyRecords, allGradeEntries, allLandSurvey, allTextNotes, allNoteShapes, allCoordLines, allCoordClosed)
 
     fun applyAppState(state: AppState) {
         projectList = state.projectList
@@ -786,10 +793,12 @@ fun App() {
         allLandSurvey = state.allLandSurvey
         allTextNotes = state.allTextNotes
         allNoteShapes = state.allNoteShapes
+        allCoordLines = state.allCoordLines
+        allCoordClosed = state.allCoordClosed
     }
 
     // Auto-save whenever critical state changes
-    LaunchedEffect(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks, allStoryPoles, allSurveyRecords, allGradeEntries, allLandSurvey, allTextNotes, allNoteShapes) {
+    LaunchedEffect(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks, allStoryPoles, allSurveyRecords, allGradeEntries, allLandSurvey, allTextNotes, allNoteShapes, allCoordLines, allCoordClosed) {
         persistenceManager.saveState(currentAppState())
     }
 
@@ -1261,6 +1270,11 @@ when (screen) {
                                 onUpdatePaths = { newList ->
                                     allCoordinatePaths = allCoordinatePaths.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
+                                lines = allCoordLines[currentProjectName] ?: emptyList(),
+                                onLines = { l -> allCoordLines = allCoordLines + (currentProjectName to l) },
+                                closed = allCoordClosed[currentProjectName] ?: false,
+                                onClosed = { c -> allCoordClosed = allCoordClosed + (currentProjectName to c) },
+                                onSend = { scr -> open(scr) },
                                 onBack = ::goBack,
                                 onFocus = openKeyboard
                             )
@@ -1645,6 +1659,11 @@ sealed class CalcAction {
 fun CoordinateCalculator(
     paths: List<PlottedPath>,
     onUpdatePaths: (List<PlottedPath>) -> Unit,
+    lines: List<CoordLine> = emptyList(),
+    onLines: (List<CoordLine>) -> Unit = {},
+    closed: Boolean = false,
+    onClosed: (Boolean) -> Unit = {},
+    onSend: (Screen) -> Unit = {},
     onBack: () -> Unit,
     onFocus: (String, (String) -> Unit) -> Unit
 ) {
@@ -1670,6 +1689,10 @@ fun CoordinateCalculator(
     var editingPtIdx by remember { mutableStateOf(-1) }
 
     var showTakeoffDialog by remember { mutableStateOf(false) }
+    var showLines by remember { mutableStateOf(false) }
+    var mapTool by remember { mutableStateOf<String?>(null) }
+    var toolsMenu by remember { mutableStateOf(false) }
+    var zoom by remember { mutableStateOf(1f) }
     var mapView by remember { mutableStateOf(true) }
 
     // The map or list below fills the rest of the screen, so the page itself doesn't scroll
@@ -1783,7 +1806,7 @@ fun CoordinateCalculator(
             
             if (editingPtIdx == -1) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    TextButton(onClick = { /* Manage */ }) { Text("MANAGE LINES", fontSize = 12.sp) }
+                    TextButton(onClick = { showLines = true }) { Text("MANAGE LINES", fontSize = 12.sp) }
                     TextButton(onClick = { onUpdatePaths(emptyList()) }, colors = ButtonDefaults.textButtonColors(contentColor = AppTheme.colors.danger)) {
                         Text("RESET ALL", fontSize = 12.sp)
                     }
@@ -1793,11 +1816,26 @@ fun CoordinateCalculator(
 
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             if (mapView) {
-                CoordinateMapView(paths)
-                Column(modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) {
+                CoordinateMapView(paths, lines, closed, zoom)
+                Column(modifier = Modifier.align(Alignment.TopEnd).padding(16.dp), horizontalAlignment = Alignment.End) {
                     Button(onClick = { showTakeoffDialog = true }, colors = ButtonDefaults.buttonColors(backgroundColor = AppTheme.colors.eq)) {
                         Text("TAKE OFF", color = Color.White)
                     }
+                    Box {
+                        Button(onClick = { toolsMenu = true }, colors = ButtonDefaults.buttonColors(backgroundColor = AppTheme.colors.eq)) {
+                            Text("MAP TOOLS", color = Color.White)
+                        }
+                        DropdownMenu(expanded = toolsMenu, onDismissRequest = { toolsMenu = false }) {
+                            listOf("MEASURE ANGLE (CORNER)", "DIST BETWEEN 2 POINTS", "DIST BETWEEN 2 LINES", "PLOT POINTS ON LINE", "PLOT BY D.M.S. & DIST").forEach { t ->
+                                DropdownMenuItem(onClick = { toolsMenu = false; mapTool = t }) { Text(t) }
+                            }
+                        }
+                    }
+                }
+                Column(modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
+                    Button(onClick = { zoom = (zoom * 1.5f).coerceAtMost(20f) }, modifier = Modifier.size(48.dp), contentPadding = PaddingValues(0.dp)) { Text("+", fontSize = 22.sp) }
+                    Spacer(Modifier.height(6.dp))
+                    Button(onClick = { zoom = (zoom / 1.5f).coerceAtLeast(0.2f) }, modifier = Modifier.size(48.dp), contentPadding = PaddingValues(0.dp)) { Text("−", fontSize = 22.sp) }
                 }
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize().background(AppTheme.colors.surface)) {
@@ -1855,100 +1893,9 @@ fun CoordinateCalculator(
         }
     }
 
-    if (showTakeoffDialog) {
-        val takeoffPaths = paths.filter { it.isTakeoff }
-        val netArea = takeoffPaths.sumOf { path ->
-            CoordinateEngine.calculateNetArea(path.points.map { CoordinateEngine.Point(it.n, it.e) }, path.arcHeights)
-        }
-        val currentPerim = paths.lastOrNull()?.let { path ->
-            var p = 0.0
-            for (i in 0 until path.points.size - 1) {
-                p += CoordinateEngine.dist(CoordinateEngine.Point(path.points[i].n, path.points[i].e), CoordinateEngine.Point(path.points[i+1].n, path.points[i+1].e))
-            }
-            p
-        } ?: 0.0
-
-        AlertDialog(
-            onDismissRequest = { showTakeoffDialog = false },
-            title = { Text("Building Plot Takeoff", fontWeight = FontWeight.Bold) },
-            text = {
-                Column {
-                    Text("Summary Results:", fontSize = 14.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Current Path Perimeter: ${FractionUtils.formatInches(currentPerim)}")
-                    Text("Total Net Area: ${(netArea / 144.0).roundToOneDecimal()} sq ft", fontWeight = FontWeight.Bold)
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showTakeoffDialog = false }) { Text("CLOSE") }
-            }
-        )
-    }
-}
-
-@Composable
-fun CoordinateMapView(paths: List<PlottedPath>) {
-    Canvas(modifier = Modifier.fillMaxSize().background(Color.White)) {
-        if (paths.isEmpty()) return@Canvas
-        
-        val allPts = paths.flatMap { it.points }
-        val minN = allPts.minOf { it.n }; val maxN = allPts.maxOf { it.n }
-        val minE = allPts.minOf { it.e }; val maxE = allPts.maxOf { it.e }
-        
-        val rangeN = (maxN - minN).coerceAtLeast(120.0)
-        val rangeE = (maxE - minE).coerceAtLeast(120.0)
-        
-        val scale = min(size.height / rangeN, size.width / rangeE) * 0.8f
-        val centerN = (minN + maxN) / 2.0
-        val centerE = (minE + maxE) / 2.0
-        
-        fun getCanvasX(e: Double) = (size.width / 2f + (e - centerE) * scale).toFloat()
-        fun getCanvasY(n: Double) = (size.height / 2f - (n - centerN) * scale).toFloat()
-
-        paths.forEach { path ->
-            val color = if (path.isTakeoff) BlueTool else Color.Gray
-            val stroke = if (path.isTakeoff) 4f else 2f
-            
-            val canvasPath = Path()
-            if (path.points.isNotEmpty()) {
-                canvasPath.moveTo(getCanvasX(path.points[0].e), getCanvasY(path.points[0].n))
-                for (i in 0 until path.points.size - 1) {
-                    val p1 = path.points[i]
-                    val p2 = path.points[i+1]
-                    val h = path.arcHeights.getOrElse(i) { 0.0 }
-                    
-                    if (h == 0.0) {
-                        canvasPath.lineTo(getCanvasX(p2.e), getCanvasY(p2.n))
-                    } else {
-                        // Draw arc using quadratic bezier as approximation for visual speed
-                        // Control point calculation: midpoint + perpendicular vector scaled by 2*h
-                        val midX = (getCanvasX(p1.e) + getCanvasX(p2.e)) / 2f
-                        val midY = (getCanvasY(p1.n) + getCanvasY(p2.n)) / 2f
-                        
-                        val dx = getCanvasX(p2.e) - getCanvasX(p1.e)
-                        val dy = getCanvasY(p2.n) - getCanvasY(p1.n)
-                        val dist = sqrt(dx*dx + dy*dy)
-                        
-                        val hPx = (h * scale).toFloat()
-                        // Perpendicular vector (-dy, dx)
-                        val nx = -dy / dist
-                        val ny = dx / dist
-                        
-                        val ctrlX = midX + nx * hPx * 2f
-                        val ctrlY = midY + ny * hPx * 2f
-                        
-                        canvasPath.quadraticTo(ctrlX, ctrlY, getCanvasX(p2.e), getCanvasY(p2.n))
-                    }
-                }
-                drawPath(canvasPath, color, style = Stroke(stroke))
-            }
-            
-            // Draw points
-            path.points.forEach { pt ->
-                drawCircle(color = Color.Red, radius = 6f, center = androidx.compose.ui.geometry.Offset(getCanvasX(pt.e), getCanvasY(pt.n)))
-            }
-        }
-    }
+    if (showTakeoffDialog) CoordTakeoffDialog(paths, closed, onUpdatePaths, onSend = { scr -> showTakeoffDialog = false; onSend(scr) }, onDismiss = { showTakeoffDialog = false })
+    if (showLines) CoordLinesDialog(paths, lines, closed, onUpdatePaths, onLines, onClosed, onDismiss = { showLines = false })
+    mapTool?.let { t -> CoordToolDialog(t, paths, lines, closed, onUpdatePaths, onDismiss = { mapTool = null }) }
 }
 
 @Composable
@@ -1971,6 +1918,7 @@ fun RoofCalculator(
     var sectionName by remember { mutableStateOf("") }
 
     var results by remember { mutableStateOf<RoofEngine.RoofResult?>(null) }
+    LaunchedEffect(Unit) { ToolImport.take()?.let { (len, name) -> bldgLen = len; span = "1"; sectionName = name } }
     var editingIndex by remember { mutableStateOf(-1) }
 
     fun endTypeLabel(t: Int) = when (t) { 1 -> "Hip"; 2 -> "Valley"; else -> "Gable" }
@@ -5438,6 +5386,7 @@ fun FloorCalculator(
     var plyThick by remember { mutableStateOf("3/4\"") }
     var direction by remember { mutableStateOf("Span Length") }
     var sectionName by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) { ToolImport.take()?.let { (len, name) -> length = len; width = "1"; sectionName = name } }
     
     var results by remember { mutableStateOf<FloorResult?>(null) }
     var editingIndex by remember { mutableStateOf(-1) }
@@ -6109,6 +6058,12 @@ fun ConcreteCalculator(
     var pricePerSqFt by remember { mutableStateOf("") }
 
     ToolScreen(Screen.ConcreteCalculator, onBack) {
+        LaunchedEffect(Unit) {
+            ToolImport.take()?.let { (len, name) ->
+                length = len; sectionName = name
+                if (name != "Map Perimeter") width = "1"
+            }
+        }
 
         Column(modifier = Modifier.padding(16.dp)) {
             Text("SLAB & FOOTING DIMENSIONS", color = AppTheme.colors.accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
