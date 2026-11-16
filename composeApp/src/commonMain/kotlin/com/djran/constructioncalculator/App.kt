@@ -107,7 +107,11 @@ data class StairEntry(
     val angleDeg: String,
     val treadsOut: String,
     val distOut: String,
-    val headroom: String = "Clear"
+    val headroom: String = "Clear",
+    // Matching the Android app; defaults on older saves
+    val stringerSize: String = "2x12 (Standard Cut)",
+    val showOpening: Boolean = true,
+    val nosing: String = ""
 )
 
 @Serializable
@@ -2250,7 +2254,10 @@ fun StairCalculator(
 ) {
     var totalRise by remember { mutableStateOf("") }
     var targetRise by remember { mutableStateOf("7.5") }
-    var floorThick by remember { mutableStateOf("11.875") }
+    var floorThick by remember { mutableStateOf("10 3/4") }
+    var stringerSize by remember { mutableStateOf("2x12 (Standard Cut)") }
+    var showOpening by remember { mutableStateOf(true) }
+    var riserWarning by remember { mutableStateOf("") }
     var nosing by remember { mutableStateOf("1.0") }
     var treadWidth by remember { mutableStateOf("10.25") }
     var sectionName by remember { mutableStateOf("") }
@@ -2367,6 +2374,15 @@ fun StairCalculator(
                 label = { Text("Section Name / Location") },
                 modifier = Modifier.fillMaxWidth()
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Stringer Size:", fontSize = 13.sp, color = AppTheme.colors.muted)
+            SpSegmented(listOf("2x12 (Standard Cut)", "2x10 (Routed)"), if (stringerSize.startsWith("2x10")) 1 else 0) {
+                stringerSize = if (it == 1) "2x10 (Routed)" else "2x12 (Standard Cut)"
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = showOpening, onCheckedChange = { showOpening = it }, colors = SwitchDefaults.colors(checkedThumbColor = AppTheme.colors.accent))
+                Text("Include Floor Opening / Headroom")
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -2376,7 +2392,7 @@ fun StairCalculator(
                         val tr = FractionUtils.parseFeet(totalRise)
                         val dr = pitchToDouble(targetRise, 7.5)
                         val tw = pitchToDouble(treadWidth, if (limitedMode) 11.25 else 10.25)
-                        val ft = pitchToDouble(floorThick, if (limitedMode) 10.75 else 11.875)
+                        val ft = FractionUtils.parse(floorThick).takeIf { it > 0 } ?: 10.75
                         val ns = pitchToDouble(nosing, 1.0)
                         val lr = pitchToDouble(limitedRun, 0.0)
 
@@ -2401,6 +2417,8 @@ fun StairCalculator(
                                 )
                             }
                             results = res
+                            riserWarning = if (res.riserCount > 50) "Large Riser Count (${res.riserCount}). Did you mean Inches instead of Feet?" else ""
+                            val actualNosing = if (limitedMode) (tw - res.stringerRun).coerceAtLeast(0.0) else ns
 
                             val entry = StairEntry(
                                 id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
@@ -2415,7 +2433,10 @@ fun StairCalculator(
                                 angleDeg = "${res.angleDeg.roundToOneDecimal()}°",
                                 treadsOut = "${res.treadsOut.roundToOneDecimal()}",
                                 distOut = FractionUtils.formatInches(res.distOut),
-                                headroom = "Clear"
+                                headroom = "Clear",
+                                stringerSize = stringerSize,
+                                showOpening = showOpening,
+                                nosing = FractionUtils.formatInches(actualNosing)
                             )
 
                             if (editingIndex != -1) {
@@ -2447,8 +2468,30 @@ fun StairCalculator(
                 }
             }
 
+            if (riserWarning.isNotEmpty()) Text(riserWarning, color = AppTheme.colors.danger, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
             results?.let { res ->
                 Spacer(modifier = Modifier.height(24.dp))
+                // Instant results, like the Android app
+                Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(2.dp, AppTheme.colors.accent), modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("INSTANT CALCULATION RESULTS", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent, fontSize = 12.sp)
+                        val tw0 = pitchToDouble(treadWidth, if (limitedMode) 11.25 else 10.25)
+                        val nos0 = if (limitedMode) (tw0 - res.stringerRun).coerceAtLeast(0.0) else pitchToDouble(nosing, 1.0)
+                        listOf(
+                            "Actual Rise:" to FractionUtils.formatInches(res.actualRise),
+                            "Tread Run (Stringer):" to FractionUtils.formatInches(res.stringerRun),
+                            "Calculated Nosing:" to FractionUtils.formatInches(nos0),
+                            "Actual Total Run:" to FractionUtils.formatInches(res.totalRun),
+                            "Stair Angle:" to "${StoryPoleMath.fixed(res.angleDeg, 2)}°",
+                            "Stringer Size:" to stringerSize
+                        ).forEach { (k, v) ->
+                            Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                                Text(k, Modifier.weight(1f), fontSize = 15.sp)
+                                Text(v, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = AppTheme.colors.ink)
+                            }
+                        }
+                    }
+                }
                 Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("RISERS & TREADS", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent, fontSize = 12.sp)
@@ -2475,7 +2518,8 @@ fun StairCalculator(
                             floorThickness = FractionUtils.parse(floorThick),
                             nosing = FractionUtils.parse(nosing),
                             treadsOut = res.treadsOut,
-                            distOut = res.distOut
+                            distOut = res.distOut,
+                            showOpening = showOpening
                         )
                         
                         Spacer(modifier = Modifier.height(8.dp))
@@ -2506,6 +2550,7 @@ fun StairCalculator(
                                     editingIndex = entries.size - 1 - index
                                     sectionName = entry.name
                                     totalRise = entry.rise
+                                    stringerSize = entry.stringerSize; showOpening = entry.showOpening
                                 }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = AppTheme.colors.muted) }
                                 IconButton(onClick = {
                                     val newList = entries.toMutableList()

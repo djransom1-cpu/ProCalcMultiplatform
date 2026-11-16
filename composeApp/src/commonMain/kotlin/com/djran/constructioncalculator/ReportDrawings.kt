@@ -77,8 +77,8 @@ object ReportDrawings {
                 render(e.name, 240) {
                     drawStairDiagram(
                         FractionUtils.parse(e.rise), FractionUtils.parse(e.totalRun),
-                        e.riserCount.toIntOrNull() ?: 1, 11.875, 1.0, 0.0,
-                        FractionUtils.parse(e.distOut), true
+                        e.riserCount.toIntOrNull() ?: 1, 11.875, FractionUtils.parse(e.nosing).takeIf { it > 0 } ?: 1.0, 0.0,
+                        FractionUtils.parse(e.distOut), e.showOpening
                     )
                 }
             }
