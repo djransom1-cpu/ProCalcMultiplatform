@@ -1422,7 +1422,8 @@ when (screen) {
                                     allFloorEntries[name] ?: emptyList(),
                                     reportMeasurer,
                                     allStoryPoles[name] ?: emptyList(),
-                                    allCircularStairEntries[name] ?: emptyList()
+                                    allCircularStairEntries[name] ?: emptyList(),
+                                    allRoofEntries[name] ?: emptyList()
                                 )
                                 // Like the app's project list: pick up new and changed cloud projects on open
                                 LaunchedEffect(cloudSync.user) {
@@ -2154,6 +2155,9 @@ fun RoofCalculator(
 
             results?.let { res ->
                 Spacer(modifier = Modifier.height(24.dp))
+                RoofPlanDrawing(FractionUtils.parse(span), FractionUtils.parse(bldgLen), FractionUtils.parse(pitch).takeIf { it > 0 } ?: 6.0,
+                    FractionUtils.parse(oc).takeIf { it > 0 } ?: 24.0, leftEndType, rightEndType)
+                Spacer(modifier = Modifier.height(12.dp))
                 Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("COMMON RAFTERS", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent, fontSize = 12.sp)
@@ -2684,7 +2688,7 @@ fun JobSummaryScreen(
                     framingEntries, pineLineEntries, coordinatePaths
                 ) + DataSheetExtras.sections(storyPoles, surveyRecords) + siteToolsReport(gradeEntries, landSurveyEntries)
                 val withDrawings = ReportDrawings.attach(
-                    sections, stairEntries, rafterEntries, gazeboEntries, arcEntries, floorEntries, reportMeasurer, storyPoles, circularStairEntries
+                    sections, stairEntries, rafterEntries, gazeboEntries, arcEntries, floorEntries, reportMeasurer, storyPoles, circularStairEntries, roofEntries
                 )
                 pdfExportProvider.share(projectName, withDrawings)
             }) {
@@ -2983,6 +2987,15 @@ fun JobSummaryScreen(
                                 TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.area, 100.dp)
                                 TableCell(entry.squares, 100.dp); TableCell(entry.bundles, 100.dp)
                                 TableCell(entry.sheets, 100.dp); TableCell(entry.dimensions, 80.dp)
+                            }
+                            if (entry.span.isNotBlank() && entry.bldgLen.isNotBlank()) {
+                                Column(Modifier.padding(bottom = 8.dp)) {
+                                    listOf(entry.commonInfo, entry.hipInfo, entry.valleyInfo, entry.ridgeInfo).filter { it.isNotBlank() && it != "-" }
+                                        .forEach { Text(it, fontSize = 12.sp, color = Color.DarkGray) }
+                                    RoofPlanDrawing(FractionUtils.parse(entry.span), FractionUtils.parse(entry.bldgLen), FractionUtils.parse(entry.pitch).takeIf { it > 0 } ?: 6.0,
+                                        FractionUtils.parse(entry.commonInfo.substringAfter("Rafter ").substringAfter("Truss ").substringBefore("\"")).takeIf { it > 0 } ?: 24.0,
+                                        entry.leftEnd, entry.rightEnd)
+                                }
                             }
                             Divider()
                         }

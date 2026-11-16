@@ -14,6 +14,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.text.drawText
 import kotlinx.serialization.Serializable
 import kotlin.math.*
 
@@ -261,4 +263,65 @@ fun siteToolsReport(grades: List<GradeEntry>, surveys: List<LandSurveyEntry>): L
     if (grades.isNotEmpty()) add(SummarySection("GRADE / SLOPE", listOf("Name", "Distance", "Fall", "Slope / ft", "%"),
         grades.map { listOf(it.name, it.distance, it.totalFall, it.slope, it.slopePercent) }))
     if (surveys.isNotEmpty()) add(SummarySection("LAND SURVEYING", listOf("Note", "Solution"), surveys.map { listOf(it.note, it.data) }))
+}
+
+// ---------------- Roof Takeoff plan drawing (Android RoofDiagramView) ----------------
+
+/** Roof plan, top down: perimeter, ridge, hips or valleys at each end, commons at OC, span/length and pitch. */
+fun androidx.compose.ui.graphics.drawscope.DrawScope.drawRoofPlan(
+    span: Double, length: Double, pitch: Double, oc: Double, leftMode: Int, rightMode: Int,
+    measurer: androidx.compose.ui.text.TextMeasurer
+) {
+    if (span <= 0 || length <= 0) return
+    val w = size.width; val h = size.height
+    val u = w / 400f
+    val red = Color(0xFFD32F2F); val blue = Color(0xFF1D4ED8)
+    fun txt(t: String, x: Float, y: Float, sz: Float, c: Color) {
+        val m = measurer.measure(t, androidx.compose.ui.text.TextStyle(fontSize = (sz * u / density).sp, color = c, fontWeight = FontWeight.Bold))
+        drawText(m, topLeft = androidx.compose.ui.geometry.Offset(x - m.size.width / 2f, y - m.size.height / 2f))
+    }
+    fun line(x1: Float, y1: Float, x2: Float, y2: Float, c: Color = red, sw: Float = 1.6f) =
+        drawLine(c, androidx.compose.ui.geometry.Offset(x1, y1), androidx.compose.ui.geometry.Offset(x2, y2), sw * u)
+    fun arrow(x1: Float, y1: Float, x2: Float, y2: Float) {
+        line(x1, y1, x2, y2, blue, 1f)
+        val hl = 5 * u; val a = atan2((y2 - y1).toDouble(), (x2 - x1).toDouble())
+        for ((px, py, d) in listOf(Triple(x2, y2, -1.0), Triple(x1, y1, 1.0))) {
+            line(px, py, (px + d * hl * cos(a - PI / 6)).toFloat(), (py + d * hl * sin(a - PI / 6)).toFloat(), blue, 1f)
+            line(px, py, (px + d * hl * cos(a + PI / 6)).toFloat(), (py + d * hl * sin(a + PI / 6)).toFloat(), blue, 1f)
+        }
+    }
+    drawRect(Color.White)
+    txt("ROOF PLAN VIEW (TOP DOWN)", w / 2, 12 * u, 11f, Color(0xFF0A2A66))
+    val scale = min((w - 70 * u) / length.toFloat(), (h - 80 * u) / span.toFloat())
+    val sLen = length.toFloat() * scale; val sSpan = span.toFloat() * scale; val sOC = oc.toFloat() * scale
+    val cx = w / 2; val cy = h / 2 + 6 * u
+    val left = cx - sLen / 2; val right = cx + sLen / 2; val top = cy - sSpan / 2; val bottom = cy + sSpan / 2
+    var rs = left; if (leftMode == 1) rs += sSpan / 2
+    var re = right; if (rightMode == 1) re -= sSpan / 2
+    drawRect(red, androidx.compose.ui.geometry.Offset(left, top), androidx.compose.ui.geometry.Size(sLen, sSpan), style = androidx.compose.ui.graphics.drawscope.Stroke(1.6f * u))
+    if (re > rs) line(rs, cy, re, cy) else drawCircle(red, 2.5f * u, androidx.compose.ui.geometry.Offset(cx, cy))
+    when (leftMode) { 1 -> { line(left, top, rs, cy); line(left, bottom, rs, cy) }; 2 -> { line(left, cy, rs + sSpan / 2, top); line(left, cy, rs + sSpan / 2, bottom) } }
+    when (rightMode) { 1 -> { line(right, top, re, cy); line(right, bottom, re, cy) }; 2 -> { line(right, cy, re - sSpan / 2, top); line(right, cy, re - sSpan / 2, bottom) } }
+    if (sOC > 3 * u) {
+        var x = rs + sOC
+        while (x < re - 2 * u) { line(x, top, x, cy, red, 0.8f); line(x, cy, x, bottom, red, 0.8f); x += sOC }
+    }
+    arrow(left, bottom + 14 * u, right, bottom + 14 * u)
+    txt(FractionUtils.formatInches(length), cx, bottom + 24 * u, 9f, blue)
+    arrow(left - 14 * u, top, left - 14 * u, bottom)
+    rotate(-90f, androidx.compose.ui.geometry.Offset(left - 24 * u, cy)) { txt(FractionUtils.formatInches(span), left - 24 * u, cy, 9f, blue) }
+    // pitch triangle
+    val tw = 22 * u; val th = (pitch / 12.0 * tw).toFloat()
+    val px = right - 26 * u; val py = top - 8 * u
+    line(px, py, px + tw, py, red, 1f); line(px + tw, py, px + tw, py - th, red, 1f); line(px, py, px + tw, py - th, red, 1f)
+    txt("12", px + tw / 2, py + 5 * u, 7f, Color.Black)
+    txt(JackResults.pn(pitch), px + tw + 6 * u, py - th / 2, 7f, Color.Black)
+}
+
+@Composable
+fun RoofPlanDrawing(span: Double, length: Double, pitch: Double, oc: Double, leftMode: Int, rightMode: Int) {
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().height(maxWidth * 0.7f)) { drawRoofPlan(span, length, pitch, oc, leftMode, rightMode, measurer) }
+    }
 }
