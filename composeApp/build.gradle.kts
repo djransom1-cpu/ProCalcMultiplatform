@@ -116,7 +116,9 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Dmg)
             packageName = "ProCalc"
-            packageVersion = "1.0.0"
+            // Windows only installs over the old copy when the version goes up, so every
+            // GitHub build gets a new one: 1.1.<build number> (1.1.0 for local builds)
+            packageVersion = "1.1.${System.getenv("GITHUB_RUN_NUMBER") ?: "0"}"
             description = "ProCalc construction calculator"
             vendor = "Construction App Builders LLC"
             windows {
