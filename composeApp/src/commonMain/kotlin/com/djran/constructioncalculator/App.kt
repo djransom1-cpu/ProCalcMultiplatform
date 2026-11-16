@@ -70,6 +70,8 @@ enum class Screen {
     SquareCalculator,
     StoryPole,
     SurveyCalc,
+    GradeSlope,
+    LandSurvey,
     ColumnCalculator,
     FramingCalculator,
     ScientificCalculator,
@@ -592,7 +594,11 @@ data class AppState(
     val allJobNotes: Map<String, List<SerializablePath>> = emptyMap(),
     val cloudLinks: Map<String, CloudLink> = emptyMap(),
     val allStoryPoles: Map<String, List<SavedStoryPole>> = emptyMap(),
-    val allSurveyRecords: Map<String, List<SurveyRecordEntry>> = emptyMap()
+    val allSurveyRecords: Map<String, List<SurveyRecordEntry>> = emptyMap(),
+    val allGradeEntries: Map<String, List<GradeEntry>> = emptyMap(),
+    val allLandSurvey: Map<String, List<LandSurveyEntry>> = emptyMap(),
+    val allTextNotes: Map<String, String> = emptyMap(),
+    val allNoteShapes: Map<String, List<NoteShape>> = emptyMap()
 )
 
 
@@ -624,7 +630,11 @@ fun AppState.renamed(old: String, new: String): AppState {
         allJobNotes = allJobNotes.rk(old, new),
         cloudLinks = cloudLinks.rk(old, new),
         allStoryPoles = allStoryPoles.rk(old, new),
-        allSurveyRecords = allSurveyRecords.rk(old, new)
+        allSurveyRecords = allSurveyRecords.rk(old, new),
+        allGradeEntries = allGradeEntries.rk(old, new),
+        allLandSurvey = allLandSurvey.rk(old, new),
+        allTextNotes = allTextNotes.rk(old, new),
+        allNoteShapes = allNoteShapes.rk(old, new)
     )
 }
 
@@ -706,6 +716,10 @@ fun App() {
     var cloudLinks by remember { mutableStateOf(initialData?.cloudLinks ?: mapOf()) }
     var allStoryPoles by remember { mutableStateOf(initialData?.allStoryPoles ?: mapOf()) }
     var allSurveyRecords by remember { mutableStateOf(initialData?.allSurveyRecords ?: mapOf()) }
+    var allGradeEntries by remember { mutableStateOf(initialData?.allGradeEntries ?: mapOf()) }
+    var allLandSurvey by remember { mutableStateOf(initialData?.allLandSurvey ?: mapOf()) }
+    var allTextNotes by remember { mutableStateOf(initialData?.allTextNotes ?: mapOf()) }
+    var allNoteShapes by remember { mutableStateOf(initialData?.allNoteShapes ?: mapOf()) }
 
     // Menu settings, calculation history and calculator panels
     val uiStore = remember { UiStore(appSettings) }
@@ -740,7 +754,7 @@ fun App() {
         focusManager.clearFocus()
     }
 
-    fun currentAppState() = AppState(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks, allStoryPoles, allSurveyRecords)
+    fun currentAppState() = AppState(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks, allStoryPoles, allSurveyRecords, allGradeEntries, allLandSurvey, allTextNotes, allNoteShapes)
 
     fun applyAppState(state: AppState) {
         projectList = state.projectList
@@ -768,10 +782,14 @@ fun App() {
         cloudLinks = state.cloudLinks
         allStoryPoles = state.allStoryPoles
         allSurveyRecords = state.allSurveyRecords
+        allGradeEntries = state.allGradeEntries
+        allLandSurvey = state.allLandSurvey
+        allTextNotes = state.allTextNotes
+        allNoteShapes = state.allNoteShapes
     }
 
     // Auto-save whenever critical state changes
-    LaunchedEffect(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks, allStoryPoles, allSurveyRecords) {
+    LaunchedEffect(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks, allStoryPoles, allSurveyRecords, allGradeEntries, allLandSurvey, allTextNotes, allNoteShapes) {
         persistenceManager.saveState(currentAppState())
     }
 
@@ -1327,6 +1345,18 @@ when (screen) {
                                 }
                             )
 
+                            Screen.GradeSlope -> GradeSlopeCalculator(
+                                entries = allGradeEntries[currentProjectName] ?: emptyList(),
+                                onUpdateEntries = { l -> allGradeEntries = allGradeEntries.toMutableMap().apply { put(currentProjectName, l) } },
+                                onBack = ::goBack, onFocus = openKeyboard
+                            )
+
+                            Screen.LandSurvey -> LandSurveyCalculator(
+                                entries = allLandSurvey[currentProjectName] ?: emptyList(),
+                                onUpdateEntries = { l -> allLandSurvey = allLandSurvey.toMutableMap().apply { put(currentProjectName, l) } },
+                                onBack = ::goBack, onFocus = openKeyboard
+                            )
+
                             Screen.SurveyCalc -> SurveyCalculator(
                                 onBack = ::goBack, projectName = currentProjectName,
                                 onSaveRecord = { rec ->
@@ -1363,6 +1393,10 @@ when (screen) {
                                 onUpdateNotes = { newList ->
                                     allJobNotes = allJobNotes.toMutableMap().apply { put(currentProjectName, newList) }
                                 },
+                                textNote = allTextNotes[currentProjectName] ?: "",
+                                onTextChange = { t -> allTextNotes = allTextNotes + (currentProjectName to t) },
+                                shapes = allNoteShapes[currentProjectName] ?: emptyList(),
+                                onShapesChange = { l -> allNoteShapes = allNoteShapes + (currentProjectName to l) },
                                 onBack = { currentScreen = Screen.Calculator }
                             )
 
@@ -1379,7 +1413,8 @@ when (screen) {
                                 val pdfProvider = rememberPdfExportProvider()
                                 val reportMeasurer = androidx.compose.ui.text.rememberTextMeasurer()
                                 fun withDrawings(name: String, sections: List<SummarySection>) = ReportDrawings.attach(
-                                    sections + DataSheetExtras.sections(allStoryPoles[name] ?: emptyList(), allSurveyRecords[name] ?: emptyList()),
+                                    sections + DataSheetExtras.sections(allStoryPoles[name] ?: emptyList(), allSurveyRecords[name] ?: emptyList()) +
+                                        siteToolsReport(allGradeEntries[name] ?: emptyList(), allLandSurvey[name] ?: emptyList()),
                                     allStairEntries[name] ?: emptyList(),
                                     allRafterEntries[name] ?: emptyList(),
                                     allGazeboEntries[name] ?: emptyList(),
@@ -1387,7 +1422,8 @@ when (screen) {
                                     allFloorEntries[name] ?: emptyList(),
                                     reportMeasurer,
                                     allStoryPoles[name] ?: emptyList(),
-                                    allCircularStairEntries[name] ?: emptyList()
+                                    allCircularStairEntries[name] ?: emptyList(),
+                                    allRoofEntries[name] ?: emptyList()
                                 )
                                 // Like the app's project list: pick up new and changed cloud projects on open
                                 LaunchedEffect(cloudSync.user) {
@@ -1501,6 +1537,8 @@ when (screen) {
                                 columnEntries = allColumnEntries[currentProjectName] ?: emptyList(),
                                 storyPoles = allStoryPoles[currentProjectName] ?: emptyList(),
                                 surveyRecords = allSurveyRecords[currentProjectName] ?: emptyList(),
+                                gradeEntries = allGradeEntries[currentProjectName] ?: emptyList(),
+                                landSurveyEntries = allLandSurvey[currentProjectName] ?: emptyList(),
                                 onRemovePole = { i -> allStoryPoles = allStoryPoles.toMutableMap().apply { put(currentProjectName, (get(currentProjectName) ?: emptyList()).filterIndexed { k, _ -> k != i }) } },
                                 onRemoveRecord = { i -> allSurveyRecords = allSurveyRecords.toMutableMap().apply { put(currentProjectName, (get(currentProjectName) ?: emptyList()).filterIndexed { k, _ -> k != i }) } },
                                 onBack = { currentScreen = Screen.Calculator }
@@ -1849,90 +1887,6 @@ fun CoordinateCalculator(
 }
 
 @Composable
-fun JobNotesScreen(
-    savedPaths: List<SerializablePath>,
-    onUpdateNotes: (List<SerializablePath>) -> Unit,
-    onBack: () -> Unit
-) {
-    // Maintain a stable SnapshotStateList for the UI
-    val paths = remember { mutableStateListOf<Pair<Path, Color>>() }
-    
-    // Sync local paths list with savedPaths incrementally
-    LaunchedEffect(savedPaths) {
-        if (savedPaths.isEmpty()) {
-            paths.clear()
-        } else if (paths.size < savedPaths.size) {
-            // Only add the NEW paths (e.g. from sync or initial load)
-            // If we are already ahead or equal (because we added locally first), do nothing
-            val startIdx = paths.size
-            for (i in startIdx until savedPaths.size) {
-                val sp = savedPaths[i]
-                val p = Path()
-                if (sp.points.isNotEmpty()) {
-                    p.moveTo(sp.points[0].x, sp.points[0].y)
-                    sp.points.drop(1).forEach { pt -> p.lineTo(pt.x, pt.y) }
-                }
-                paths.add(p to Color(sp.color))
-            }
-        } else if (paths.size > savedPaths.size) {
-            // Something was deleted or project changed
-            paths.clear()
-            savedPaths.forEach { sp ->
-                val p = Path()
-                if (sp.points.isNotEmpty()) {
-                    p.moveTo(sp.points[0].x, sp.points[0].y)
-                    sp.points.drop(1).forEach { pt -> p.lineTo(pt.x, pt.y) }
-                }
-                paths.add(p to Color(sp.color))
-            }
-        }
-    }
-    
-    Column(modifier = Modifier.fillMaxSize().background(Palette.Bg)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().background(Palette.Bg).padding(horizontal = 4.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ChevronLeft, contentDescription = "Back", tint = Palette.Navy, modifier = Modifier.size(30.dp)) }
-            Text("Job Site Notes", color = Palette.Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-        }
-        
-        Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp).border(1.dp, Color.Gray, RoundedCornerShape(8.dp))) {
-            SketchCanvas(
-                paths = paths,
-                onRawPathAdded = { offsets ->
-                    val serializable = SerializablePath(
-                        points = offsets.map { SerializablePoint(it.x, it.y) },
-                        color = 0xFF000000.toInt() // Solid Black
-                    )
-                    // Update parent state - LaunchedEffect will handle adding if needed,
-                    // but SketchCanvas already added it to 'paths' list.
-                    onUpdateNotes(savedPaths + serializable)
-                }
-            )
-        }
-        
-        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Button(onClick = { /* Export? */ }) {
-                Text("SAVE SKETCH")
-            }
-            TextButton(
-                onClick = { 
-                    paths.clear()
-                    onUpdateNotes(emptyList()) 
-                }, 
-                colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
-            ) {
-                Text("CLEAR")
-            }
-        }
-    }
-}
-
-
-
-
-@Composable
 fun CoordinateMapView(paths: List<PlottedPath>) {
     Canvas(modifier = Modifier.fillMaxSize().background(Color.White)) {
         if (paths.isEmpty()) return@Canvas
@@ -2201,6 +2155,9 @@ fun RoofCalculator(
 
             results?.let { res ->
                 Spacer(modifier = Modifier.height(24.dp))
+                RoofPlanDrawing(FractionUtils.parse(span), FractionUtils.parse(bldgLen), FractionUtils.parse(pitch).takeIf { it > 0 } ?: 6.0,
+                    FractionUtils.parse(oc).takeIf { it > 0 } ?: 24.0, leftEndType, rightEndType)
+                Spacer(modifier = Modifier.height(12.dp))
                 Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("COMMON RAFTERS", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent, fontSize = 12.sp)
@@ -2703,6 +2660,8 @@ fun JobSummaryScreen(
     columnEntries: List<ColumnEntry> = emptyList(),
     storyPoles: List<SavedStoryPole> = emptyList(),
     surveyRecords: List<SurveyRecordEntry> = emptyList(),
+    gradeEntries: List<GradeEntry> = emptyList(),
+    landSurveyEntries: List<LandSurveyEntry> = emptyList(),
     onRemovePole: (Int) -> Unit = {},
     onRemoveRecord: (Int) -> Unit = {},
     onBack: () -> Unit
@@ -2727,9 +2686,9 @@ fun JobSummaryScreen(
                     masonryEntries, drywallEntries, trigEntries, columnEntries,
                     roofEntries, floorEntries, deckEntries, handrailEntries,
                     framingEntries, pineLineEntries, coordinatePaths
-                ) + DataSheetExtras.sections(storyPoles, surveyRecords)
+                ) + DataSheetExtras.sections(storyPoles, surveyRecords) + siteToolsReport(gradeEntries, landSurveyEntries)
                 val withDrawings = ReportDrawings.attach(
-                    sections, stairEntries, rafterEntries, gazeboEntries, arcEntries, floorEntries, reportMeasurer, storyPoles, circularStairEntries
+                    sections, stairEntries, rafterEntries, gazeboEntries, arcEntries, floorEntries, reportMeasurer, storyPoles, circularStairEntries, roofEntries
                 )
                 pdfExportProvider.share(projectName, withDrawings)
             }) {
@@ -2774,7 +2733,7 @@ fun JobSummaryScreen(
                     coordinatePaths.isEmpty() && masonryEntries.isEmpty() && drywallEntries.isEmpty() &&
                     deckEntries.isEmpty() && floorEntries.isEmpty() && handrailEntries.isEmpty() && pineLineEntries.isEmpty() &&
                     circularStairEntries.isEmpty() && trigEntries.isEmpty() && columnEntries.isEmpty() && framingEntries.isEmpty() &&
-                    storyPoles.isEmpty() && surveyRecords.isEmpty()
+                    storyPoles.isEmpty() && surveyRecords.isEmpty() && gradeEntries.isEmpty() && landSurveyEntries.isEmpty()
 
             if (isEmpty) {
                 Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
@@ -2853,6 +2812,7 @@ fun JobSummaryScreen(
                 }
 
                 DataSheetExtrasSections(storyPoles, surveyRecords, onRemovePole, onRemoveRecord)
+                SiteToolsDataSheet(gradeEntries, landSurveyEntries)
 
                 if (gazeboEntries.isNotEmpty()) {
                     SummaryTable("GAZEBO SCHEDULE", listOf("Name", "Sides", "Diam", "Pitch", "Area", "Com Len", "Hip Len")) {
@@ -3027,6 +2987,15 @@ fun JobSummaryScreen(
                                 TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.area, 100.dp)
                                 TableCell(entry.squares, 100.dp); TableCell(entry.bundles, 100.dp)
                                 TableCell(entry.sheets, 100.dp); TableCell(entry.dimensions, 80.dp)
+                            }
+                            if (entry.span.isNotBlank() && entry.bldgLen.isNotBlank()) {
+                                Column(Modifier.padding(bottom = 8.dp)) {
+                                    listOf(entry.commonInfo, entry.hipInfo, entry.valleyInfo, entry.ridgeInfo).filter { it.isNotBlank() && it != "-" }
+                                        .forEach { Text(it, fontSize = 12.sp, color = Color.DarkGray) }
+                                    RoofPlanDrawing(FractionUtils.parse(entry.span), FractionUtils.parse(entry.bldgLen), FractionUtils.parse(entry.pitch).takeIf { it > 0 } ?: 6.0,
+                                        FractionUtils.parse(entry.commonInfo.substringAfter("Rafter ").substringAfter("Truss ").substringBefore("\"")).takeIf { it > 0 } ?: 24.0,
+                                        entry.leftEnd, entry.rightEnd)
+                                }
                             }
                             Divider()
                         }

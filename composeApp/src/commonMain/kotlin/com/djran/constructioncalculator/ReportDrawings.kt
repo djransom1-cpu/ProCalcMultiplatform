@@ -54,7 +54,8 @@ object ReportDrawings {
         floorEntries: List<FloorEntry>,
         measurer: TextMeasurer,
         storyPoles: List<SavedStoryPole> = emptyList(),
-        circularStairs: List<CircularStairEntry> = emptyList()
+        circularStairs: List<CircularStairEntry> = emptyList(),
+        roofEntries: List<RoofEntry> = emptyList()
     ): List<SummarySection> = sections.map { section ->
         val images: List<ReportImage> = if (section.title.startsWith("CIRCULAR STAIR: ")) {
             val name = section.title.removePrefix("CIRCULAR STAIR: ")
@@ -102,6 +103,13 @@ object ReportDrawings {
                 val res = GazeboEngine.calculate(params)
                 listOf(GazeboMode.LAYOUT to "layout", GazeboMode.RAFTER to "rafter", GazeboMode.FLOOR to "floor").mapNotNull { (mode, label) ->
                     render("${e.name} – $label", 300) { drawGazeboDiagram(mode, params, res) }
+                }
+            }
+            "ROOF SCHEDULE" -> roofEntries.filter { it.span.isNotBlank() && it.bldgLen.isNotBlank() }.mapNotNull { e ->
+                render("${e.name} – roof plan", 340, insetDp = 6) {
+                    drawRoofPlan(FractionUtils.parse(e.span), FractionUtils.parse(e.bldgLen), FractionUtils.parse(e.pitch).takeIf { it > 0 } ?: 6.0,
+                        FractionUtils.parse(e.commonInfo.substringAfter("Rafter ").substringAfter("Truss ").substringBefore("\"")).takeIf { it > 0 } ?: 24.0,
+                        e.leftEnd, e.rightEnd, measurer)
                 }
             }
             "ARC SCHEDULE" -> arcEntries.mapNotNull { e ->
