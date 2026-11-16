@@ -107,7 +107,11 @@ data class StairEntry(
     val angleDeg: String,
     val treadsOut: String,
     val distOut: String,
-    val headroom: String = "Clear"
+    val headroom: String = "Clear",
+    // Matching the Android app; defaults on older saves
+    val stringerSize: String = "2x12 (Standard Cut)",
+    val showOpening: Boolean = true,
+    val nosing: String = ""
 )
 
 @Serializable
@@ -266,7 +270,12 @@ data class DrywallEntry(
     val sheets: String,
     val sheetSize: String = "4x8",
     val mud: String,
-    val tape: String
+    val tape: String,
+    // Room inputs, matching the Android app; blank on older saves (area only)
+    val length: String = "",
+    val width: String = "",
+    val roomMode: Boolean = false,
+    val wallHeight: String = "8"
 )
 
 @Serializable
@@ -278,7 +287,11 @@ data class DeckEntry(
     val boardWidth: String,
     val gap: String,
     val boards: String,
-    val fasteners: String
+    val fasteners: String,
+    // Matching the Android app; defaults on older saves
+    val joistOc: String = "16",
+    val direction: String = "Run Along Length",
+    val totalLF: String = ""
 )
 
 @Serializable
@@ -363,7 +376,12 @@ data class CircularStairEntry(
     val outerArcTread: String = "",
     val innerArcTread: String = "",
     val outsideRadius: String = "",
-    val anglePerTread: String = ""
+    val anglePerTread: String = "",
+    /** Walk-line tread depth (12" from the narrow side); blank on older saves, which use circleSize. */
+    val walkLineTread: String = "",
+    val spaceLength: String = "",
+    val spaceWidth: String = "",
+    val stepRise: String = ""
 )
 
 @Serializable
@@ -385,7 +403,15 @@ data class ColumnEntry(
     val height: String,
     val volume: String,
     val surfaceArea: String,
-    val circumference: String
+    val circumference: String,
+    // Matching the Android app; blank/defaults on older saves
+    val qty: String = "1",
+    val rebarFt: String = "",
+    val rebarMode: Int = 0,
+    val vertBars: String = "0",
+    val tieOc: String = "12",
+    val barsTop: String = "0",
+    val barsBottom: String = "0"
 )
 
 @Serializable
@@ -460,6 +486,8 @@ object SummaryReportGenerator {
         }
         if (circularStairEntries.isNotEmpty()) {
             sections.add(SummarySection("CIRCULAR STAIR SCHEDULE", listOf("Name", "Rise", "Inner Rad", "Tread W", "Treads", "Circle", "Out Radius", "Angle/Trd"), circularStairEntries.map { listOf(it.name, it.totalRise, it.radius, it.walkTread, it.numTreads, it.circleSize, it.outsideRadius, it.anglePerTread) }))
+            // Code check, layout and material list for each stair, with its drawing (like Android)
+            circularStairEntries.forEach { e -> CircStairMath.fromEntry(e)?.let { r -> sections.add(SummarySection("CIRCULAR STAIR: ${e.name}", listOf("Detail"), CircStairMath.reportLines(r).map { listOf(it) })) } }
         }
         if (rafterEntries.isNotEmpty()) {
             sections.add(SummarySection("RAFTER SCHEDULE", listOf("Name", "Span", "Pitch", "Heel", "O/H", "Com Len", "Hip Len", "Jack 16"), rafterEntries.map { listOf(it.name, if (it.isShed) "${it.span} (shed run)" else it.span, it.pitch, it.heel, it.overhang, it.commonLen, it.hipLen, it.jack16) }))
@@ -501,7 +529,7 @@ object SummaryReportGenerator {
             sections.add(SummarySection("TRIG SOLUTIONS SCHEDULE", listOf("Name", "Side A", "Side B", "Hypot", "Angle A", "Angle B"), trigEntries.map { listOf(it.name, it.sideA, it.sideB, it.hypotenuse, it.angleA, it.angleB) }))
         }
         if (columnEntries.isNotEmpty()) {
-            sections.add(SummarySection("COLUMN / CIRCLE SCHEDULE", listOf("Name", "Diam", "Height", "Volume", "Surf Area", "Circumf"), columnEntries.map { listOf(it.name, it.diameter, it.height, it.volume, it.surfaceArea, it.circumference) }))
+            sections.add(SummarySection("COLUMN / CIRCLE SCHEDULE", listOf("Name", "Qty", "Diam", "Height", "Volume", "Rebar", "Circumf"), columnEntries.map { listOf(it.name, it.qty, it.diameter, it.height, it.volume, if (it.rebarFt.isBlank()) "-" else it.rebarFt + "'", it.circumference) }))
         }
         if (roofEntries.isNotEmpty()) {
             sections.add(SummarySection("ROOF SCHEDULE", listOf("Name", "Area", "Squares", "Bundles", "Sheets", "Pitch"), roofEntries.map { listOf(it.name, it.area, it.squares, it.bundles, it.sheets, it.dimensions) }))
@@ -510,7 +538,7 @@ object SummaryReportGenerator {
             sections.add(SummarySection("FLOORING SCHEDULE", listOf("Name", "Length", "Width", "OC", "Joists", "Sheets"), floorEntries.map { listOf(it.name, it.length, it.width, it.spacing, it.joists, it.sheets) }))
         }
         if (deckEntries.isNotEmpty()) {
-            sections.add(SummarySection("DECKING SCHEDULE", listOf("Name", "Length", "Width", "Gap", "Boards", "Fasteners"), deckEntries.map { listOf(it.name, it.length, it.width, it.gap, it.boards, it.fasteners) }))
+            sections.add(SummarySection("DECKING SCHEDULE", listOf("Name", "Length", "Width", "Gap", "Boards", "Total LF", "Fasteners"), deckEntries.map { listOf(it.name, it.length, it.width, it.gap, it.boards, it.totalLF, it.fasteners) }))
         }
         if (handrailEntries.isNotEmpty()) {
             sections.add(SummarySection("HANDRAIL SCHEDULE", listOf("Name", "Length", "Count", "Spacing"), handrailEntries.map { listOf(it.name, it.length, it.spindles, it.spacing) }))
@@ -562,9 +590,43 @@ data class AppState(
     val allColumnEntries: Map<String, List<ColumnEntry>> = emptyMap(),
     val allFramingEntries: Map<String, List<FramingEntry>> = emptyMap(),
     val allJobNotes: Map<String, List<SerializablePath>> = emptyMap(),
-    val cloudLinks: Map<String, CloudLink> = emptyMap()
+    val cloudLinks: Map<String, CloudLink> = emptyMap(),
+    val allStoryPoles: Map<String, List<SavedStoryPole>> = emptyMap(),
+    val allSurveyRecords: Map<String, List<SurveyRecordEntry>> = emptyMap()
 )
 
+
+/** Same project under a new name: every tool's entries, notes and cloud link move with it. */
+fun AppState.renamed(old: String, new: String): AppState {
+    fun <T> Map<String, T>.rk(o: String, n: String): Map<String, T> = if (o in this) (this - o) + (n to getValue(o)) else this
+    return copy(
+        projectList = projectList.map { if (it == old) new else it },
+        currentProjectName = if (currentProjectName == old) new else currentProjectName,
+        allStairEntries = allStairEntries.rk(old, new),
+        allRafterEntries = allRafterEntries.rk(old, new),
+        allArcEntries = allArcEntries.rk(old, new),
+        allWallEntries = allWallEntries.rk(old, new),
+        allCrownEntries = allCrownEntries.rk(old, new),
+        allGazeboEntries = allGazeboEntries.rk(old, new),
+        allConcreteEntries = allConcreteEntries.rk(old, new),
+        allRoofEntries = allRoofEntries.rk(old, new),
+        allCoordinatePaths = allCoordinatePaths.rk(old, new),
+        allMasonryEntries = allMasonryEntries.rk(old, new),
+        allDrywallEntries = allDrywallEntries.rk(old, new),
+        allDeckEntries = allDeckEntries.rk(old, new),
+        allFloorEntries = allFloorEntries.rk(old, new),
+        allHandrailEntries = allHandrailEntries.rk(old, new),
+        allPineLineEntries = allPineLineEntries.rk(old, new),
+        allCircularStairEntries = allCircularStairEntries.rk(old, new),
+        allTrigEntries = allTrigEntries.rk(old, new),
+        allColumnEntries = allColumnEntries.rk(old, new),
+        allFramingEntries = allFramingEntries.rk(old, new),
+        allJobNotes = allJobNotes.rk(old, new),
+        cloudLinks = cloudLinks.rk(old, new),
+        allStoryPoles = allStoryPoles.rk(old, new),
+        allSurveyRecords = allSurveyRecords.rk(old, new)
+    )
+}
 
 class PersistenceManager(private val settings: Settings? = null) {
     private val json = Json { 
@@ -598,6 +660,9 @@ class PersistenceManager(private val settings: Settings? = null) {
 }
 
 val BlueTool = Color(0xFF0A2A66)
+
+/** Lumber sizes on Roof Takeoff (Android: R.array.lumber_sizes). */
+val RoofLumber = listOf("2x4", "2x6", "2x8", "2x10", "2x12")
 
 /** Desktop split view: window width where it starts, and the home page's width. */
 val SplitMinWidth = 1000.dp
@@ -639,6 +704,8 @@ fun App() {
     var allFramingEntries by remember { mutableStateOf(initialData?.allFramingEntries ?: mapOf()) }
     var allJobNotes by remember { mutableStateOf(initialData?.allJobNotes ?: mapOf()) }
     var cloudLinks by remember { mutableStateOf(initialData?.cloudLinks ?: mapOf()) }
+    var allStoryPoles by remember { mutableStateOf(initialData?.allStoryPoles ?: mapOf()) }
+    var allSurveyRecords by remember { mutableStateOf(initialData?.allSurveyRecords ?: mapOf()) }
 
     // Menu settings, calculation history and calculator panels
     val uiStore = remember { UiStore(appSettings) }
@@ -673,7 +740,7 @@ fun App() {
         focusManager.clearFocus()
     }
 
-    fun currentAppState() = AppState(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks)
+    fun currentAppState() = AppState(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks, allStoryPoles, allSurveyRecords)
 
     fun applyAppState(state: AppState) {
         projectList = state.projectList
@@ -699,10 +766,12 @@ fun App() {
         allFramingEntries = state.allFramingEntries
         allJobNotes = state.allJobNotes
         cloudLinks = state.cloudLinks
+        allStoryPoles = state.allStoryPoles
+        allSurveyRecords = state.allSurveyRecords
     }
 
     // Auto-save whenever critical state changes
-    LaunchedEffect(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks) {
+    LaunchedEffect(projectList, currentProjectName, allStairEntries, allRafterEntries, allArcEntries, allWallEntries, allCrownEntries, allGazeboEntries, allConcreteEntries, allRoofEntries, allCoordinatePaths, allMasonryEntries, allDrywallEntries, allDeckEntries, allFloorEntries, allHandrailEntries, allPineLineEntries, allCircularStairEntries, allTrigEntries, allColumnEntries, allFramingEntries, allJobNotes, cloudLinks, allStoryPoles, allSurveyRecords) {
         persistenceManager.saveState(currentAppState())
     }
 
@@ -1249,9 +1318,21 @@ when (screen) {
 
                             Screen.SquareCalculator -> SquareCalculator(onBack = ::goBack, onFocus = openKeyboard)
 
-                            Screen.StoryPole -> StoryPoleCalculator(onBack = ::goBack, onFocus = openKeyboard)
+                            Screen.StoryPole -> StoryPoleCalculator(
+                                onBack = ::goBack, onFocus = openKeyboard, projectName = currentProjectName,
+                                onSaveToDataSheet = { pole ->
+                                    val saved = SavedStoryPole.of(pole)
+                                    val list = (allStoryPoles[currentProjectName] ?: emptyList()).filter { it.name != saved.name } + saved
+                                    allStoryPoles = allStoryPoles.toMutableMap().apply { put(currentProjectName, list) }
+                                }
+                            )
 
-                            Screen.SurveyCalc -> SurveyCalculator(onBack = ::goBack)
+                            Screen.SurveyCalc -> SurveyCalculator(
+                                onBack = ::goBack, projectName = currentProjectName,
+                                onSaveRecord = { rec ->
+                                    allSurveyRecords = allSurveyRecords.toMutableMap().apply { put(currentProjectName, (get(currentProjectName) ?: emptyList()) + rec) }
+                                }
+                            )
 
                             Screen.TrigCalculator -> TrigCalculator(
                                 entries = allTrigEntries[currentProjectName] ?: emptyList(),
@@ -1298,13 +1379,15 @@ when (screen) {
                                 val pdfProvider = rememberPdfExportProvider()
                                 val reportMeasurer = androidx.compose.ui.text.rememberTextMeasurer()
                                 fun withDrawings(name: String, sections: List<SummarySection>) = ReportDrawings.attach(
-                                    sections,
+                                    sections + DataSheetExtras.sections(allStoryPoles[name] ?: emptyList(), allSurveyRecords[name] ?: emptyList()),
                                     allStairEntries[name] ?: emptyList(),
                                     allRafterEntries[name] ?: emptyList(),
                                     allGazeboEntries[name] ?: emptyList(),
                                     allArcEntries[name] ?: emptyList(),
                                     allFloorEntries[name] ?: emptyList(),
-                                    reportMeasurer
+                                    reportMeasurer,
+                                    allStoryPoles[name] ?: emptyList(),
+                                    allCircularStairEntries[name] ?: emptyList()
                                 )
                                 // Like the app's project list: pick up new and changed cloud projects on open
                                 LaunchedEffect(cloudSync.user) {
@@ -1338,6 +1421,7 @@ when (screen) {
                                         cloudLinks = cloudLinks - name
                                         if (currentProjectName == name) currentProjectName = "Default"
                                     },
+                                    onRenameProject = { old, new -> applyAppState(currentAppState().renamed(old, new)) },
                                     onPrintProject = { name ->
                                         val sections = SummaryReportGenerator.generateSections(
                                             stairEntries = allStairEntries[name] ?: emptyList(),
@@ -1415,6 +1499,10 @@ when (screen) {
                                 circularStairEntries = allCircularStairEntries[currentProjectName] ?: emptyList(),
                                 trigEntries = allTrigEntries[currentProjectName] ?: emptyList(),
                                 columnEntries = allColumnEntries[currentProjectName] ?: emptyList(),
+                                storyPoles = allStoryPoles[currentProjectName] ?: emptyList(),
+                                surveyRecords = allSurveyRecords[currentProjectName] ?: emptyList(),
+                                onRemovePole = { i -> allStoryPoles = allStoryPoles.toMutableMap().apply { put(currentProjectName, (get(currentProjectName) ?: emptyList()).filterIndexed { k, _ -> k != i }) } },
+                                onRemoveRecord = { i -> allSurveyRecords = allSurveyRecords.toMutableMap().apply { put(currentProjectName, (get(currentProjectName) ?: emptyList()).filterIndexed { k, _ -> k != i }) } },
                                 onBack = { currentScreen = Screen.Calculator }
                             )
 
@@ -1924,6 +2012,7 @@ fun RoofCalculator(
     var leftEndType by remember { mutableStateOf(0) } // 0=Gable, 1=Hip, 2=Valley
     var rightEndType by remember { mutableStateOf(0) }
     var isTruss by remember { mutableStateOf(false) }
+    var roofLumber by remember { mutableStateOf("2x8") }
     var bothSides by remember { mutableStateOf(false) }
     var sectionName by remember { mutableStateOf("") }
 
@@ -2027,6 +2116,9 @@ fun RoofCalculator(
                 Checkbox(checked = bothSides, onCheckedChange = { bothSides = it })
                 Text("Both Sides (Mirror)", fontSize = 13.sp)
             }
+            // Lumber size like the Android app: ridge, hips and valleys go one size up
+            Text("Lumber Size:", fontSize = 13.sp, color = AppTheme.colors.muted, modifier = Modifier.padding(top = 6.dp, bottom = 4.dp))
+            SpSegmented(RoofLumber, RoofLumber.indexOf(roofLumber).coerceAtLeast(0)) { roofLumber = RoofLumber[it] }
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = sectionName,
@@ -2050,10 +2142,11 @@ fun RoofCalculator(
                             val res = RoofEngine.calculate(s, bl, oh, p, ocVal, leftEndType, rightEndType, isTruss, bothSides)
                             results = res
 
-                            val commonInfo = "$oc\" OC x ${res.commonCount}${if (bothSides) " (Mirror)" else ""} @ ${FractionUtils.formatInches(res.overallLen)}"
-                            val hipInfo = if (res.totalHips > 0) "${res.totalHips} pcs @ ${FractionUtils.formatInches(res.hipLen)}" else "-"
-                            val valleyInfo = if (res.totalValleys > 0) "${res.totalValleys} pcs @ ${FractionUtils.formatInches(res.hipLen)}" else "-"
-                            val ridgeInfo = if (!isTruss) FractionUtils.formatInches(res.correctedRidgeLen) else "-"
+                            val nextLumber = RoofLumber.getOrElse(RoofLumber.indexOf(roofLumber) + 1) { roofLumber }
+                            val commonInfo = "$roofLumber ${if (isTruss) "Truss" else "Rafter"} $oc\" OC x ${res.commonCount}${if (bothSides) " (Mirror)" else ""} @ ${FractionUtils.formatInches(res.overallLen)}"
+                            val hipInfo = if (res.totalHips > 0) "${res.totalHips} pcs $nextLumber @ ${FractionUtils.formatInches(res.hipLen)}" else "-"
+                            val valleyInfo = if (res.totalValleys > 0) "${res.totalValleys} pcs $nextLumber @ ${FractionUtils.formatInches(res.hipLen)}" else "-"
+                            val ridgeInfo = if (!isTruss) "$nextLumber @ ${FractionUtils.formatInches(res.correctedRidgeLen)}" else "-"
 
                             val entry = RoofEntry(
                                 id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
@@ -2202,7 +2295,10 @@ fun StairCalculator(
 ) {
     var totalRise by remember { mutableStateOf("") }
     var targetRise by remember { mutableStateOf("7.5") }
-    var floorThick by remember { mutableStateOf("11.875") }
+    var floorThick by remember { mutableStateOf("10 3/4") }
+    var stringerSize by remember { mutableStateOf("2x12 (Standard Cut)") }
+    var showOpening by remember { mutableStateOf(true) }
+    var riserWarning by remember { mutableStateOf("") }
     var nosing by remember { mutableStateOf("1.0") }
     var treadWidth by remember { mutableStateOf("10.25") }
     var sectionName by remember { mutableStateOf("") }
@@ -2319,6 +2415,15 @@ fun StairCalculator(
                 label = { Text("Section Name / Location") },
                 modifier = Modifier.fillMaxWidth()
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Stringer Size:", fontSize = 13.sp, color = AppTheme.colors.muted)
+            SpSegmented(listOf("2x12 (Standard Cut)", "2x10 (Routed)"), if (stringerSize.startsWith("2x10")) 1 else 0) {
+                stringerSize = if (it == 1) "2x10 (Routed)" else "2x12 (Standard Cut)"
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = showOpening, onCheckedChange = { showOpening = it }, colors = SwitchDefaults.colors(checkedThumbColor = AppTheme.colors.accent))
+                Text("Include Floor Opening / Headroom")
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -2328,7 +2433,7 @@ fun StairCalculator(
                         val tr = FractionUtils.parseFeet(totalRise)
                         val dr = pitchToDouble(targetRise, 7.5)
                         val tw = pitchToDouble(treadWidth, if (limitedMode) 11.25 else 10.25)
-                        val ft = pitchToDouble(floorThick, if (limitedMode) 10.75 else 11.875)
+                        val ft = FractionUtils.parse(floorThick).takeIf { it > 0 } ?: 10.75
                         val ns = pitchToDouble(nosing, 1.0)
                         val lr = pitchToDouble(limitedRun, 0.0)
 
@@ -2353,6 +2458,8 @@ fun StairCalculator(
                                 )
                             }
                             results = res
+                            riserWarning = if (res.riserCount > 50) "Large Riser Count (${res.riserCount}). Did you mean Inches instead of Feet?" else ""
+                            val actualNosing = if (limitedMode) (tw - res.stringerRun).coerceAtLeast(0.0) else ns
 
                             val entry = StairEntry(
                                 id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
@@ -2367,7 +2474,10 @@ fun StairCalculator(
                                 angleDeg = "${res.angleDeg.roundToOneDecimal()}°",
                                 treadsOut = "${res.treadsOut.roundToOneDecimal()}",
                                 distOut = FractionUtils.formatInches(res.distOut),
-                                headroom = "Clear"
+                                headroom = "Clear",
+                                stringerSize = stringerSize,
+                                showOpening = showOpening,
+                                nosing = FractionUtils.formatInches(actualNosing)
                             )
 
                             if (editingIndex != -1) {
@@ -2399,8 +2509,30 @@ fun StairCalculator(
                 }
             }
 
+            if (riserWarning.isNotEmpty()) Text(riserWarning, color = AppTheme.colors.danger, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
             results?.let { res ->
                 Spacer(modifier = Modifier.height(24.dp))
+                // Instant results, like the Android app
+                Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(2.dp, AppTheme.colors.accent), modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("INSTANT CALCULATION RESULTS", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent, fontSize = 12.sp)
+                        val tw0 = pitchToDouble(treadWidth, if (limitedMode) 11.25 else 10.25)
+                        val nos0 = if (limitedMode) (tw0 - res.stringerRun).coerceAtLeast(0.0) else pitchToDouble(nosing, 1.0)
+                        listOf(
+                            "Actual Rise:" to FractionUtils.formatInches(res.actualRise),
+                            "Tread Run (Stringer):" to FractionUtils.formatInches(res.stringerRun),
+                            "Calculated Nosing:" to FractionUtils.formatInches(nos0),
+                            "Actual Total Run:" to FractionUtils.formatInches(res.totalRun),
+                            "Stair Angle:" to "${StoryPoleMath.fixed(res.angleDeg, 2)}°",
+                            "Stringer Size:" to stringerSize
+                        ).forEach { (k, v) ->
+                            Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                                Text(k, Modifier.weight(1f), fontSize = 15.sp)
+                                Text(v, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = AppTheme.colors.ink)
+                            }
+                        }
+                    }
+                }
                 Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("RISERS & TREADS", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent, fontSize = 12.sp)
@@ -2427,7 +2559,8 @@ fun StairCalculator(
                             floorThickness = FractionUtils.parse(floorThick),
                             nosing = FractionUtils.parse(nosing),
                             treadsOut = res.treadsOut,
-                            distOut = res.distOut
+                            distOut = res.distOut,
+                            showOpening = showOpening
                         )
                         
                         Spacer(modifier = Modifier.height(8.dp))
@@ -2458,6 +2591,7 @@ fun StairCalculator(
                                     editingIndex = entries.size - 1 - index
                                     sectionName = entry.name
                                     totalRise = entry.rise
+                                    stringerSize = entry.stringerSize; showOpening = entry.showOpening
                                 }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = AppTheme.colors.muted) }
                                 IconButton(onClick = {
                                     val newList = entries.toMutableList()
@@ -2567,6 +2701,10 @@ fun JobSummaryScreen(
     circularStairEntries: List<CircularStairEntry> = emptyList(),
     trigEntries: List<TrigEntry> = emptyList(),
     columnEntries: List<ColumnEntry> = emptyList(),
+    storyPoles: List<SavedStoryPole> = emptyList(),
+    surveyRecords: List<SurveyRecordEntry> = emptyList(),
+    onRemovePole: (Int) -> Unit = {},
+    onRemoveRecord: (Int) -> Unit = {},
     onBack: () -> Unit
 ) {
     val pdfExportProvider = rememberPdfExportProvider()
@@ -2589,9 +2727,9 @@ fun JobSummaryScreen(
                     masonryEntries, drywallEntries, trigEntries, columnEntries,
                     roofEntries, floorEntries, deckEntries, handrailEntries,
                     framingEntries, pineLineEntries, coordinatePaths
-                )
+                ) + DataSheetExtras.sections(storyPoles, surveyRecords)
                 val withDrawings = ReportDrawings.attach(
-                    sections, stairEntries, rafterEntries, gazeboEntries, arcEntries, floorEntries, reportMeasurer
+                    sections, stairEntries, rafterEntries, gazeboEntries, arcEntries, floorEntries, reportMeasurer, storyPoles, circularStairEntries
                 )
                 pdfExportProvider.share(projectName, withDrawings)
             }) {
@@ -2621,6 +2759,8 @@ fun JobSummaryScreen(
                     wallEntries.forEach { append("Walls,${it.name},1,${it.length}x${it.height},Studs: ${it.studs},Plates: ${it.plates}\n") }
                     roofEntries.forEach { append("Roof,${it.name},1,${it.dimensions},Area: ${it.area},Squares: ${it.squares}\n") }
                     floorEntries.forEach { append("Flooring,${it.name},1,${it.length}x${it.width},Joists: ${it.joists},Sheets: ${it.sheets}\n") }
+                    storyPoles.forEach { sp -> append("Story Pole,${sp.name},1,${sp.layers.size} layers,${DataSheetExtras.poleLines(sp.toPole()).last().replace(",", " ")},\n") }
+                    surveyRecords.forEach { r -> append("Survey,${r.name},1,${r.type},${if (r.ok == true) "PASS" else if (r.ok == false) "FAIL" else ""},${r.lines.firstOrNull()?.replace(",", " ") ?: ""}\n") }
                 }
                 downloader.downloadFile("${projectName.replace(" ", "_")}_Takeoff.csv", csvContent, "text/csv")
             }) {
@@ -2633,7 +2773,8 @@ fun JobSummaryScreen(
                     crownEntries.isEmpty() && gazeboEntries.isEmpty() && concreteEntries.isEmpty() && roofEntries.isEmpty() &&
                     coordinatePaths.isEmpty() && masonryEntries.isEmpty() && drywallEntries.isEmpty() &&
                     deckEntries.isEmpty() && floorEntries.isEmpty() && handrailEntries.isEmpty() && pineLineEntries.isEmpty() &&
-                    circularStairEntries.isEmpty() && trigEntries.isEmpty() && columnEntries.isEmpty() && framingEntries.isEmpty()
+                    circularStairEntries.isEmpty() && trigEntries.isEmpty() && columnEntries.isEmpty() && framingEntries.isEmpty() &&
+                    storyPoles.isEmpty() && surveyRecords.isEmpty()
 
             if (isEmpty) {
                 Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
@@ -2674,6 +2815,13 @@ fun JobSummaryScreen(
                                 TableCell(entry.numTreads, 60.dp); TableCell(entry.circleSize, 70.dp)
                                 TableCell(entry.outsideRadius, 90.dp); TableCell(entry.anglePerTread, 80.dp)
                             }
+                            CircStairMath.fromEntry(entry)?.let { r ->
+                                Column(Modifier.padding(bottom = 8.dp)) {
+                                    CircStairMath.reportLines(r).forEach { Text(it, fontSize = 12.sp, color = Color.DarkGray) }
+                                    Spacer(Modifier.height(6.dp))
+                                    CircStairDrawing(r)
+                                }
+                            }
                             Divider()
                         }
                     }
@@ -2703,6 +2851,8 @@ fun JobSummaryScreen(
                         }
                     }
                 }
+
+                DataSheetExtrasSections(storyPoles, surveyRecords, onRemovePole, onRemoveRecord)
 
                 if (gazeboEntries.isNotEmpty()) {
                     SummaryTable("GAZEBO SCHEDULE", listOf("Name", "Sides", "Diam", "Pitch", "Area", "Com Len", "Hip Len")) {
@@ -2858,12 +3008,12 @@ fun JobSummaryScreen(
                 }
 
                 if (columnEntries.isNotEmpty()) {
-                    SummaryTable("COLUMN / CIRCLE SCHEDULE", listOf("Name", "Diam", "Height", "Volume", "Surf Area", "Circumf")) {
+                    SummaryTable("COLUMN / CIRCLE SCHEDULE", listOf("Name", "Qty", "Diam", "Height", "Volume", "Rebar", "Circumf")) {
                         columnEntries.forEach { entry ->
                             Row(modifier = Modifier.padding(vertical = 8.dp)) {
-                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.diameter, 80.dp)
-                                TableCell(entry.height, 80.dp); TableCell(entry.volume, 100.dp)
-                                TableCell(entry.surfaceArea, 100.dp); TableCell(entry.circumference, 100.dp)
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.qty, 50.dp); TableCell(entry.diameter, 80.dp)
+                                TableCell(entry.height, 80.dp); TableCell(entry.volume, 110.dp)
+                                TableCell(if (entry.rebarFt.isBlank()) "-" else entry.rebarFt + "'", 80.dp); TableCell(entry.circumference, 100.dp)
                             }
                             Divider()
                         }
@@ -5140,6 +5290,8 @@ fun DeckCalculator(
     var width by remember { mutableStateOf("") }
     var boardWidth by remember { mutableStateOf("5.5") }
     var gap by remember { mutableStateOf("0.125") }
+    var joistOc by remember { mutableStateOf("16") }
+    var alongWidth by remember { mutableStateOf(false) }
     var sectionName by remember { mutableStateOf("") }
     
     var editingIndex by remember { mutableStateOf(-1) }
@@ -5186,6 +5338,12 @@ fun DeckCalculator(
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                ConstructionTextField(value = joistOc, onValueChange = { joistOc = it }, label = "Joist OC (in)", modifier = Modifier.weight(1f), onFocus = onFocus)
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(Modifier.weight(1f)) { SpSegmented(listOf("Along Length", "Along Width"), if (alongWidth) 1 else 0) { alongWidth = it == 1 } }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = sectionName,
                 onValueChange = { sectionName = it },
@@ -5198,15 +5356,19 @@ fun DeckCalculator(
             Row(modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
-                        val lIn = FractionUtils.parse(length)
-                        val wIn = FractionUtils.parse(width)
-                        val bw = boardWidth.toDoubleOrNull() ?: 5.5
-                        val g = gap.toDoubleOrNull() ?: 0.125
-                        
+                        // Same math as the Android app: plain numbers are feet; boards run along the length or the width
+                        val lIn = FractionUtils.parseFeet(length)
+                        val wIn = FractionUtils.parseFeet(width)
+                        val bw = FractionUtils.parse(boardWidth).takeIf { it > 0 } ?: 5.5
+                        val g = FractionUtils.parse(gap)
+                        val oc = FractionUtils.parse(joistOc).takeIf { it > 0 } ?: 16.0
+
                         if (lIn > 0 && wIn > 0) {
-                            val boardCount = ceil(wIn / (bw + g)).toInt()
-                            // Assuming 16" OC joists for fastener count
-                            val joistCount = ceil(lIn / 16.0).toInt() + 1
+                            val spanDist = if (alongWidth) wIn else lIn
+                            val runDist = if (alongWidth) lIn else wIn
+                            val boardCount = ceil(runDist / (bw + g)).toInt()
+                            val totalLF = boardCount * spanDist / 12.0
+                            val joistCount = ceil(spanDist / oc).toInt() + 1
                             val fasteners = boardCount * joistCount * 2
 
                             val entry = DeckEntry(
@@ -5216,8 +5378,10 @@ fun DeckCalculator(
                                 width = width,
                                 boardWidth = boardWidth,
                                 gap = gap,
-                                boards = "$boardCount Boards (${FractionUtils.formatInches(lIn)})",
-                                fasteners = "$fasteners Screws"
+                                boards = "$boardCount Boards (${FractionUtils.formatInches(spanDist)})",
+                                fasteners = "$fasteners Screws",
+                                joistOc = joistOc, direction = if (alongWidth) "Run Along Width" else "Run Along Length",
+                                totalLF = "${StoryPoleMath.fixed(totalLF, 0)}' LF"
                             )
 
                             if (editingIndex != -1) {
@@ -5254,6 +5418,8 @@ fun DeckCalculator(
                 Divider()
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("SAVED DECKS", color = AppTheme.colors.muted, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("Grand Total: ${StoryPoleMath.fixed(entries.sumOf { it.totalLF.substringBefore("'").toDoubleOrNull() ?: 0.0 }, 0)}' LF",
+                    fontWeight = FontWeight.Bold, fontSize = 17.sp, color = AppTheme.colors.accent, modifier = Modifier.padding(vertical = 6.dp))
                 
                 entries.reversed().forEachIndexed { index, entry ->
                     Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.padding(vertical = 4.dp)) {
@@ -5268,6 +5434,8 @@ fun DeckCalculator(
                                     sectionName = entry.name
                                     length = entry.length
                                     width = entry.width
+                                    boardWidth = entry.boardWidth; gap = entry.gap; joistOc = entry.joistOc
+                                    alongWidth = entry.direction == "Run Along Width"
                                 }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = AppTheme.colors.muted) }
                                 IconButton(onClick = {
                                     val newList = entries.toMutableList()
@@ -5276,8 +5444,8 @@ fun DeckCalculator(
                                 }) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = AppTheme.colors.muted) }
                             }
                             Divider(modifier = Modifier.padding(vertical = 4.dp))
-                            Text(entry.boards, fontSize = 14.sp)
-                            Text(entry.fasteners, fontSize = 14.sp)
+                            Text(entry.boards + (if (entry.totalLF.isNotBlank()) " · ${entry.totalLF}" else ""), fontSize = 14.sp)
+                            Text(entry.fasteners + " · ${entry.direction}, joists ${entry.joistOc}\" OC", fontSize = 14.sp)
                         }
                     }
                 }
@@ -5778,6 +5946,10 @@ fun DrywallCalculator(
     onFocus: (String, (String) -> Unit) -> Unit
 ) {
     var areaInput by remember { mutableStateOf("") }
+    var lengthIn by remember { mutableStateOf("") }
+    var widthIn by remember { mutableStateOf("") }
+    var roomMode by remember { mutableStateOf(false) }
+    var wallHeight by remember { mutableStateOf("8") }
     var sheetSize by remember { mutableStateOf("4x8") }
     var sectionName by remember { mutableStateOf("") }
     
@@ -5789,10 +5961,21 @@ fun DrywallCalculator(
             Text("FINISH AREA & MATERIAL", color = AppTheme.colors.accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Room dimensions like the Android app; or type a total area instead
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(value = lengthIn, onValueChange = { lengthIn = it }, label = "Length (ft)", modifier = Modifier.weight(1f), onFocus = onFocus)
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(value = widthIn, onValueChange = { widthIn = it }, label = "Width (ft)", modifier = Modifier.weight(1f), onFocus = onFocus)
+            }
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = roomMode, onCheckedChange = { roomMode = it }, colors = SwitchDefaults.colors(checkedThumbColor = AppTheme.colors.accent))
+                Text("Calculate 4 Walls + Ceiling", modifier = Modifier.weight(1f))
+                if (roomMode) ConstructionTextField(value = wallHeight, onValueChange = { wallHeight = it }, label = "Wall Height (ft)", modifier = Modifier.width(140.dp), onFocus = onFocus)
+            }
             ConstructionTextField(
                 value = areaInput,
                 onValueChange = { areaInput = it },
-                label = "Total Area (sq ft)",
+                label = "Or Total Area (sq ft)",
                 modifier = Modifier.fillMaxWidth(),
                 onFocus = onFocus
             )
@@ -5829,7 +6012,12 @@ fun DrywallCalculator(
             Row(modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
-                        val area = areaInput.toDoubleOrNull() ?: 0.0
+                        val len = FractionUtils.parseFeet(lengthIn)
+                        val wid = FractionUtils.parseFeet(widthIn)
+                        val wallH = FractionUtils.parseFeet(wallHeight).takeIf { it > 0 } ?: 96.0
+                        val area = if (len > 0 && wid > 0) {
+                            (if (roomMode) 2.0 * len * wallH + 2.0 * wid * wallH + len * wid else len * wid) / 144.0
+                        } else areaInput.toDoubleOrNull() ?: 0.0
                         if (area > 0) {
                             val divisor = when(sheetSize) {
                                 "4x8" -> 32.0
@@ -5843,8 +6031,9 @@ fun DrywallCalculator(
 
                             val entry = DrywallEntry(
                                 id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
-                                name = sectionName.ifEmpty { "Drywall Section" },
-                                area = "$area sq ft",
+                                name = sectionName.ifEmpty { "Room ${entries.size + 1}" },
+                                area = "${StoryPoleMath.fixed(area, 0)} sq ft",
+                                length = lengthIn, width = widthIn, roomMode = roomMode, wallHeight = wallHeight,
                                 sheets = "$sheets Sheets",
                                 sheetSize = sheetSize,
                                 mud = "$mud lbs Mud",
@@ -5859,7 +6048,7 @@ fun DrywallCalculator(
                             } else {
                                 onUpdateEntries(entries + entry)
                             }
-                            sectionName = ""; areaInput = ""
+                            sectionName = ""; areaInput = ""; lengthIn = ""; widthIn = ""
                         }
                     },
                     modifier = Modifier.weight(2f).height(64.dp),
@@ -5886,6 +6075,17 @@ fun DrywallCalculator(
                 Divider()
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("SAVED DRYWALL", color = AppTheme.colors.muted, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                val totArea = entries.sumOf { it.area.substringBefore(" ").toDoubleOrNull() ?: 0.0 }
+                val totSheets = entries.sumOf { it.sheets.substringBefore(" ").toDoubleOrNull() ?: 0.0 }
+                val totMud = entries.sumOf { it.mud.substringBefore(" ").toDoubleOrNull() ?: 0.0 }
+                val totTape = entries.sumOf { it.tape.substringBefore(" ").toDoubleOrNull() ?: 0.0 }
+                Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(2.dp, AppTheme.colors.accent), modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text("Total Area: ${StoryPoleMath.fixed(totArea, 0)} sq ft", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Total Sheets: ${StoryPoleMath.fixed(totSheets, 0)}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = AppTheme.colors.accent)
+                        Text("Mud: ${StoryPoleMath.fixed(totMud, 0)} lbs | Tape: ${StoryPoleMath.fixed(totTape, 0)} ft", fontSize = 14.sp)
+                    }
+                }
                 
                 entries.reversed().forEachIndexed { index, entry ->
                     Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.padding(vertical = 4.dp)) {
@@ -5898,7 +6098,8 @@ fun DrywallCalculator(
                                 IconButton(onClick = {
                                     editingIndex = entries.size - 1 - index
                                     sectionName = entry.name
-                                    areaInput = entry.area.replace(" sq ft", "")
+                                    areaInput = if (entry.length.isBlank()) entry.area.replace(" sq ft", "") else ""
+                                    lengthIn = entry.length; widthIn = entry.width; roomMode = entry.roomMode; wallHeight = entry.wallHeight
                                 }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = AppTheme.colors.muted) }
                                 IconButton(onClick = {
                                     val newList = entries.toMutableList()
@@ -6344,255 +6545,6 @@ fun TrigCalculator(
                                 Text("Angle B", fontSize = 11.sp, color = AppTheme.colors.muted)
                                 Text("${res.angleB.roundToOneDecimal()}°", fontWeight = FontWeight.Bold)
                             }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ColumnCalculator(
-    entries: List<ColumnEntry>,
-    onUpdateEntries: (List<ColumnEntry>) -> Unit,
-    onBack: () -> Unit,
-    onFocus: (String, (String) -> Unit) -> Unit
-) {
-    var diameter by remember { mutableStateOf("") }
-    var height by remember { mutableStateOf("") }
-    var sectionName by remember { mutableStateOf("") }
-
-    var results by remember { mutableStateOf<ColumnEngine.ColumnResult?>(null) }
-
-    ToolScreen(Screen.ColumnCalculator, onBack) {
-
-        Column(modifier = Modifier.padding(16.dp)) {
-            ConstructionTextField(value = diameter, onValueChange = { diameter = it }, label = "Diameter (ft/in)", modifier = Modifier.fillMaxWidth(), onFocus = onFocus)
-            Spacer(modifier = Modifier.height(8.dp))
-            ConstructionTextField(value = height, onValueChange = { height = it }, label = "Height / Length (ft/in)", modifier = Modifier.fillMaxWidth(), onFocus = onFocus)
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(value = sectionName, onValueChange = { sectionName = it }, label = { Text("Section Name") }, modifier = Modifier.fillMaxWidth())
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = {
-                    val d = FractionUtils.parse(diameter); val h = FractionUtils.parse(height)
-                    if (d > 0) {
-                        val res = ColumnEngine.calculate(d, h)
-                        results = res
-                        val entry = ColumnEntry(
-                            id = (entries.size + 1).toString(),
-                            name = sectionName.ifEmpty { "Column Section" },
-                            diameter = diameter,
-                            height = height,
-                            volume = "${(res.volume / 46656.0).roundToOneDecimal()} cu yd",
-                            surfaceArea = "${(res.surfaceArea / 144.0).roundToOneDecimal()} sq ft",
-                            circumference = FractionUtils.formatInches(res.circumference)
-                        )
-                        onUpdateEntries(entries + entry); sectionName = ""
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(56.dp)
-            ) { Text("CALCULATE & SAVE") }
-
-            results?.let { res ->
-                Spacer(modifier = Modifier.height(24.dp))
-                Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("CIRCLE / COLUMN RESULTS", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent, fontSize = 12.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Volume: ${(res.volume / 46656.0).roundToOneDecimal()} cu yd", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = AppTheme.colors.accent)
-                        Text("Circumference: ${FractionUtils.formatInches(res.circumference)}", fontSize = 16.sp)
-                        Text("Surface Area: ${(res.surfaceArea / 144.0).roundToOneDecimal()} sq ft", fontSize = 16.sp)
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-
-@Composable
-fun CircularStairCalculator(
-    entries: List<CircularStairEntry>,
-    onUpdateEntries: (List<CircularStairEntry>) -> Unit,
-    onBack: () -> Unit,
-    onFocus: (String, (String) -> Unit) -> Unit
-) {
-    var totalRise by remember { mutableStateOf("") }
-    var innerRadius by remember { mutableStateOf("18") }
-    var treadWidth by remember { mutableStateOf("45") }
-    var numTreads by remember { mutableStateOf("8") }
-    var straightTreads by remember { mutableStateOf("0") }
-    var straightRun by remember { mutableStateOf("10") }
-    var nosing by remember { mutableStateOf("1") }
-    var circleSize by remember { mutableStateOf("2/4") }
-    var sectionName by remember { mutableStateOf("") }
-
-    var results by remember { mutableStateOf<CircularStairEngine.CircStairResult?>(null) }
-    var editingIndex by remember { mutableStateOf(-1) }
-
-    ToolScreen(Screen.CircularStairCalculator, onBack) {
-
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("STAIR DIMENSIONS", color = AppTheme.colors.accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ConstructionTextField(value = totalRise, onValueChange = { totalRise = it }, label = "Total Rise (ft/in)", modifier = Modifier.weight(1f), onFocus = onFocus)
-                Spacer(modifier = Modifier.width(8.dp))
-                ConstructionTextField(value = innerRadius, onValueChange = { innerRadius = it }, label = "Inner Radius (in)", modifier = Modifier.weight(1f), onFocus = onFocus)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ConstructionTextField(value = treadWidth, onValueChange = { treadWidth = it }, label = "Tread Width (in)", modifier = Modifier.weight(1f), onFocus = onFocus)
-                Spacer(modifier = Modifier.width(8.dp))
-                ConstructionTextField(value = numTreads, onValueChange = { numTreads = it }, label = "Num Treads", modifier = Modifier.weight(1f), onFocus = onFocus)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ConstructionTextField(value = straightTreads, onValueChange = { straightTreads = it }, label = "Straight Treads", modifier = Modifier.weight(1f), onFocus = onFocus)
-                Spacer(modifier = Modifier.width(8.dp))
-                ConstructionTextField(value = straightRun, onValueChange = { straightRun = it }, label = "Straight Run (in)", modifier = Modifier.weight(1f), onFocus = onFocus)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ConstructionTextField(value = nosing, onValueChange = { nosing = it }, label = "Nosing (in)", modifier = Modifier.weight(1f), onFocus = onFocus)
-                Spacer(modifier = Modifier.width(8.dp))
-                ConstructionTextField(value = circleSize, onValueChange = { circleSize = it }, label = "Circle Size (e.g. 2/4)", modifier = Modifier.weight(1f), onFocus = onFocus)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(value = sectionName, onValueChange = { sectionName = it }, label = { Text("Section Name") }, modifier = Modifier.fillMaxWidth())
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Button(
-                    onClick = {
-                        val tr = FractionUtils.parse(totalRise)
-                        val ir = FractionUtils.parse(innerRadius)
-                        val tw = FractionUtils.parse(treadWidth)
-                        val nt = numTreads.toDoubleOrNull() ?: 1.0
-                        val st = straightTreads.toDoubleOrNull() ?: 0.0
-                        var circleFactor = 0.5
-                        if (circleSize.contains("/")) {
-                            val parts = circleSize.split("/")
-                            if (parts.size == 2) {
-                                val n = parts[0].toDoubleOrNull() ?: 2.0
-                                val d = parts[1].toDoubleOrNull() ?: 4.0
-                                circleFactor = if (d != 0.0) n / d else 0.5
-                            }
-                        }
-                        if (tr > 0 && ir > 0) {
-                            val res = CircularStairEngine.calculate(tr, ir, tw, nt, st, circleFactor)
-                            results = res
-                            val entry = CircularStairEntry(
-                                id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
-                                name = sectionName.ifEmpty { "Spiral Section" },
-                                totalRise = totalRise,
-                                radius = innerRadius,
-                                walkTread = treadWidth,
-                                numTreads = numTreads,
-                                straightTreads = straightTreads,
-                                straightRun = straightRun,
-                                nosing = nosing,
-                                circleSize = circleSize,
-                                outerArcTread = FractionUtils.formatInches(res.outerArcTread),
-                                innerArcTread = FractionUtils.formatInches(res.innerArcTread),
-                                outsideRadius = FractionUtils.formatInches(res.outsideRadius),
-                                anglePerTread = "${res.anglePerTread.roundToOneDecimal()}°"
-                            )
-                            if (editingIndex != -1) {
-                                val newList = entries.toMutableList(); newList[editingIndex] = entry
-                                onUpdateEntries(newList); editingIndex = -1
-                            } else { onUpdateEntries(entries + entry) }
-                            sectionName = ""
-                        }
-                    },
-                    modifier = Modifier.weight(2f).height(64.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(backgroundColor = AppTheme.colors.eq, contentColor = AppTheme.colors.eqInk)
-                ) { Text("CALCULATE & SAVE") }
-            }
-
-            results?.let { res ->
-                Spacer(modifier = Modifier.height(24.dp))
-                Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("SPIRAL LAYOUT", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent, fontSize = 12.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Outside Radius: ${FractionUtils.formatInches(res.outsideRadius)}", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                        Text("Angle per Tread: ${res.anglePerTread.roundToOneDecimal()}°", fontSize = 14.sp)
-                        Text("Actual Rise: ${FractionUtils.formatInches(res.actualRise)}", fontSize = 14.sp)
-                        Divider(modifier = Modifier.padding(vertical = 8.dp))
-                        Text("Arc per Tread (Outer / Inner):", fontSize = 12.sp, color = AppTheme.colors.muted)
-                        Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Outer Arc", fontSize = 11.sp, color = AppTheme.colors.muted)
-                                Text(FractionUtils.formatInches(res.outerArcTread), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = AppTheme.colors.accent)
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Inner Arc", fontSize = 11.sp, color = AppTheme.colors.muted)
-                                Text(FractionUtils.formatInches(res.innerArcTread), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = AppTheme.colors.accent)
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Circle Portion (Outer / Inner):", fontSize = 12.sp, color = AppTheme.colors.muted)
-                        Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(FractionUtils.formatInches(res.outerCircPortion), fontWeight = FontWeight.Bold)
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(FractionUtils.formatInches(res.innerCircPortion), fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (entries.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(24.dp))
-                Divider()
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("SAVED SPIRAL STAIRS", color = AppTheme.colors.muted, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-
-                entries.reversed().forEachIndexed { index, entry ->
-                    Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.padding(vertical = 4.dp)) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(entry.name, fontWeight = FontWeight.Bold)
-                                    Text("Rise: ${entry.totalRise} | ${entry.numTreads} Treads | Circle: ${entry.circleSize}", fontSize = 12.sp, color = AppTheme.colors.muted)
-                                }
-                                IconButton(onClick = {
-                                    editingIndex = entries.size - 1 - index
-                                    sectionName = entry.name
-                                    totalRise = entry.totalRise
-                                    innerRadius = entry.radius
-                                    treadWidth = entry.walkTread
-                                    numTreads = entry.numTreads
-                                    straightTreads = entry.straightTreads
-                                    straightRun = entry.straightRun
-                                    nosing = entry.nosing
-                                    circleSize = entry.circleSize
-                                }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = AppTheme.colors.muted) }
-                                IconButton(onClick = {
-                                    val newList = entries.toMutableList()
-                                    newList.removeAt(entries.size - 1 - index)
-                                    onUpdateEntries(newList)
-                                }) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = AppTheme.colors.muted) }
-                            }
-                            Divider(modifier = Modifier.padding(vertical = 4.dp))
-                            Text(
-                                "Outside Radius: ${entry.outsideRadius} | Angle/Tread: ${entry.anglePerTread}",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = AppTheme.colors.accent
-                            )
-                            Text("Outer Arc: ${entry.outerArcTread} | Inner Arc: ${entry.innerArcTread}", fontSize = 12.sp, color = AppTheme.colors.muted)
                         }
                     }
                 }

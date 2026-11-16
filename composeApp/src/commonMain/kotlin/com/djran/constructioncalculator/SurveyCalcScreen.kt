@@ -75,7 +75,7 @@ private fun toDeg(r: Double) = r * 180.0 / PI
  * (2-point direct, 3–5 point least squares). Math in SurveyCore, the same file the Android apps use.
  */
 @Composable
-fun SurveyCalculator(onBack: () -> Unit) {
+fun SurveyCalculator(onBack: () -> Unit, projectName: String = "", onSaveRecord: ((SurveyRecordEntry) -> Unit)? = null) {
     val c = AppTheme.colors
     val settings = remember { try { Settings() } catch (e: Throwable) { null } }
     val v = remember { mutableStateMapOf<String, String>() }
@@ -143,6 +143,21 @@ fun SurveyCalculator(onBack: () -> Unit) {
         return if (e.isNotEmpty()) "Setup incomplete — open the Setup tab."
         else "Station ${SurveyCore.fmtCoord(s.n)} N, ${SurveyCore.fmtCoord(s.e)} E · BS azimuth ${SurveyCore.fmtDms(s.bsAz)}" +
             (s.bsHd?.let { " · BS dist ${SurveyCore.fmtFt(it)}" } ?: "") + " · gun set to ${SurveyCore.fmtDms(s.bsSetting)} on BS"
+    }
+
+    // Save a result to the project's Data Sheet, like the Android app
+    val typeNames = mapOf("dms" to "DMS math", "inv" to "Inverse", "setup" to "Setup", "bs" to "Backsight check", "chk" to "Check shot", "res" to "Resection")
+    fun saver(tab: String): ((SOut) -> Unit)? {
+        val save = onSaveRecord ?: return null
+        if (projectName.isBlank()) return null
+        return { o ->
+            val lines = mutableListOf<String>()
+            if (o.big.isNotEmpty()) lines += (if (o.title.isNotEmpty()) "${o.title}: " else "") + o.big
+            if (o.sub.isNotEmpty()) lines += o.sub
+            o.rows.forEach { r -> lines += "${r.label}: ${r.value}" + when (r.ok) { true -> " (PASS)"; false -> " (FAIL)"; null -> "" } }
+            o.warn?.let { lines += it }
+            save(SurveyRecordEntry(tab, typeNames[tab] ?: tab, currentTimeMillis(), o.verdict?.first, lines))
+        }
     }
 
     fun compute(tab: String): SOut? {
@@ -298,7 +313,7 @@ fun SurveyCalculator(onBack: () -> Unit) {
                         seg("dWrap", listOf("1" to "Wrap to 0–360°", "0" to "Keep as is"))
                         SpHint("Type 45°30'15\", 45 30 15, 45-30-15, or decimal degrees${if (mode == AngleMode.DMSS) " (single numbers read as DDD.MMSS)" else ""}. Bearings work too: N 45 30 E.")
                     }
-                    SurveyResult(compute("dms"))
+                    SurveyResult(compute("dms"), saver("dms"))
                     SpCard {
                         SpLabel("Convert")
                         field("dConv", "Angle, decimal degrees, or bearing", true, Modifier.fillMaxWidth())
@@ -313,7 +328,7 @@ fun SurveyCalculator(onBack: () -> Unit) {
                 "inv" -> {
                     SpCard { SpLabel("From point"); row({ field("iN1", "North", modifier = it) }, { field("iE1", "East", modifier = it) }, { field("iZ1", "Elev (opt)", modifier = it) }) }
                     SpCard { SpLabel("To point"); row({ field("iN2", "North", modifier = it) }, { field("iE2", "East", modifier = it) }, { field("iZ2", "Elev (opt)", modifier = it) }) }
-                    SurveyResult(compute("inv"))
+                    SurveyResult(compute("inv"), saver("inv"))
                 }
                 "setup" -> {
                     SpCard {
@@ -330,7 +345,7 @@ fun SurveyCalculator(onBack: () -> Unit) {
                         field("bsSet", "Gun reading set on backsight", true, Modifier.fillMaxWidth())
                         SpHint("Angles are read right (clockwise) from the backsight. Set 0°00'00\", or set the backsight azimuth so the gun reads azimuths.")
                     }
-                    SurveyResult(compute("setup"))
+                    SurveyResult(compute("setup"), saver("setup"))
                 }
                 "bs" -> {
                     SpCard {
@@ -339,12 +354,12 @@ fun SurveyCalculator(onBack: () -> Unit) {
                         field("bHA", "Gun reading on backsight", true, Modifier.fillMaxWidth())
                         Spacer(Modifier.height(8.dp)); distFields("b")
                     }
-                    SurveyResult(compute("bs"))
+                    SurveyResult(compute("bs"), saver("bs"))
                 }
                 "chk" -> {
                     SpCard { SpLabel("Known check point"); SpHint(setupSummary()); row({ field("cN", "North", modifier = it) }, { field("cE", "East", modifier = it) }, { field("cZ", "Elev (opt)", modifier = it) }) }
                     SpCard { SpLabel("What the gun measured"); field("cHA", "Gun reading on check point", true, Modifier.fillMaxWidth()); Spacer(Modifier.height(8.dp)); distFields("c") }
-                    SurveyResult(compute("chk"))
+                    SurveyResult(compute("chk"), saver("chk"))
                 }
                 "res" -> {
                     val n = (v["rCount"]?.toIntOrNull() ?: 2).coerceIn(2, 5)
@@ -366,7 +381,7 @@ fun SurveyCalculator(onBack: () -> Unit) {
                     }
                     if (n < 5) Button(onClick = { set("rCount", (n + 1).toString()) }, modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                         colors = ButtonDefaults.buttonColors(backgroundColor = c.eq, contentColor = c.eqInk)) { Text("＋ Add known point") }
-                    SurveyResult(compute("res"))
+                    SurveyResult(compute("res"), saver("res"))
                 }
                 else -> {
                     SpCard {
@@ -395,7 +410,7 @@ fun SurveyCalculator(onBack: () -> Unit) {
 }
 
 @Composable
-private fun SurveyResult(o: SOut?) {
+private fun SurveyResult(o: SOut?, onSave: ((SOut) -> Unit)? = null) {
     if (o == null) return
     val c = AppTheme.colors
     if (o.errors.isNotEmpty()) { SpCard { Text(o.errors.joinToString("\n"), color = c.danger) }; return }
@@ -414,6 +429,12 @@ private fun SurveyResult(o: SOut?) {
             o.rows.forEach { SurveyRowView(it) }
             o.warn?.let { Text(it, color = Color(0xFFB3261E), modifier = Modifier.padding(top = 6.dp)) }
             o.hints.forEach { SpHint(it) }
+            onSave?.let { save ->
+                var saved by remember(o.big, o.rows.size) { mutableStateOf(false) }
+                OutlinedButton(onClick = { save(o); saved = true }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
+                    Text(if (saved) "✓ Saved to Data Sheet" else "Save to Data Sheet")
+                }
+            }
             o.action?.let { (label, act) ->
                 Button(onClick = act, modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
                     colors = ButtonDefaults.buttonColors(backgroundColor = c.eq, contentColor = c.eqInk)) { Text(label) }

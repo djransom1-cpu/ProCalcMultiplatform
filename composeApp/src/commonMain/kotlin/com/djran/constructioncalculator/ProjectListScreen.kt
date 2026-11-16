@@ -32,6 +32,7 @@ fun ProjectListScreen(
     onAddProject: (String) -> Unit,
     onDeleteProject: (String) -> Unit,
     onPrintProject: (String) -> Unit,
+    onRenameProject: (String, String) -> Unit = { _, _ -> },
     onPrintAll: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -41,6 +42,8 @@ fun ProjectListScreen(
     var showJoinDialog by remember { mutableStateOf(false) }
     var joinCode by remember { mutableStateOf("") }
     var pendingDelete by remember { mutableStateOf<String?>(null) }
+    var pendingRename by remember { mutableStateOf<String?>(null) }
+    var renameText by remember { mutableStateOf("") }
     var teamProject by remember { mutableStateOf<String?>(null) }
 
     Column(modifier = Modifier.fillMaxSize().background(Palette.Bg)) {
@@ -148,6 +151,9 @@ fun ProjectListScreen(
                         IconButton(onClick = { onPrintProject(name) }) {
                             Icon(Icons.Default.Share, contentDescription = "Print", tint = BlueTool)
                         }
+                        IconButton(onClick = { pendingRename = name; renameText = name }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Rename", tint = BlueTool)
+                        }
                         IconButton(onClick = { pendingDelete = name }) {
                             Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
                         }
@@ -243,6 +249,29 @@ fun ProjectListScreen(
             dismissButton = {
                 TextButton(onClick = { pendingDelete = null }) { Text("CANCEL") }
             }
+        )
+    }
+
+    // Rename, like the Android app's project list
+    pendingRename?.let { oldName ->
+        val clash = renameText.trim() != oldName && projects.contains(renameText.trim())
+        AlertDialog(
+            onDismissRequest = { pendingRename = null },
+            title = { Text("Rename Project") },
+            text = {
+                Column {
+                    Text("Enter new name for '$oldName'")
+                    OutlinedTextField(value = renameText, onValueChange = { renameText = it }, singleLine = true, isError = clash)
+                    if (clash) Text("Project name '${renameText.trim()}' already exists", color = Color.Red, fontSize = 12.sp)
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    val n = renameText.trim()
+                    if (n.isNotEmpty() && !clash) { onRenameProject(oldName, n); pendingRename = null }
+                }, enabled = renameText.isNotBlank() && !clash) { Text("RENAME") }
+            },
+            dismissButton = { TextButton(onClick = { pendingRename = null }) { Text("CANCEL") } }
         )
     }
 

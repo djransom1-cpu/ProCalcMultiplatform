@@ -243,10 +243,10 @@ object DxfExporter {
         val innerR = FractionUtils.parse(circ.radius)
         val tWidth = FractionUtils.parse(circ.walkTread)
         val outerR = innerR + tWidth
-        val totalTreads = circ.numTreads.toDoubleOrNull() ?: 8.0
-        val wedgeTreads = max(1.0, totalTreads)
-        
-        val totalSweep = 180.0
+        // Same sweep and wedge count as the screen (CircStairMath); older saves fall back to a half circle
+        val calc = CircStairMath.fromEntry(circ)
+        val wedgeTreads = max(1.0, calc?.wedgeTreads?.toDouble() ?: (circ.numTreads.toDoubleOrNull() ?: 8.0))
+        val totalSweep = calc?.sweepDeg ?: 180.0
         val anglePerTread = totalSweep / wedgeTreads
         
         val centerX = ox
