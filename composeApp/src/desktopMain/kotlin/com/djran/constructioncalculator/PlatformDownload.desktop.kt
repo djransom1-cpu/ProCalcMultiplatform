@@ -23,4 +23,18 @@ class DesktopFileDownloader : FileDownloader {
             println("Desktop save error: ${e.message}")
         }
     }
+
+    override fun downloadBytes(fileName: String, bytes: ByteArray, mimeType: String) {
+        try {
+            val dialog = FileDialog(null as Frame?, "Save $fileName", FileDialog.SAVE).apply {
+                file = fileName
+                directory = File(System.getProperty("user.home"), "Downloads").takeIf { it.isDirectory }?.path
+                isVisible = true
+            }
+            val name = dialog.file ?: return
+            File(dialog.directory, name).writeBytes(bytes)
+        } catch (e: Throwable) {
+            println("Desktop save error: ${e.message}")
+        }
+    }
 }

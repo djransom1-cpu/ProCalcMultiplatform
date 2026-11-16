@@ -34,6 +34,9 @@ fun ProjectListScreen(
     onPrintProject: (String) -> Unit,
     onRenameProject: (String, String) -> Unit = { _, _ -> },
     onPrintAll: () -> Unit,
+    onExportProject: (String) -> Unit = {},
+    onImportProject: () -> Unit = {},
+    importMessage: String? = null,
     onBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -82,6 +85,15 @@ fun ProjectListScreen(
                     Text("PRINT ALL", fontWeight = FontWeight.Bold)
                 }
             }
+
+            // Same as the Android app's IMPORT PROJECT (.ccp)
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(onClick = onImportProject, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(8.dp)) {
+                Icon(Icons.Default.FileOpen, contentDescription = null, tint = BlueTool)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("IMPORT PROJECT (.ccp)", color = BlueTool, fontWeight = FontWeight.Bold)
+            }
+            importMessage?.let { Text(it, fontSize = 13.sp, color = if (it.startsWith("Imported")) Color(0xFF2E7D32) else LabelRed, modifier = Modifier.padding(top = 6.dp)) }
 
             if (cloudSyncSupported) {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -150,6 +162,9 @@ fun ProjectListScreen(
                         }
                         IconButton(onClick = { onPrintProject(name) }) {
                             Icon(Icons.Default.Share, contentDescription = "Print", tint = BlueTool)
+                        }
+                        IconButton(onClick = { onExportProject(name) }) {
+                            Icon(Icons.Default.Download, contentDescription = "Export .ccp", tint = BlueTool)
                         }
                         IconButton(onClick = { pendingRename = name; renameText = name }) {
                             Icon(Icons.Default.Edit, contentDescription = "Rename", tint = BlueTool)

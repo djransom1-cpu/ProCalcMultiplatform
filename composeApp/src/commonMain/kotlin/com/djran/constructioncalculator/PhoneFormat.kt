@@ -92,17 +92,21 @@ object PhoneFormat {
             path.points.forEachIndexed { i, p ->
                 val f = Fields(basePoints.getOrNull(points.size)?.toMutableMap() ?: mutableMapOf())
                 f.default("num", (points.size + 1).toString())
-                f.put("north", p.n.toString()); f.put("east", p.e.toString())
-                f.put("elevation", p.elev.toString()); f.put("desc", p.description)
+                // The phone keeps coordinates in feet (arc heights in inches); this app keeps inches
+                f.put("north", StoryPoleMath.fixed(p.n / 12.0, 3)); f.put("east", StoryPoleMath.fixed(p.e / 12.0, 3))
+                f.put("elevation", StoryPoleMath.fixed(p.elev / 12.0, 3)); f.put("desc", p.description)
                 f.put("isPathStart", i == 0)
                 f.put("arcHeight", (path.arcHeights.getOrNull(i) ?: 0.0).toString())
-                f.default("isExclusion", false)
+                f.put("isExclusion", i == 0 && path.isHole)
                 points.add(JsonObject(f.map))
             }
         }
         val phoneText = JsonArray(points).toString()
         out[key] = JsonPrimitive(phoneText)
         out["closed_$name"] = JsonPrimitive(paths.any { it.isClosed })
+        out["coord_lines_$name"] = JsonPrimitive(JsonArray((state.allCoordLines[name] ?: emptyList()).map { l ->
+            buildJsonObject { put("from", l.from.toString()); put("to", l.to.toString()); put("arcHeight", l.arc.toString()) }
+        }).toString())
         webState[COORDS] = buildJsonObject {
             put("sig", phoneText.hashCode())
             put("items", json.encodeToJsonElement(ListSerializer(PlottedPath.serializer()), paths))
@@ -128,21 +132,28 @@ object PhoneFormat {
                     id = entryId(i),
                     points = group.map { f ->
                         CoordinatePoint(
-                            n = f.s("north").toDoubleOrNull() ?: 0.0,
-                            e = f.s("east").toDoubleOrNull() ?: 0.0,
-                            elev = f.s("elevation").toDoubleOrNull() ?: 0.0,
+                            n = (f.s("north").toDoubleOrNull() ?: 0.0) * 12.0,
+                            e = (f.s("east").toDoubleOrNull() ?: 0.0) * 12.0,
+                            elev = (f.s("elevation").toDoubleOrNull() ?: 0.0) * 12.0,
                             description = f.s("desc")
                         )
                     },
-                    isTakeoff = !group.first().b("isExclusion"),
+                    isTakeoff = true,
+                    isHole = group.first().b("isExclusion"),
                     isClosed = closed,
                     arcHeights = group.map { it.s("arcHeight").toDoubleOrNull() ?: 0.0 }
                 )
             }
         }
-        val current = state.allCoordinatePaths
-        if (paths.isEmpty() && current[name].isNullOrEmpty()) return state
-        return state.copy(allCoordinatePaths = current + (name to paths))
+        val lines = parseArray((data["coord_lines_$name"] as? JsonPrimitive)?.content).mapNotNull { o ->
+            val f = Fields(o.toMutableMap())
+            val from = f.s("from").toIntOrNull(); val to = f.s("to").toIntOrNull()
+            if (from == null || to == null) null else CoordLine(from, to, f.s("arcHeight").toDoubleOrNull() ?: 0.0)
+        }
+        val withLines = if (lines.isEmpty() && state.allCoordLines[name].isNullOrEmpty()) state else state.copy(allCoordLines = state.allCoordLines + (name to lines))
+        val current = withLines.allCoordinatePaths
+        if (paths.isEmpty() && current[name].isNullOrEmpty()) return withLines
+        return withLines.copy(allCoordinatePaths = current + (name to paths))
     }
 
     /** Port of CloudSyncManager.rekeyProjectData so a renamed project keeps its phone-only keys. */
