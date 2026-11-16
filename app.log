@@ -1,0 +1,6 @@
+[SKIKO] warn: Fallback to next API
+org.jetbrains.skiko.RenderException: Cannot create Linux GL context
+Nov 16, 2026 12:59:51 AM java.util.prefs.FileSystemPreferences$1 run
+INFO: Created user preferences directory.
+Nov 16, 2026 12:59:51 AM java.util.prefs.FileSystemPreferences$6 run
+WARNING: Prefs file removed in background /home/runner/.java/.userPrefs/prefs.xml
