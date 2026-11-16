@@ -283,7 +283,11 @@ data class DeckEntry(
     val boardWidth: String,
     val gap: String,
     val boards: String,
-    val fasteners: String
+    val fasteners: String,
+    // Matching the Android app; defaults on older saves
+    val joistOc: String = "16",
+    val direction: String = "Run Along Length",
+    val totalLF: String = ""
 )
 
 @Serializable
@@ -530,7 +534,7 @@ object SummaryReportGenerator {
             sections.add(SummarySection("FLOORING SCHEDULE", listOf("Name", "Length", "Width", "OC", "Joists", "Sheets"), floorEntries.map { listOf(it.name, it.length, it.width, it.spacing, it.joists, it.sheets) }))
         }
         if (deckEntries.isNotEmpty()) {
-            sections.add(SummarySection("DECKING SCHEDULE", listOf("Name", "Length", "Width", "Gap", "Boards", "Fasteners"), deckEntries.map { listOf(it.name, it.length, it.width, it.gap, it.boards, it.fasteners) }))
+            sections.add(SummarySection("DECKING SCHEDULE", listOf("Name", "Length", "Width", "Gap", "Boards", "Total LF", "Fasteners"), deckEntries.map { listOf(it.name, it.length, it.width, it.gap, it.boards, it.totalLF, it.fasteners) }))
         }
         if (handrailEntries.isNotEmpty()) {
             sections.add(SummarySection("HANDRAIL SCHEDULE", listOf("Name", "Length", "Count", "Spacing"), handrailEntries.map { listOf(it.name, it.length, it.spindles, it.spacing) }))
@@ -5200,6 +5204,8 @@ fun DeckCalculator(
     var width by remember { mutableStateOf("") }
     var boardWidth by remember { mutableStateOf("5.5") }
     var gap by remember { mutableStateOf("0.125") }
+    var joistOc by remember { mutableStateOf("16") }
+    var alongWidth by remember { mutableStateOf(false) }
     var sectionName by remember { mutableStateOf("") }
     
     var editingIndex by remember { mutableStateOf(-1) }
@@ -5246,6 +5252,12 @@ fun DeckCalculator(
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                ConstructionTextField(value = joistOc, onValueChange = { joistOc = it }, label = "Joist OC (in)", modifier = Modifier.weight(1f), onFocus = onFocus)
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(Modifier.weight(1f)) { SpSegmented(listOf("Along Length", "Along Width"), if (alongWidth) 1 else 0) { alongWidth = it == 1 } }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = sectionName,
                 onValueChange = { sectionName = it },
@@ -5258,15 +5270,19 @@ fun DeckCalculator(
             Row(modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
-                        val lIn = FractionUtils.parse(length)
-                        val wIn = FractionUtils.parse(width)
-                        val bw = boardWidth.toDoubleOrNull() ?: 5.5
-                        val g = gap.toDoubleOrNull() ?: 0.125
-                        
+                        // Same math as the Android app: plain numbers are feet; boards run along the length or the width
+                        val lIn = FractionUtils.parseFeet(length)
+                        val wIn = FractionUtils.parseFeet(width)
+                        val bw = FractionUtils.parse(boardWidth).takeIf { it > 0 } ?: 5.5
+                        val g = FractionUtils.parse(gap)
+                        val oc = FractionUtils.parse(joistOc).takeIf { it > 0 } ?: 16.0
+
                         if (lIn > 0 && wIn > 0) {
-                            val boardCount = ceil(wIn / (bw + g)).toInt()
-                            // Assuming 16" OC joists for fastener count
-                            val joistCount = ceil(lIn / 16.0).toInt() + 1
+                            val spanDist = if (alongWidth) wIn else lIn
+                            val runDist = if (alongWidth) lIn else wIn
+                            val boardCount = ceil(runDist / (bw + g)).toInt()
+                            val totalLF = boardCount * spanDist / 12.0
+                            val joistCount = ceil(spanDist / oc).toInt() + 1
                             val fasteners = boardCount * joistCount * 2
 
                             val entry = DeckEntry(
@@ -5276,8 +5292,10 @@ fun DeckCalculator(
                                 width = width,
                                 boardWidth = boardWidth,
                                 gap = gap,
-                                boards = "$boardCount Boards (${FractionUtils.formatInches(lIn)})",
-                                fasteners = "$fasteners Screws"
+                                boards = "$boardCount Boards (${FractionUtils.formatInches(spanDist)})",
+                                fasteners = "$fasteners Screws",
+                                joistOc = joistOc, direction = if (alongWidth) "Run Along Width" else "Run Along Length",
+                                totalLF = "${StoryPoleMath.fixed(totalLF, 0)}' LF"
                             )
 
                             if (editingIndex != -1) {
@@ -5314,6 +5332,8 @@ fun DeckCalculator(
                 Divider()
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("SAVED DECKS", color = AppTheme.colors.muted, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("Grand Total: ${StoryPoleMath.fixed(entries.sumOf { it.totalLF.substringBefore("'").toDoubleOrNull() ?: 0.0 }, 0)}' LF",
+                    fontWeight = FontWeight.Bold, fontSize = 17.sp, color = AppTheme.colors.accent, modifier = Modifier.padding(vertical = 6.dp))
                 
                 entries.reversed().forEachIndexed { index, entry ->
                     Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.padding(vertical = 4.dp)) {
@@ -5328,6 +5348,8 @@ fun DeckCalculator(
                                     sectionName = entry.name
                                     length = entry.length
                                     width = entry.width
+                                    boardWidth = entry.boardWidth; gap = entry.gap; joistOc = entry.joistOc
+                                    alongWidth = entry.direction == "Run Along Width"
                                 }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = AppTheme.colors.muted) }
                                 IconButton(onClick = {
                                     val newList = entries.toMutableList()
@@ -5336,8 +5358,8 @@ fun DeckCalculator(
                                 }) { Icon(Icons.Default.Delete, contentDescription = "Delete", tint = AppTheme.colors.muted) }
                             }
                             Divider(modifier = Modifier.padding(vertical = 4.dp))
-                            Text(entry.boards, fontSize = 14.sp)
-                            Text(entry.fasteners, fontSize = 14.sp)
+                            Text(entry.boards + (if (entry.totalLF.isNotBlank()) " · ${entry.totalLF}" else ""), fontSize = 14.sp)
+                            Text(entry.fasteners + " · ${entry.direction}, joists ${entry.joistOc}\" OC", fontSize = 14.sp)
                         }
                     }
                 }
