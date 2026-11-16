@@ -10,6 +10,7 @@ import androidx.compose.material.icons.outlined.CropSquare
 import androidx.compose.material.icons.outlined.Deck
 import androidx.compose.material.icons.outlined.Fence
 import androidx.compose.material.icons.outlined.Height
+import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.FormatListNumbered
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Foundation
@@ -59,7 +60,9 @@ val ToolCatalog = listOf(
     ToolInfo(Screen.ConcreteCalculator, "Concrete / Rebar", "CONCRETE", GROUP_CONCRETE, Icons.Outlined.Foundation),
     ToolInfo(Screen.MasonryCalculator, "Masonry Supply", "MASONRY", GROUP_CONCRETE, Icons.AutoMirrored.Outlined.ViewQuilt),
     ToolInfo(Screen.ColumnCalculator, "Round Column", "COLUMN", GROUP_CONCRETE, Icons.Outlined.RadioButtonUnchecked),
+    ToolInfo(Screen.GradeSlope, "Grade / Slope", "GRADE", GROUP_SITE, Icons.Outlined.Landscape),
     ToolInfo(Screen.CoordinateCalculator, "Site Coordinates", "SITE", GROUP_SITE, Icons.Outlined.MyLocation),
+    ToolInfo(Screen.LandSurvey, "Land Surveying", "SURVEY", GROUP_SITE, Icons.Outlined.Map),
     ToolInfo(Screen.SurveyCalc, "Survey Calc", "S-CALC", GROUP_SITE, Icons.Outlined.Explore),
     ToolInfo(Screen.DrywallCalculator, "Drywall Finish", "DRYWALL", GROUP_SITE, Icons.Outlined.Layers),
     ToolInfo(Screen.TrigCalculator, "Trig Solver", "TRIG", GROUP_SITE, Icons.Outlined.Architecture),

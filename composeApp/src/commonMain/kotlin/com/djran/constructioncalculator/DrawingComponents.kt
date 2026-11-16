@@ -390,8 +390,11 @@ fun FootingCrossSection(
 fun SketchCanvas(
     modifier: Modifier = Modifier,
     paths: SnapshotStateList<Pair<Path, Color>>,
-    onRawPathAdded: (List<Offset>) -> Unit = { _ -> }
+    onRawPathAdded: (List<Offset>) -> Unit = { _ -> },
+    /** Black pen, or white for the eraser (drawn wide). */
+    penColor: Color = Color.Black
 ) {
+    val currentPen by rememberUpdatedState(penColor)
     // Local path being actively drawn
     var currentPath by remember { mutableStateOf(Path()) }
     val currentPoints = remember { mutableStateListOf<Offset>() }
@@ -424,7 +427,7 @@ fun SketchCanvas(
                 onDragEnd = {
                     if (currentPoints.isNotEmpty()) {
                         // Add to shared state list
-                        paths.add(currentPath to Color.Black)
+                        paths.add(currentPath to currentPen)
                         // Save to persistence
                         currentOnRawPathAdded(currentPoints.toList())
                     }
@@ -444,7 +447,7 @@ fun SketchCanvas(
             drawPath(
                 path = entry.first,
                 color = entry.second,
-                style = Stroke(width = 4f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                style = Stroke(width = if (entry.second == Color.White) 28f else 4f, cap = StrokeCap.Round, join = StrokeJoin.Round)
             )
         }
         
@@ -452,8 +455,8 @@ fun SketchCanvas(
         if (currentPoints.isNotEmpty()) {
             drawPath(
                 path = currentPath,
-                color = Color.Black,
-                style = Stroke(width = 4f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                color = currentPen,
+                style = Stroke(width = if (currentPen == Color.White) 28f else 4f, cap = StrokeCap.Round, join = StrokeJoin.Round)
             )
         }
     }
