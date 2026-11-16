@@ -29,6 +29,14 @@ jobs:
         import -window root shot2.png
         xdotool mousemove 960 600; for k in $(seq 1 12); do xdotool click 5; sleep 0.2; done; sleep 2
         import -window root shot3.png
+        xdotool mousemove 884 822 click 1; sleep 3
+        xdotool mousemove 960 600; for k in $(seq 1 25); do xdotool click 5; sleep 0.2; done; sleep 2
+        import -window root shot4.png
+        for k in $(seq 1 15); do xdotool click 5; sleep 0.2; done; sleep 2
+        import -window root shot5.png
+        xdotool mousemove 200 300 click 1; sleep 1
+        xdotool type --delay 120 "6+6="; sleep 2
+        import -window root shot6.png
         tail -20 app.log || true
     - name: Push screenshots
       run: |

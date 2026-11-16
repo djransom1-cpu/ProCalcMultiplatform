@@ -25,6 +25,9 @@ import kotlin.math.*
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.automirrored.filled.Backspace
@@ -647,6 +650,8 @@ fun App() {
     var backTo by remember { mutableStateOf(Screen.Calculator) }
     // Desktop split view: what the right side shows while the calculator is the current page
     var splitRightScreen by remember { mutableStateOf(Screen.JobSummary) }
+    // Desktop: a text field has focus, so typing belongs to it, not the calculator
+    var anyFieldFocused by remember { mutableStateOf(false) }
 
     var isMetricMode by remember { mutableStateOf(uiPrefs.startMetric) }
 
@@ -1027,7 +1032,7 @@ fun App() {
                 "DELETE", "c", "C" -> CalcAction.Clear
                 else -> null
             }
-            if (action != null && (currentScreen in CalcModeScreens || wideSplitLayout)) { handleAction(action); true } else false
+            if (action != null && !anyFieldFocused && (currentScreen in CalcModeScreens || wideSplitLayout)) { handleAction(action); true } else false
         }
         onDispose { HardwareCalcInput.handler = null }
     }
@@ -1426,9 +1431,18 @@ when (screen) {
     }
 
     ProCalcTheme(dark = darkActive) {
-        Column(modifier = Modifier.fillMaxSize().background(LocalAppColors.current.bg)) {
+        Column(modifier = Modifier.fillMaxSize().background(LocalAppColors.current.bg).onFocusChanged { anyFieldFocused = it.hasFocus }) {
             Spacer(modifier = Modifier.fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars))
             BoxWithConstraints(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                // Desktop: clicking the calculator takes focus off a tool's text field, so typing goes to the calculator
+                val releaseFieldOnPress = Modifier.pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val e = awaitPointerEvent(PointerEventPass.Initial)
+                            if (e.type == PointerEventType.Press) focusManager.clearFocus()
+                        }
+                    }
+                }
                 val keyboardOverlay: @Composable () -> Unit = {
                 // Custom Keyboard Overlay
                 if (keyboardVisible) {
@@ -1455,7 +1469,7 @@ when (screen) {
                     val rightScreen = if (currentScreen in CalcModeScreens) splitRightScreen else currentScreen
                     val lightRight = rightScreen !in ShellScreens && toolFor(rightScreen) == null
                     Row(modifier = Modifier.fillMaxSize()) {
-                        Box(modifier = Modifier.width(SplitHomeWidth).fillMaxHeight().background(LocalAppColors.current.bg)) {
+                        Box(modifier = Modifier.width(SplitHomeWidth).fillMaxHeight().background(LocalAppColors.current.bg).then(releaseFieldOnPress)) {
                             screenContent(leftScreen)
                         }
                         Box(modifier = Modifier.width(1.dp).fillMaxHeight().background(LocalAppColors.current.line))
@@ -1470,7 +1484,8 @@ when (screen) {
                     }
                 } else {
                     ProCalcTheme(dark = darkActive && !lightScreen) {
-                        Box(modifier = Modifier.fillMaxSize().background(LocalAppColors.current.bg)) {
+                        Box(modifier = Modifier.fillMaxSize().background(LocalAppColors.current.bg)
+                            .then(if (typeOnKeyboard && currentScreen in CalcModeScreens) releaseFieldOnPress else Modifier)) {
                             screenContent(currentScreen)
                         }
                     }
