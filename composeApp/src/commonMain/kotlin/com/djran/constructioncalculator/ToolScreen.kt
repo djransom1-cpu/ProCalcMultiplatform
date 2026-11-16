@@ -21,6 +21,11 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -57,6 +62,14 @@ fun ToolScreen(
                         maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
                     )
                     actions()
+                    // Help, like the ? on each Android tool
+                    if (ToolHelp.text(tool) != null) {
+                        var showHelp by remember { mutableStateOf(false) }
+                        IconButton(onClick = { showHelp = true }) {
+                            Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = "Help", tint = c.muted)
+                        }
+                        if (showHelp) ToolHelpDialog(tool) { showHelp = false }
+                    }
                 }
                 Column(
                     Modifier.fillMaxWidth().weight(1f)
