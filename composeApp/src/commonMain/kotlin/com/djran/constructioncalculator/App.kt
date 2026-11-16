@@ -629,6 +629,9 @@ class PersistenceManager(private val settings: Settings? = null) {
 
 val BlueTool = Color(0xFF0A2A66)
 
+/** Lumber sizes on Roof Takeoff (Android: R.array.lumber_sizes). */
+val RoofLumber = listOf("2x4", "2x6", "2x8", "2x10", "2x12")
+
 /** Desktop split view: window width where it starts, and the home page's width. */
 val SplitMinWidth = 1000.dp
 val SplitHomeWidth = 440.dp
@@ -1976,6 +1979,7 @@ fun RoofCalculator(
     var leftEndType by remember { mutableStateOf(0) } // 0=Gable, 1=Hip, 2=Valley
     var rightEndType by remember { mutableStateOf(0) }
     var isTruss by remember { mutableStateOf(false) }
+    var roofLumber by remember { mutableStateOf("2x8") }
     var bothSides by remember { mutableStateOf(false) }
     var sectionName by remember { mutableStateOf("") }
 
@@ -2079,6 +2083,9 @@ fun RoofCalculator(
                 Checkbox(checked = bothSides, onCheckedChange = { bothSides = it })
                 Text("Both Sides (Mirror)", fontSize = 13.sp)
             }
+            // Lumber size like the Android app: ridge, hips and valleys go one size up
+            Text("Lumber Size:", fontSize = 13.sp, color = AppTheme.colors.muted, modifier = Modifier.padding(top = 6.dp, bottom = 4.dp))
+            SpSegmented(RoofLumber, RoofLumber.indexOf(roofLumber).coerceAtLeast(0)) { roofLumber = RoofLumber[it] }
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = sectionName,
@@ -2102,10 +2109,11 @@ fun RoofCalculator(
                             val res = RoofEngine.calculate(s, bl, oh, p, ocVal, leftEndType, rightEndType, isTruss, bothSides)
                             results = res
 
-                            val commonInfo = "$oc\" OC x ${res.commonCount}${if (bothSides) " (Mirror)" else ""} @ ${FractionUtils.formatInches(res.overallLen)}"
-                            val hipInfo = if (res.totalHips > 0) "${res.totalHips} pcs @ ${FractionUtils.formatInches(res.hipLen)}" else "-"
-                            val valleyInfo = if (res.totalValleys > 0) "${res.totalValleys} pcs @ ${FractionUtils.formatInches(res.hipLen)}" else "-"
-                            val ridgeInfo = if (!isTruss) FractionUtils.formatInches(res.correctedRidgeLen) else "-"
+                            val nextLumber = RoofLumber.getOrElse(RoofLumber.indexOf(roofLumber) + 1) { roofLumber }
+                            val commonInfo = "$roofLumber ${if (isTruss) "Truss" else "Rafter"} $oc\" OC x ${res.commonCount}${if (bothSides) " (Mirror)" else ""} @ ${FractionUtils.formatInches(res.overallLen)}"
+                            val hipInfo = if (res.totalHips > 0) "${res.totalHips} pcs $nextLumber @ ${FractionUtils.formatInches(res.hipLen)}" else "-"
+                            val valleyInfo = if (res.totalValleys > 0) "${res.totalValleys} pcs $nextLumber @ ${FractionUtils.formatInches(res.hipLen)}" else "-"
+                            val ridgeInfo = if (!isTruss) "$nextLumber @ ${FractionUtils.formatInches(res.correctedRidgeLen)}" else "-"
 
                             val entry = RoofEntry(
                                 id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
