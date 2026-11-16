@@ -25,6 +25,9 @@ import kotlin.math.*
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.automirrored.filled.Backspace
@@ -133,7 +136,9 @@ data class RafterEntry(
     val jack16: String,
     val jack24: String,
     /** Shed roof: [span] holds the rafter run. Missing in older saves, which read as gable. */
-    val isShed: Boolean = false
+    val isShed: Boolean = false,
+    /** Jack rafter / flat top layout (JackRafterMath.encode); blank on older saves and sheds. */
+    val jackData: String = ""
 )
 
 @Serializable
@@ -458,6 +463,8 @@ object SummaryReportGenerator {
         }
         if (rafterEntries.isNotEmpty()) {
             sections.add(SummarySection("RAFTER SCHEDULE", listOf("Name", "Span", "Pitch", "Heel", "O/H", "Com Len", "Hip Len", "Jack 16"), rafterEntries.map { listOf(it.name, if (it.isShed) "${it.span} (shed run)" else it.span, it.pitch, it.heel, it.overhang, it.commonLen, it.hipLen, it.jack16) }))
+            // Jack rafter results, same as the Data Sheet
+            rafterEntries.forEach { e -> JackResults.fromEntry(e)?.let { sections.addAll(JackResults.reportSections(e.name, it)) } }
         }
         if (gazeboEntries.isNotEmpty()) {
             sections.add(SummarySection("GAZEBO SCHEDULE", listOf("Name", "Sides", "Diam", "Pitch", "Area", "Com Len", "Hip Len"), gazeboEntries.map { listOf(it.name, it.sides, it.diameter, it.pitch, it.area, it.commonRafterLen, it.hipLen) }))
@@ -643,6 +650,8 @@ fun App() {
     var backTo by remember { mutableStateOf(Screen.Calculator) }
     // Desktop split view: what the right side shows while the calculator is the current page
     var splitRightScreen by remember { mutableStateOf(Screen.JobSummary) }
+    // Desktop: a text field has focus, so typing belongs to it, not the calculator
+    var anyFieldFocused by remember { mutableStateOf(false) }
 
     var isMetricMode by remember { mutableStateOf(uiPrefs.startMetric) }
 
@@ -1023,7 +1032,7 @@ fun App() {
                 "DELETE", "c", "C" -> CalcAction.Clear
                 else -> null
             }
-            if (action != null && (currentScreen in CalcModeScreens || wideSplitLayout)) { handleAction(action); true } else false
+            if (action != null && !anyFieldFocused && (currentScreen in CalcModeScreens || wideSplitLayout)) { handleAction(action); true } else false
         }
         onDispose { HardwareCalcInput.handler = null }
     }
@@ -1422,9 +1431,18 @@ when (screen) {
     }
 
     ProCalcTheme(dark = darkActive) {
-        Column(modifier = Modifier.fillMaxSize().background(LocalAppColors.current.bg)) {
+        Column(modifier = Modifier.fillMaxSize().background(LocalAppColors.current.bg).onFocusChanged { anyFieldFocused = it.hasFocus }) {
             Spacer(modifier = Modifier.fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars))
             BoxWithConstraints(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                // Desktop: clicking the calculator takes focus off a tool's text field, so typing goes to the calculator
+                val releaseFieldOnPress = Modifier.pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val e = awaitPointerEvent(PointerEventPass.Initial)
+                            if (e.type == PointerEventType.Press) focusManager.clearFocus()
+                        }
+                    }
+                }
                 val keyboardOverlay: @Composable () -> Unit = {
                 // Custom Keyboard Overlay
                 if (keyboardVisible) {
@@ -1451,7 +1469,7 @@ when (screen) {
                     val rightScreen = if (currentScreen in CalcModeScreens) splitRightScreen else currentScreen
                     val lightRight = rightScreen !in ShellScreens && toolFor(rightScreen) == null
                     Row(modifier = Modifier.fillMaxSize()) {
-                        Box(modifier = Modifier.width(SplitHomeWidth).fillMaxHeight().background(LocalAppColors.current.bg)) {
+                        Box(modifier = Modifier.width(SplitHomeWidth).fillMaxHeight().background(LocalAppColors.current.bg).then(releaseFieldOnPress)) {
                             screenContent(leftScreen)
                         }
                         Box(modifier = Modifier.width(1.dp).fillMaxHeight().background(LocalAppColors.current.line))
@@ -1466,7 +1484,8 @@ when (screen) {
                     }
                 } else {
                     ProCalcTheme(dark = darkActive && !lightScreen) {
-                        Box(modifier = Modifier.fillMaxSize().background(LocalAppColors.current.bg)) {
+                        Box(modifier = Modifier.fillMaxSize().background(LocalAppColors.current.bg)
+                            .then(if (typeOnKeyboard && currentScreen in CalcModeScreens) releaseFieldOnPress else Modifier)) {
                             screenContent(currentScreen)
                         }
                     }
@@ -2678,6 +2697,7 @@ fun JobSummaryScreen(
                                     lumberDepth = 7.25,
                                     overhang = FractionUtils.parse(entry.overhang).takeIf { it > 0 } ?: 12.0
                                 ) }
+                                JackResults.fromEntry(entry)?.let { JackResultsBlock(it) }
                             }
                             Divider()
                         }
@@ -4259,6 +4279,9 @@ fun RafterCalculator(
     var pitch by remember { mutableStateOf("6") }
     var span by remember { mutableStateOf("") }
     var isShed by remember { mutableStateOf(false) }
+    var flatTop by remember { mutableStateOf(false) }
+    var jack by remember { mutableStateOf(JackSettings.load()) }
+    var jackCalc by remember { mutableStateOf<JackResults.Computed?>(null) }
     var ridgeThick by remember { mutableStateOf("1.5") }
     var rafterDepth by remember { mutableStateOf("7.25") }
     var heelHeight by remember { mutableStateOf("4.0") }
@@ -4276,14 +4299,16 @@ fun RafterCalculator(
 
             // Gable: enter the building span. Shed: enter the run; the ledger/beam is taken off it.
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                listOf(false to "Gable (span)", true to "Shed (run + ledger)").forEach { (shed, label) ->
+                listOf(0 to "Gable (span)", 1 to "Shed (run + ledger)", 2 to "Flat top (deck)").forEach { (type, label) ->
+                    val pick = { isShed = type == 1; flatTop = type == 2; results = null; jackCalc = null }
+                    val current = if (isShed) 1 else if (flatTop) 2 else 0
                     Row(
-                        modifier = Modifier.weight(1f).clickable { isShed = shed; results = null },
+                        modifier = Modifier.weight(1f).clickable { pick() },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(
-                            selected = isShed == shed,
-                            onClick = { isShed = shed; results = null },
+                            selected = current == type,
+                            onClick = { pick() },
                             colors = RadioButtonDefaults.colors(selectedColor = AppTheme.colors.accent)
                         )
                         Text(label, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
@@ -4333,7 +4358,7 @@ fun RafterCalculator(
                 ConstructionTextField(
                     value = ridgeThick,
                     onValueChange = { ridgeThick = it },
-                    label = if (isShed) "Ledger / Beam (in)" else "Ridge (in)",
+                    label = if (isShed) "Ledger / Beam (in)" else if (flatTop) "Deck width (to rafter faces)" else "Ridge (in)",
                     modifier = Modifier.weight(1f),
                     onFocus = onFocus
                 )
@@ -4353,6 +4378,9 @@ fun RafterCalculator(
                 label = { Text("Section Name / Location") },
                 modifier = Modifier.fillMaxWidth()
             )
+
+            // Jack rafters, irregular hips and flat tops (not on a shed roof)
+            if (!isShed) JackInputs(jack, flatTop, { jack = it; JackSettings.save(it) }, onFocus)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -4375,6 +4403,8 @@ fun RafterCalculator(
                                 isShed = isShed
                             )
                             results = res
+                            val jackSaved = if (isShed) null else jack.toSaved(s, r, p, heel, oh, flatTop)
+                            jackCalc = jackSaved?.let { JackResults.compute(it) }
 
                             val commonAngle = res.angleDeg
                             val hipAngle = atan(res.hipPitch / 12.0) * (180.0 / PI)
@@ -4405,7 +4435,8 @@ fun RafterCalculator(
                                 hipPlumbSeat = if (isShed) "-" else "${hipAngle.roundToOneDecimal()}° / ${(90.0 - hipAngle).roundToOneDecimal()}°",
                                 jack16 = if (isShed) "-" else FractionUtils.formatInches(16.0 * factor),
                                 jack24 = if (isShed) "-" else FractionUtils.formatInches(24.0 * factor),
-                                isShed = isShed
+                                isShed = isShed,
+                                jackData = jackSaved?.takeIf { jackCalc?.r?.ok == true }?.let { JackRafterMath.encode(it) } ?: ""
                             )
 
                             if (editingIndex != -1) {
@@ -4559,6 +4590,7 @@ fun RafterCalculator(
                         }
                     }
                 }
+                jackCalc?.let { JackResultsBlock(it) }
                 }
             }
             
@@ -4586,6 +4618,10 @@ fun RafterCalculator(
                                     span = entry.span
                                     isShed = entry.isShed
                                     ridgeThick = entry.ridge
+                                    JackRafterMath.decode(entry.jackData).let { sv ->
+                                        flatTop = sv?.flatTop == true
+                                        if (sv != null) { jack = JackSettings.from(sv); JackSettings.save(jack) }
+                                    }
                                 }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = AppTheme.colors.muted) }
                                 IconButton(onClick = {
                                     val newList = entries.toMutableList()
@@ -4608,6 +4644,7 @@ fun RafterCalculator(
                                     }
                                 }
                             }
+                            JackResults.fromEntry(entry)?.let { JackResultsBlock(it) }
                         }
                     }
                 }
