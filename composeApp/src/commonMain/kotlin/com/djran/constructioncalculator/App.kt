@@ -266,7 +266,12 @@ data class DrywallEntry(
     val sheets: String,
     val sheetSize: String = "4x8",
     val mud: String,
-    val tape: String
+    val tape: String,
+    // Room inputs, matching the Android app; blank on older saves (area only)
+    val length: String = "",
+    val width: String = "",
+    val roomMode: Boolean = false,
+    val wallHeight: String = "8"
 )
 
 @Serializable
@@ -390,7 +395,15 @@ data class ColumnEntry(
     val height: String,
     val volume: String,
     val surfaceArea: String,
-    val circumference: String
+    val circumference: String,
+    // Matching the Android app; blank/defaults on older saves
+    val qty: String = "1",
+    val rebarFt: String = "",
+    val rebarMode: Int = 0,
+    val vertBars: String = "0",
+    val tieOc: String = "12",
+    val barsTop: String = "0",
+    val barsBottom: String = "0"
 )
 
 @Serializable
@@ -508,7 +521,7 @@ object SummaryReportGenerator {
             sections.add(SummarySection("TRIG SOLUTIONS SCHEDULE", listOf("Name", "Side A", "Side B", "Hypot", "Angle A", "Angle B"), trigEntries.map { listOf(it.name, it.sideA, it.sideB, it.hypotenuse, it.angleA, it.angleB) }))
         }
         if (columnEntries.isNotEmpty()) {
-            sections.add(SummarySection("COLUMN / CIRCLE SCHEDULE", listOf("Name", "Diam", "Height", "Volume", "Surf Area", "Circumf"), columnEntries.map { listOf(it.name, it.diameter, it.height, it.volume, it.surfaceArea, it.circumference) }))
+            sections.add(SummarySection("COLUMN / CIRCLE SCHEDULE", listOf("Name", "Qty", "Diam", "Height", "Volume", "Rebar", "Circumf"), columnEntries.map { listOf(it.name, it.qty, it.diameter, it.height, it.volume, if (it.rebarFt.isBlank()) "-" else it.rebarFt + "'", it.circumference) }))
         }
         if (roofEntries.isNotEmpty()) {
             sections.add(SummarySection("ROOF SCHEDULE", listOf("Name", "Area", "Squares", "Bundles", "Sheets", "Pitch"), roofEntries.map { listOf(it.name, it.area, it.squares, it.bundles, it.sheets, it.dimensions) }))
@@ -2905,12 +2918,12 @@ fun JobSummaryScreen(
                 }
 
                 if (columnEntries.isNotEmpty()) {
-                    SummaryTable("COLUMN / CIRCLE SCHEDULE", listOf("Name", "Diam", "Height", "Volume", "Surf Area", "Circumf")) {
+                    SummaryTable("COLUMN / CIRCLE SCHEDULE", listOf("Name", "Qty", "Diam", "Height", "Volume", "Rebar", "Circumf")) {
                         columnEntries.forEach { entry ->
                             Row(modifier = Modifier.padding(vertical = 8.dp)) {
-                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.diameter, 80.dp)
-                                TableCell(entry.height, 80.dp); TableCell(entry.volume, 100.dp)
-                                TableCell(entry.surfaceArea, 100.dp); TableCell(entry.circumference, 100.dp)
+                                TableCell(entry.name, 120.dp, isBold = true); TableCell(entry.qty, 50.dp); TableCell(entry.diameter, 80.dp)
+                                TableCell(entry.height, 80.dp); TableCell(entry.volume, 110.dp)
+                                TableCell(if (entry.rebarFt.isBlank()) "-" else entry.rebarFt + "'", 80.dp); TableCell(entry.circumference, 100.dp)
                             }
                             Divider()
                         }
@@ -5825,6 +5838,10 @@ fun DrywallCalculator(
     onFocus: (String, (String) -> Unit) -> Unit
 ) {
     var areaInput by remember { mutableStateOf("") }
+    var lengthIn by remember { mutableStateOf("") }
+    var widthIn by remember { mutableStateOf("") }
+    var roomMode by remember { mutableStateOf(false) }
+    var wallHeight by remember { mutableStateOf("8") }
     var sheetSize by remember { mutableStateOf("4x8") }
     var sectionName by remember { mutableStateOf("") }
     
@@ -5836,10 +5853,21 @@ fun DrywallCalculator(
             Text("FINISH AREA & MATERIAL", color = AppTheme.colors.accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Room dimensions like the Android app; or type a total area instead
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ConstructionTextField(value = lengthIn, onValueChange = { lengthIn = it }, label = "Length (ft)", modifier = Modifier.weight(1f), onFocus = onFocus)
+                Spacer(modifier = Modifier.width(8.dp))
+                ConstructionTextField(value = widthIn, onValueChange = { widthIn = it }, label = "Width (ft)", modifier = Modifier.weight(1f), onFocus = onFocus)
+            }
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = roomMode, onCheckedChange = { roomMode = it }, colors = SwitchDefaults.colors(checkedThumbColor = AppTheme.colors.accent))
+                Text("Calculate 4 Walls + Ceiling", modifier = Modifier.weight(1f))
+                if (roomMode) ConstructionTextField(value = wallHeight, onValueChange = { wallHeight = it }, label = "Wall Height (ft)", modifier = Modifier.width(140.dp), onFocus = onFocus)
+            }
             ConstructionTextField(
                 value = areaInput,
                 onValueChange = { areaInput = it },
-                label = "Total Area (sq ft)",
+                label = "Or Total Area (sq ft)",
                 modifier = Modifier.fillMaxWidth(),
                 onFocus = onFocus
             )
@@ -5876,7 +5904,12 @@ fun DrywallCalculator(
             Row(modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
-                        val area = areaInput.toDoubleOrNull() ?: 0.0
+                        val len = FractionUtils.parseFeet(lengthIn)
+                        val wid = FractionUtils.parseFeet(widthIn)
+                        val wallH = FractionUtils.parseFeet(wallHeight).takeIf { it > 0 } ?: 96.0
+                        val area = if (len > 0 && wid > 0) {
+                            (if (roomMode) 2.0 * len * wallH + 2.0 * wid * wallH + len * wid else len * wid) / 144.0
+                        } else areaInput.toDoubleOrNull() ?: 0.0
                         if (area > 0) {
                             val divisor = when(sheetSize) {
                                 "4x8" -> 32.0
@@ -5890,8 +5923,9 @@ fun DrywallCalculator(
 
                             val entry = DrywallEntry(
                                 id = if (editingIndex != -1) entries[editingIndex].id else (entries.size + 1).toString(),
-                                name = sectionName.ifEmpty { "Drywall Section" },
-                                area = "$area sq ft",
+                                name = sectionName.ifEmpty { "Room ${entries.size + 1}" },
+                                area = "${StoryPoleMath.fixed(area, 0)} sq ft",
+                                length = lengthIn, width = widthIn, roomMode = roomMode, wallHeight = wallHeight,
                                 sheets = "$sheets Sheets",
                                 sheetSize = sheetSize,
                                 mud = "$mud lbs Mud",
@@ -5906,7 +5940,7 @@ fun DrywallCalculator(
                             } else {
                                 onUpdateEntries(entries + entry)
                             }
-                            sectionName = ""; areaInput = ""
+                            sectionName = ""; areaInput = ""; lengthIn = ""; widthIn = ""
                         }
                     },
                     modifier = Modifier.weight(2f).height(64.dp),
@@ -5933,6 +5967,17 @@ fun DrywallCalculator(
                 Divider()
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("SAVED DRYWALL", color = AppTheme.colors.muted, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                val totArea = entries.sumOf { it.area.substringBefore(" ").toDoubleOrNull() ?: 0.0 }
+                val totSheets = entries.sumOf { it.sheets.substringBefore(" ").toDoubleOrNull() ?: 0.0 }
+                val totMud = entries.sumOf { it.mud.substringBefore(" ").toDoubleOrNull() ?: 0.0 }
+                val totTape = entries.sumOf { it.tape.substringBefore(" ").toDoubleOrNull() ?: 0.0 }
+                Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(2.dp, AppTheme.colors.accent), modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text("Total Area: ${StoryPoleMath.fixed(totArea, 0)} sq ft", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Total Sheets: ${StoryPoleMath.fixed(totSheets, 0)}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = AppTheme.colors.accent)
+                        Text("Mud: ${StoryPoleMath.fixed(totMud, 0)} lbs | Tape: ${StoryPoleMath.fixed(totTape, 0)} ft", fontSize = 14.sp)
+                    }
+                }
                 
                 entries.reversed().forEachIndexed { index, entry ->
                     Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.padding(vertical = 4.dp)) {
@@ -5945,7 +5990,8 @@ fun DrywallCalculator(
                                 IconButton(onClick = {
                                     editingIndex = entries.size - 1 - index
                                     sectionName = entry.name
-                                    areaInput = entry.area.replace(" sq ft", "")
+                                    areaInput = if (entry.length.isBlank()) entry.area.replace(" sq ft", "") else ""
+                                    lengthIn = entry.length; widthIn = entry.width; roomMode = entry.roomMode; wallHeight = entry.wallHeight
                                 }) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = AppTheme.colors.muted) }
                                 IconButton(onClick = {
                                     val newList = entries.toMutableList()
@@ -6398,69 +6444,6 @@ fun TrigCalculator(
         }
     }
 }
-
-@Composable
-fun ColumnCalculator(
-    entries: List<ColumnEntry>,
-    onUpdateEntries: (List<ColumnEntry>) -> Unit,
-    onBack: () -> Unit,
-    onFocus: (String, (String) -> Unit) -> Unit
-) {
-    var diameter by remember { mutableStateOf("") }
-    var height by remember { mutableStateOf("") }
-    var sectionName by remember { mutableStateOf("") }
-
-    var results by remember { mutableStateOf<ColumnEngine.ColumnResult?>(null) }
-
-    ToolScreen(Screen.ColumnCalculator, onBack) {
-
-        Column(modifier = Modifier.padding(16.dp)) {
-            ConstructionTextField(value = diameter, onValueChange = { diameter = it }, label = "Diameter (ft/in)", modifier = Modifier.fillMaxWidth(), onFocus = onFocus)
-            Spacer(modifier = Modifier.height(8.dp))
-            ConstructionTextField(value = height, onValueChange = { height = it }, label = "Height / Length (ft/in)", modifier = Modifier.fillMaxWidth(), onFocus = onFocus)
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(value = sectionName, onValueChange = { sectionName = it }, label = { Text("Section Name") }, modifier = Modifier.fillMaxWidth())
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = {
-                    val d = FractionUtils.parse(diameter); val h = FractionUtils.parse(height)
-                    if (d > 0) {
-                        val res = ColumnEngine.calculate(d, h)
-                        results = res
-                        val entry = ColumnEntry(
-                            id = (entries.size + 1).toString(),
-                            name = sectionName.ifEmpty { "Column Section" },
-                            diameter = diameter,
-                            height = height,
-                            volume = "${(res.volume / 46656.0).roundToOneDecimal()} cu yd",
-                            surfaceArea = "${(res.surfaceArea / 144.0).roundToOneDecimal()} sq ft",
-                            circumference = FractionUtils.formatInches(res.circumference)
-                        )
-                        onUpdateEntries(entries + entry); sectionName = ""
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(56.dp)
-            ) { Text("CALCULATE & SAVE") }
-
-            results?.let { res ->
-                Spacer(modifier = Modifier.height(24.dp))
-                Card(elevation = 0.dp, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, AppTheme.colors.line), modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("CIRCLE / COLUMN RESULTS", fontWeight = FontWeight.Bold, color = AppTheme.colors.accent, fontSize = 12.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Volume: ${(res.volume / 46656.0).roundToOneDecimal()} cu yd", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = AppTheme.colors.accent)
-                        Text("Circumference: ${FractionUtils.formatInches(res.circumference)}", fontSize = 16.sp)
-                        Text("Surface Area: ${(res.surfaceArea / 144.0).roundToOneDecimal()} sq ft", fontSize = 16.sp)
-                    }
-                }
-            }
-        }
-    }
-}
-
-
 
 @Composable
 fun CalculatorHelpScreen(onBack: () -> Unit) {
