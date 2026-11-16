@@ -5826,7 +5826,7 @@ fun MasonryCalculator(
                         val qtyVal = qty.toDoubleOrNull() ?: 1.0
                         if (lenIn > 0 && heightIn > 0) {
                             val areaSqFt = (lenIn * heightIn / 144.0) * qtyVal
-                            val unitMultiplier = if (isBlock) 1.125 else 7.0
+                            val unitMultiplier = if (isBlock) 1.125 else 6.0 // standard brick face is 24 sq in, so 6 per sq ft
                             val totalUnits = ceil(areaSqFt * unitMultiplier)
                             val mortarDivider = if (isBlock) 35.0 else 135.0
                             val mortarBags = ceil(totalUnits / mortarDivider)
