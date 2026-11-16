@@ -1,0 +1,38 @@
+name: Desktop jar (test)
+on:
+  push:
+    branches: [ "feature/parity" ]
+permissions:
+  contents: write
+jobs:
+  jar:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
+      with: { distribution: 'temurin', java-version: '21', cache: 'gradle' }
+    - run: chmod +x gradlew
+    - run: |
+        [ -f composeApp/google-services.json ] || echo '{"project_info":{"project_number":"000000000000","project_id":"ci-placeholder","storage_bucket":"ci-placeholder.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000","android_client_info":{"package_name":"com.djran.constructioncalculator.multi"}},"oauth_client":[],"api_key":[{"current_key":"ci-placeholder"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}' > composeApp/google-services.json
+    - run: ./gradlew :composeApp:packageUberJarForCurrentOS
+    - name: Screenshot
+      run: |
+        sudo apt-get update -qq && sudo apt-get install -y -qq xvfb imagemagick xdotool >/dev/null
+        Xvfb :99 -screen 0 1440x960x24 & sleep 2
+        export DISPLAY=:99
+        java -jar composeApp/build/compose/jars/*.jar > app.log 2>&1 &
+        sleep 25
+        import -window root shot1.png
+        xdotool mousemove 426 487 click 1; sleep 4
+        xdotool mousemove 1093 236 click 1; sleep 1
+        xdotool type --delay 80 "24'"; sleep 1
+        import -window root shot2.png
+        xdotool mousemove 960 600; for k in $(seq 1 12); do xdotool click 5; sleep 0.2; done; sleep 2
+        import -window root shot3.png
+        tail -20 app.log || true
+    - name: Push screenshots
+      run: |
+        mkdir -p /tmp/s && cp shot*.png app.log /tmp/s/ || true
+        git config user.name ci; git config user.email ci@example.com
+        git checkout --orphan ci-shots && git rm -rfq . && cp /tmp/s/* . && git add shot*.png app.log
+        git commit -qm "screenshots $GITHUB_SHA" && git push -f origin ci-shots

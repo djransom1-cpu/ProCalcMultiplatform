@@ -40,7 +40,7 @@ const val GROUP_SITE = "Site, Finish & Math"
 
 val ToolCatalog = listOf(
     ToolInfo(Screen.StairCalculator, "Stair Layout", "STAIR", GROUP_CARPENTRY, Icons.Outlined.Stairs),
-    ToolInfo(Screen.RafterCalculator, "Rafter Cuts", "RAFTER", GROUP_CARPENTRY, Icons.Outlined.ChangeHistory),
+    ToolInfo(Screen.RafterCalculator, "Rafter, Hip & Jack Cuts", "RAFTER", GROUP_CARPENTRY, Icons.Outlined.ChangeHistory),
     ToolInfo(Screen.RoofCalculator, "Roof Takeoff", "ROOF", GROUP_CARPENTRY, Icons.Outlined.Roofing),
     ToolInfo(Screen.GableCut, "Gable Panel Cut", "GABLE", GROUP_CARPENTRY, Icons.Outlined.Cottage),
     ToolInfo(Screen.GableStuds, "Gable Studs", "G-STUDS", GROUP_CARPENTRY, Icons.Outlined.ViewColumn),

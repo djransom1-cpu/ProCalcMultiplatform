@@ -54,7 +54,13 @@ object ReportDrawings {
         floorEntries: List<FloorEntry>,
         measurer: TextMeasurer
     ): List<SummarySection> = sections.map { section ->
-        val images: List<ReportImage> = when (section.title) {
+        val images: List<ReportImage> = if (section.title.startsWith("JACK RAFTERS: ")) {
+            // Jack rafter plan for that saved rafter entry
+            val name = section.title.removePrefix("JACK RAFTERS: ")
+            rafterEntries.firstOrNull { it.name == name }?.let { JackResults.fromEntry(it) }?.let { jc ->
+                listOfNotNull(render("$name – jack layout", (WIDTH_DP * JackResults.planAspect(jc)).toInt().coerceAtLeast(160), insetDp = 8) { drawJackPlan(jc, measurer) })
+            } ?: emptyList()
+        } else when (section.title) {
             "STAIR SCHEDULE" -> stairEntries.mapNotNull { e ->
                 render(e.name, 240) {
                     drawStairDiagram(
