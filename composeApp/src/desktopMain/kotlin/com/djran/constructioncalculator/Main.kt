@@ -7,10 +7,23 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.utf16CodePoint
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+
+/**
+ * The app's own icon for the title bar and taskbar (the installer's icon is icon.ico, set in
+ * composeApp/build.gradle.kts). Without it Windows shows the generic Java/Compose icon.
+ */
+private val appIcon: Painter? = runCatching {
+    Thread.currentThread().contextClassLoader.getResourceAsStream("icon.png")?.use { s ->
+        BitmapPainter(org.jetbrains.skia.Image.makeFromEncoded(s.readBytes()).toComposeImageBitmap())
+    }
+}.getOrNull()
 
 /** ProCalc for Windows (and Mac/Linux): the same app as the web and phone builds, in a window. */
 fun main() = application {
@@ -18,6 +31,7 @@ fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
         title = "ProCalc",
+        icon = appIcon,
         state = state,
         // Esc works like the phone's back gesture: closes the keypad, then the open tool
         onPreviewKeyEvent = { e ->
