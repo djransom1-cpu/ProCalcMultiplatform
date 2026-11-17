@@ -5,6 +5,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.utf16CodePoint
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -18,6 +19,7 @@ fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
         title = "ProCalc",
+        icon = painterResource("procalc.png"),
         state = state,
         // Esc works like the phone's back gesture: closes the keypad, then the open tool
         onPreviewKeyEvent = { e ->

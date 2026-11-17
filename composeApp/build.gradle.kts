@@ -122,6 +122,7 @@ compose.desktop {
             description = "ProCalc construction calculator"
             vendor = "Construction App Builders LLC"
             windows {
+                iconFile.set(project.file("icons/procalc.ico"))
                 menuGroup = "ProCalc"
                 shortcut = true
                 dirChooser = true
