@@ -121,7 +121,7 @@ compose.desktop {
             packageVersion = "1.1.${System.getenv("GITHUB_RUN_NUMBER") ?: "0"}"
             description = "ProCalc construction calculator"
             vendor = "Construction App Builders LLC"
-            // The app's icon (calculator and drafting line, from the Android launcher art) for the
+            // The app's icon (the phone app's purple tile with the white roof and calculator marks) for the
             // installer, Start menu, desktop shortcut and the .exe; the window loads icon.png itself.
             linux { iconFile.set(project.file("icon.png")) }
             windows {
